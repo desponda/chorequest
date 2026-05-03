@@ -9,6 +9,7 @@ create table families (
   parent_pin text check (parent_pin ~ '^[0-9]{4}$'), -- optional 4-digit lock PIN
   invite_token uuid not null default gen_random_uuid() unique,
   api_key uuid not null default gen_random_uuid() unique,
+  daily_reset_hour integer not null default 0 check (daily_reset_hour >= 0 and daily_reset_hour <= 23),
   created_at timestamptz default now()
 );
 

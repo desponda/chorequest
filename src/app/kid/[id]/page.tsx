@@ -12,6 +12,7 @@ import { CoinCounter } from '@/components/coin-counter'
 import { StreakBadge } from '@/components/streak-badge'
 import type { Kid, Quest, Completion, Reward } from '@/lib/types'
 import { KID_COLORS, getLockDurationMs } from '@/lib/constants'
+import { questDateString } from '@/lib/utils'
 import { toast } from 'sonner'
 
 const PIN_SESSION_KEY = 'cq_kid_pin_'
@@ -36,7 +37,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'quests' | 'rewards'>('quests')
   const [supabase] = useState(createClient)
-  const today = new Date().toISOString().split('T')[0]
+  const [resetHour, setResetHour] = useState(0)
 
   const fetchData = useCallback(async () => {
     const [kidRes, questsRes, completionsRes, rewardsRes] = await Promise.all([
@@ -45,6 +46,11 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
       supabase.from('completions').select('*').eq('kid_id', id),
       supabase.from('rewards').select('*').eq('available', true),
     ])
+
+    if (kidRes.data?.family_id) {
+      const { data: fam } = await supabase.from('families').select('daily_reset_hour').eq('id', kidRes.data.family_id).single()
+      if (fam) setResetHour(fam.daily_reset_hour ?? 0)
+    }
 
     if (kidRes.data) setKid(kidRes.data)
     if (questsRes.data) {
@@ -126,7 +132,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
         quest_id: questId,
         kid_id: id,
         status: 'pending',
-        date: new Date().toISOString().split('T')[0],
+        date: questDateString(resetHour),
       })
 
       if (error) {
@@ -137,7 +143,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
       toast.success(`Quest submitted! ✨`, { description: `+${quest.coins} coins once approved` })
       await fetchData()
     },
-    [quests, id, supabase, fetchData]
+    [quests, id, supabase, fetchData, resetHour]
   )
 
   const handleRedeem = useCallback(
@@ -181,6 +187,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
     )
   }
 
+  const today = questDateString(resetHour)
   const colors = KID_COLORS[kid.color]
 
   // PIN screen

@@ -11,6 +11,7 @@ import { StarField } from '@/components/star-field'
 import { QuestCard } from '@/components/quest-card'
 import type { Kid, Quest, Completion, Reward, Redemption, Family } from '@/lib/types'
 import { KID_COLORS, KID_AVATARS, QUEST_ICONS, DEFAULT_QUESTS, TIER_CONFIG, getLockDurationMs } from '@/lib/constants'
+import { questDateString } from '@/lib/utils'
 import type { QuestTier } from '@/lib/types'
 import QRCode from 'react-qr-code'
 import { toast } from 'sonner'
@@ -68,12 +69,14 @@ export default function ParentDashboard() {
     const { data: profile } = await supabase.from('profiles').select('family_id').single()
     if (!profile) return
 
-    const today = new Date().toISOString().split('T')[0]
+    // Fetch reset hour first so today is always computed against the correct boundary
+    const { data: resetData } = await supabase.from('families').select('daily_reset_hour').eq('id', profile.family_id).single()
+    const today = questDateString(resetData?.daily_reset_hour ?? 0)
 
     const kidCols = 'id, name, avatar, color, coins, streak, last_completed_date, family_id, created_at'
 
     const [familyRes, kidsRes, questsRes, completionsRes, rewardsRes, redemptionsRes] = await Promise.all([
-      supabase.from('families').select('id, name, invite_token, api_key, created_at, parent_pin').eq('id', profile.family_id).single(),
+      supabase.from('families').select('id, name, invite_token, api_key, daily_reset_hour, created_at, parent_pin').eq('id', profile.family_id).single(),
       supabase.from('kids').select(kidCols).eq('family_id', profile.family_id).order('created_at'),
       supabase.from('quests').select('*').eq('family_id', profile.family_id).order('created_at'),
       supabase.from('completions').select(`*, quest:quests(*), kid:kids(${kidCols})`).eq('date', today).order('completed_at', { ascending: false }),
@@ -83,7 +86,7 @@ export default function ParentDashboard() {
 
     if (familyRes.data) {
       const { parent_pin, ...rest } = familyRes.data
-      setFamily({ ...rest, has_parent_pin: parent_pin !== null, api_key: rest.api_key ?? undefined })
+      setFamily({ ...rest, has_parent_pin: parent_pin !== null, api_key: rest.api_key ?? undefined, daily_reset_hour: rest.daily_reset_hour ?? 0 })
       setFamilyName(familyRes.data.name)
     }
     if (kidsRes.data) setKids(kidsRes.data)
@@ -144,7 +147,7 @@ export default function ParentDashboard() {
         .update({ coins: (completion.kid?.coins ?? 0) + coinsAwarded })
         .eq('id', completion.kid_id)
 
-      const today = new Date().toISOString().split('T')[0]
+      const today = questDateString(family?.daily_reset_hour ?? 0)
       const lastDate = completion.kid?.last_completed_date
       const newStreak = lastDate === yesterday() ? (completion.kid?.streak ?? 0) + 1 : 1
 
@@ -269,6 +272,13 @@ export default function ParentDashboard() {
       setNewRewardDesc('')
       await fetchData()
     }
+  }
+
+  const handleSaveResetHour = async (hour: number) => {
+    if (!family) return
+    await supabase.from('families').update({ daily_reset_hour: hour }).eq('id', family.id)
+    toast.success('Daily reset time updated!')
+    await fetchData()
   }
 
   const handleSaveFamilyName = async () => {
@@ -844,6 +854,53 @@ export default function ParentDashboard() {
                 </div>
               </Section>
 
+              {/* Daily reset */}
+              <Section title="Daily Quest Reset">
+                <div className="flex flex-col gap-3">
+                  <p className="text-white/45 text-xs">
+                    Quests reset each day at this time
+                    {typeof window !== 'undefined' && (
+                      <span className="text-white/30"> · {Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
+                    )}
+                  </p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {([0, 3, 5, 6] as const).map((h) => {
+                      const label = h === 0 ? '12 AM' : `${h} AM`
+                      const selected = (family?.daily_reset_hour ?? 0) === h
+                      return (
+                        <button
+                          key={h}
+                          onClick={() => handleSaveResetHour(h)}
+                          className="py-2.5 rounded-xl text-sm font-semibold transition-all"
+                          style={{
+                            background: selected ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.05)',
+                            border: `1px solid ${selected ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.08)'}`,
+                            color: selected ? '#fbbf24' : 'rgba(255,255,255,0.5)',
+                          }}
+                        >
+                          {label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-white/30 flex-shrink-0">Custom hour (0–23):</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={23}
+                      value={family?.daily_reset_hour ?? 0}
+                      onChange={(e) => {
+                        const v = Math.max(0, Math.min(23, parseInt(e.target.value, 10) || 0))
+                        handleSaveResetHour(v)
+                      }}
+                      className="w-16 px-2 py-1 rounded-lg text-xs text-white/90 outline-none"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    />
+                  </div>
+                </div>
+              </Section>
+
               {/* Parent lock */}
               <Section title="Parent Lock">
                 {family?.has_parent_pin ? (
@@ -1410,7 +1467,7 @@ function getStreakBonus(streak: number): number {
 function yesterday(): string {
   const d = new Date()
   d.setDate(d.getDate() - 1)
-  return d.toISOString().split('T')[0]
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 const fadeSlide = {

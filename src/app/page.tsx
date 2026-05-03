@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { StarField } from '@/components/star-field'
 import { KidColumn } from '@/components/kid-column'
 import type { Kid, Quest, Completion, Family } from '@/lib/types'
+import { questDateString } from '@/lib/utils'
 import { toast } from 'sonner'
 
 export default function WallDisplay() {
@@ -29,18 +30,18 @@ export default function WallDisplay() {
     if (!profile) return
 
     const [familyRes, kidsRes, questsRes] = await Promise.all([
-      supabase.from('families').select('*').eq('id', profile.family_id).single(),
-      supabase.from('kids').select('*').eq('family_id', profile.family_id).order('created_at'),
+      supabase.from('families').select('id, name, invite_token, daily_reset_hour, created_at').eq('id', profile.family_id).single(),
+      supabase.from('kids').select('id, name, avatar, color, coins, streak, last_completed_date, family_id, created_at').eq('family_id', profile.family_id).order('created_at'),
       supabase.from('quests').select('*').eq('family_id', profile.family_id).eq('active', true).order('created_at'),
     ])
 
-    const today = new Date().toISOString().split('T')[0]
+    const today = questDateString(familyRes.data?.daily_reset_hour ?? 0)
     const { data: completionsData } = await supabase
       .from('completions')
       .select('*')
       .eq('date', today)
 
-    if (familyRes.data) setFamily(familyRes.data)
+    if (familyRes.data) setFamily({ ...familyRes.data, has_parent_pin: false })
     if (kidsRes.data) setKids(kidsRes.data)
     if (questsRes.data) setQuests(questsRes.data)
     if (completionsData) {
@@ -72,7 +73,7 @@ export default function WallDisplay() {
         quest_id: questId,
         kid_id: kidId,
         status: 'pending',
-        date: new Date().toISOString().split('T')[0],
+        date: questDateString(family?.daily_reset_hour ?? 0),
       })
 
       if (error) {
@@ -86,7 +87,7 @@ export default function WallDisplay() {
 
       await fetchData()
     },
-    [quests, supabase, fetchData]
+    [quests, supabase, fetchData, family?.daily_reset_hour]
   )
 
   const getKidQuests = (kid: Kid) =>
