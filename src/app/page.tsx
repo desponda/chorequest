@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { StarField } from '@/components/star-field'
 import { KidColumn } from '@/components/kid-column'
-import type { Kid, Quest, Completion, Family } from '@/lib/types'
+import type { Kid, Quest, Completion, Family, Reward } from '@/lib/types'
 import { KID_COLORS, TIER_CONFIG } from '@/lib/constants'
 import { questDateString, questWeekKey } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -22,6 +22,8 @@ export default function WallDisplay() {
   const [loading, setLoading] = useState(true)
   const [pendingCount, setPendingCount] = useState(0)
   const [claimingBounty, setClaimingBounty] = useState<Quest | null>(null)
+  const [rewards, setRewards] = useState<Reward[]>([])
+  const [showRewards, setShowRewards] = useState(false)
   const [supabase] = useState(createClient)
 
   const fetchData = useCallback(async () => {
@@ -32,10 +34,11 @@ export default function WallDisplay() {
 
     if (!profile) return
 
-    const [familyRes, kidsRes, questsRes] = await Promise.all([
+    const [familyRes, kidsRes, questsRes, rewardsRes] = await Promise.all([
       supabase.from('families').select('id, name, invite_token, daily_reset_hour, created_at').eq('id', profile.family_id).single(),
       supabase.from('kids').select('id, name, avatar, color, coins, streak, last_completed_date, family_id, created_at').eq('family_id', profile.family_id).order('created_at'),
       supabase.from('quests').select('*').eq('family_id', profile.family_id).eq('active', true).order('created_at'),
+      supabase.from('rewards').select('*').eq('available', true).order('cost'),
     ])
 
     const resetHour = familyRes.data?.daily_reset_hour ?? 0
@@ -50,6 +53,7 @@ export default function WallDisplay() {
     if (familyRes.data) setFamily({ ...familyRes.data, has_parent_pin: false })
     if (kidsRes.data) setKids(kidsRes.data)
     if (questsRes.data) setQuests(questsRes.data)
+    if (rewardsRes.data) setRewards(rewardsRes.data)
 
     const allCompletions = completionsRes.data ?? []
     setCompletions(allCompletions)
@@ -230,6 +234,17 @@ export default function WallDisplay() {
         </div>
 
         <div className="flex-1 flex justify-end items-center gap-3">
+          <button
+            onClick={() => setShowRewards(true)}
+            className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+            style={{
+              background: 'rgba(251,191,36,0.08)',
+              border: '1px solid rgba(251,191,36,0.2)',
+              color: 'rgba(251,191,36,0.7)',
+            }}
+          >
+            🎁 Rewards
+          </button>
           {pendingCount > 0 && (
             <motion.div
               animate={{ scale: [1, 1.04, 1] }}
@@ -383,6 +398,112 @@ export default function WallDisplay() {
       >
         ✦ tap a quest to complete it ✦
       </motion.footer>
+
+      {/* Rewards quick-view modal */}
+      <AnimatePresence>
+        {showRewards && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowRewards(false)}
+          >
+            <motion.div
+              className="rounded-3xl mx-4 w-full max-w-lg overflow-hidden"
+              style={{
+                background: 'rgba(10,6,28,0.98)',
+                border: '1px solid rgba(251,191,36,0.18)',
+                boxShadow: '0 0 80px rgba(0,0,0,0.7), 0 0 40px rgba(251,191,36,0.06)',
+                maxHeight: '80vh',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+              initial={{ scale: 0.88, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.88, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal header */}
+              <div
+                className="px-7 pt-6 pb-4 flex-shrink-0"
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="font-heading text-xl font-bold text-white/90 tracking-wide">
+                      🏆 Reward Vault
+                    </h2>
+                    <p className="text-white/35 text-xs mt-0.5">Spend your coins wisely, adventurer</p>
+                  </div>
+                  <button
+                    onClick={() => setShowRewards(false)}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-white/30 hover:text-white/60 transition-all"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {/* Rewards list */}
+              <div className="overflow-y-auto px-7 py-4 flex-1 flex flex-col gap-3">
+                {rewards.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-white/25">
+                    <span className="text-4xl mb-3">🎁</span>
+                    <p className="text-sm">No rewards set up yet</p>
+                    <Link href="/parent" className="text-xs text-cq-gold/50 hover:text-cq-gold/80 mt-2 transition-all" onClick={() => setShowRewards(false)}>
+                      Add rewards in the parent dashboard →
+                    </Link>
+                  </div>
+                ) : (
+                  rewards.map((reward, i) => (
+                    <motion.div
+                      key={reward.id}
+                      className="flex items-center gap-4 rounded-2xl p-4"
+                      style={{
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.07)',
+                      }}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                    >
+                      <span className="text-3xl flex-shrink-0">{reward.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white/88 leading-snug">{reward.title}</p>
+                        {reward.description && (
+                          <p className="text-xs text-white/35 mt-0.5 truncate">{reward.description}</p>
+                        )}
+                      </div>
+                      <div className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+                        style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.22)' }}
+                      >
+                        <span className="text-sm">🪙</span>
+                        <span className="font-heading font-bold text-sm" style={{ color: '#fbbf24' }}>
+                          {reward.cost}
+                        </span>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+
+              {/* Footer hint */}
+              {rewards.length > 0 && (
+                <div
+                  className="px-7 py-4 flex-shrink-0 text-center"
+                  style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+                >
+                  <p className="text-white/25 text-xs">Visit your personal quest page to redeem rewards</p>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Kid picker modal for bounty claims */}
       <AnimatePresence>
