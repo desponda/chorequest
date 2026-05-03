@@ -1,11 +1,12 @@
 import { createServiceClient } from '@/lib/supabase/service'
+import { isValidPin } from '@/lib/utils'
 import { NextRequest } from 'next/server'
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
   const body = await req.json().catch(() => null)
-  if (!body?.pin || typeof body.pin !== 'string' || !/^\d{4}$/.test(body.pin)) {
+  if (!isValidPin(body?.pin)) {
     return Response.json({ error: 'Invalid request' }, { status: 400 })
   }
 

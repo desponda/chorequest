@@ -1,11 +1,16 @@
 import { describe, it, expect } from 'vitest'
-import { getStreakBonus, getStreakLabel, TIER_CONFIG, KID_COLORS } from '../constants'
+import { getStreakBonus, getStreakLabel, getLockDurationMs, TIER_CONFIG, KID_COLORS } from '../constants'
 
 describe('getStreakBonus', () => {
   it('returns 1.0 for streaks below 3', () => {
     expect(getStreakBonus(0)).toBe(1.0)
     expect(getStreakBonus(1)).toBe(1.0)
     expect(getStreakBonus(2)).toBe(1.0)
+  })
+
+  it('returns 1.0 for negative streaks', () => {
+    expect(getStreakBonus(-1)).toBe(1.0)
+    expect(getStreakBonus(-100)).toBe(1.0)
   })
 
   it('returns 1.25 for streaks 3–6', () => {
@@ -70,6 +75,26 @@ describe('TIER_CONFIG', () => {
     expect(TIER_CONFIG.heroic.glow).toBeNull()
     expect(TIER_CONFIG.legendary.glow).toBeNull()
     expect(TIER_CONFIG.epic.glow).toBeTruthy()
+  })
+})
+
+describe('getLockDurationMs', () => {
+  it('returns 30 seconds (30_000ms) for attempts 5–7', () => {
+    expect(getLockDurationMs(5)).toBe(30_000)
+    expect(getLockDurationMs(6)).toBe(30_000)
+    expect(getLockDurationMs(7)).toBe(30_000)
+  })
+
+  it('returns 5 minutes (300_000ms) for attempts 8+', () => {
+    expect(getLockDurationMs(8)).toBe(300_000)
+    expect(getLockDurationMs(9)).toBe(300_000)
+    expect(getLockDurationMs(100)).toBe(300_000)
+  })
+
+  it('treats attempt counts below 5 as short lock (edge: called with any value)', () => {
+    // Function is called only when attempts >= 5, but should still be safe
+    expect(getLockDurationMs(1)).toBe(30_000)
+    expect(getLockDurationMs(0)).toBe(30_000)
   })
 })
 

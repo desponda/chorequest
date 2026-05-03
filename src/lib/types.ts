@@ -8,6 +8,7 @@ export interface Family {
   name: string
   has_parent_pin: boolean
   invite_token: string
+  api_key?: string
   created_at: string
 }
 

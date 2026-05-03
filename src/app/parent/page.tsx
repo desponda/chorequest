@@ -9,8 +9,8 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { StarField } from '@/components/star-field'
 import { QuestCard } from '@/components/quest-card'
-import type { Kid, Quest, Completion, Reward, Family } from '@/lib/types'
-import { KID_COLORS, KID_AVATARS, QUEST_ICONS, DEFAULT_QUESTS, TIER_CONFIG } from '@/lib/constants'
+import type { Kid, Quest, Completion, Reward, Redemption, Family } from '@/lib/types'
+import { KID_COLORS, KID_AVATARS, QUEST_ICONS, DEFAULT_QUESTS, TIER_CONFIG, getLockDurationMs } from '@/lib/constants'
 import type { QuestTier } from '@/lib/types'
 import QRCode from 'react-qr-code'
 import { toast } from 'sonner'
@@ -26,6 +26,7 @@ export default function ParentDashboard() {
   const [quests, setQuests] = useState<Quest[]>([])
   const [completions, setCompletions] = useState<Completion[]>([])
   const [rewards, setRewards] = useState<Reward[]>([])
+  const [redemptions, setRedemptions] = useState<Redemption[]>([])
   const [loading, setLoading] = useState(true)
 
   // Forms
@@ -69,23 +70,27 @@ export default function ParentDashboard() {
 
     const today = new Date().toISOString().split('T')[0]
 
-    const [familyRes, kidsRes, questsRes, completionsRes, rewardsRes] = await Promise.all([
-      supabase.from('families').select('id, name, invite_token, created_at, parent_pin').eq('id', profile.family_id).single(),
-      supabase.from('kids').select('*').eq('family_id', profile.family_id).order('created_at'),
+    const kidCols = 'id, name, avatar, color, coins, streak, last_completed_date, family_id, created_at'
+
+    const [familyRes, kidsRes, questsRes, completionsRes, rewardsRes, redemptionsRes] = await Promise.all([
+      supabase.from('families').select('id, name, invite_token, api_key, created_at, parent_pin').eq('id', profile.family_id).single(),
+      supabase.from('kids').select(kidCols).eq('family_id', profile.family_id).order('created_at'),
       supabase.from('quests').select('*').eq('family_id', profile.family_id).order('created_at'),
-      supabase.from('completions').select('*, quest:quests(*), kid:kids(*)').eq('date', today).order('completed_at', { ascending: false }),
+      supabase.from('completions').select(`*, quest:quests(*), kid:kids(${kidCols})`).eq('date', today).order('completed_at', { ascending: false }),
       supabase.from('rewards').select('*').eq('family_id', profile.family_id).order('created_at'),
+      supabase.from('redemptions').select(`*, reward:rewards(*), kid:kids(${kidCols})`).eq('status', 'pending').order('redeemed_at', { ascending: false }),
     ])
 
     if (familyRes.data) {
       const { parent_pin, ...rest } = familyRes.data
-      setFamily({ ...rest, has_parent_pin: parent_pin !== null })
+      setFamily({ ...rest, has_parent_pin: parent_pin !== null, api_key: rest.api_key ?? undefined })
       setFamilyName(familyRes.data.name)
     }
     if (kidsRes.data) setKids(kidsRes.data)
     if (questsRes.data) setQuests(questsRes.data)
     if (completionsRes.data) setCompletions(completionsRes.data)
     if (rewardsRes.data) setRewards(rewardsRes.data)
+    if (redemptionsRes.data) setRedemptions(redemptionsRes.data)
     setLoading(false)
   }, [supabase])
 
@@ -116,6 +121,7 @@ export default function ParentDashboard() {
     const channel = supabase
       .channel('parent-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'completions' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'redemptions' }, fetchData)
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [fetchData, supabase])
@@ -147,6 +153,10 @@ export default function ParentDashboard() {
         .update({ streak: newStreak, last_completed_date: today })
         .eq('id', completion.kid_id)
 
+      if (completion.quest?.frequency === 'once') {
+        await supabase.from('quests').update({ active: false }).eq('id', completion.quest.id)
+      }
+
       toast.success(`Quest approved! +${coinsAwarded} coins awarded ✨`)
       await fetchData()
     }
@@ -158,6 +168,34 @@ export default function ParentDashboard() {
       .update({ status: 'rejected' })
       .eq('id', completionId)
     toast.success('Quest rejected')
+    await fetchData()
+  }
+
+  const handleFulfillRedemption = async (redemptionId: string) => {
+    const redemption = redemptions.find((r) => r.id === redemptionId)
+    if (!redemption) return
+    const kid = redemption.kid as Kid | undefined
+    const reward = redemption.reward as Reward | undefined
+    if (!kid || !reward) return
+
+    const { error } = await supabase
+      .from('redemptions')
+      .update({ status: 'approved' })
+      .eq('id', redemptionId)
+
+    if (!error) {
+      await supabase
+        .from('kids')
+        .update({ coins: Math.max(0, kid.coins - reward.cost) })
+        .eq('id', kid.id)
+      toast.success(`${kid.name} got ${reward.title}! 🎁 -${reward.cost} coins`)
+      await fetchData()
+    }
+  }
+
+  const handleDenyRedemption = async (redemptionId: string) => {
+    await supabase.from('redemptions').delete().eq('id', redemptionId)
+    toast.success('Reward request denied')
     await fetchData()
   }
 
@@ -319,7 +357,7 @@ export default function ParentDashboard() {
         const attempts = parentPinAttempts + 1
         setParentPinAttempts(attempts)
         if (attempts >= 5) {
-          const lockMs = attempts >= 8 ? 5 * 60_000 : 30_000
+          const lockMs = getLockDurationMs(attempts)
           setParentLockedUntil(now + lockMs)
           toast.error(`Too many attempts — locked for ${attempts >= 8 ? '5 minutes' : '30 seconds'}`)
         }
@@ -363,6 +401,13 @@ export default function ParentDashboard() {
     await fetchData()
   }
 
+  const handleRegenerateApiKey = async () => {
+    if (!family) return
+    await supabase.from('families').update({ api_key: crypto.randomUUID() }).eq('id', family.id)
+    toast.success('API key regenerated')
+    await fetchData()
+  }
+
   const handleRegenerateToken = async () => {
     if (!family) return
     await supabase.from('families').update({ invite_token: crypto.randomUUID() }).eq('id', family.id)
@@ -371,6 +416,7 @@ export default function ParentDashboard() {
   }
 
   const pendingCompletions = completions.filter((c) => c.status === 'pending')
+  const pendingRedemptions = redemptions.filter((r) => r.status === 'pending')
 
   if (loading) {
     return (
@@ -466,7 +512,7 @@ export default function ParentDashboard() {
   }
 
   const tabs: { id: Tab; label: string; badge?: number }[] = [
-    { id: 'approvals', label: '✓ Approvals', badge: pendingCompletions.length },
+    { id: 'approvals', label: '✓ Approvals', badge: pendingCompletions.length + pendingRedemptions.length },
     { id: 'quests', label: '⚔️ Quests' },
     { id: 'family', label: '👨‍👩‍👧 Family' },
     { id: 'rewards', label: '🎁 Rewards' },
@@ -540,8 +586,52 @@ export default function ParentDashboard() {
         <AnimatePresence mode="wait">
           {tab === 'approvals' && (
             <motion.div key="approvals" {...fadeSlide} className="flex flex-col gap-4">
+              {pendingRedemptions.length > 0 && (
+                <div>
+                  <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Reward requests</p>
+                  <div className="flex flex-col gap-2">
+                    {pendingRedemptions.map((r) => {
+                      const kid = r.kid as Kid | undefined
+                      const reward = r.reward as Reward | undefined
+                      if (!kid || !reward) return null
+                      return (
+                        <div
+                          key={r.id}
+                          className="flex items-center gap-3 p-3 rounded-2xl"
+                          style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.18)' }}
+                        >
+                          <span className="text-2xl">{reward.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white/90 text-sm font-semibold truncate">{reward.title}</p>
+                            <p className="text-white/45 text-xs">
+                              {kid.avatar} {kid.name} · 🪙 {reward.cost} coins
+                            </p>
+                          </div>
+                          <div className="flex gap-2 flex-shrink-0">
+                            <button
+                              onClick={() => handleFulfillRedemption(r.id)}
+                              className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+                              style={{ background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.35)', color: '#4ade80' }}
+                            >
+                              ✓ Give
+                            </button>
+                            <button
+                              onClick={() => handleDenyRedemption(r.id)}
+                              className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+                              style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', color: '#f87171' }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
               {pendingCompletions.length === 0 ? (
-                <Empty icon="✅" message="All clear — no pending quests!" />
+                <Empty icon="✅" message={pendingRedemptions.length === 0 ? "All clear — nothing pending!" : "No pending quests"} />
               ) : (
                 pendingCompletions.map((c) => {
                   const kid = c.kid as Kid | undefined
@@ -1003,6 +1093,37 @@ export default function ParentDashboard() {
                         ↻
                       </button>
                     </div>
+                  </div>
+                </Section>
+              )}
+
+              {/* API Key */}
+              {family?.api_key && (
+                <Section title="API Key">
+                  <div className="flex flex-col gap-3">
+                    <p className="text-white/45 text-xs">
+                      Use this key to access your family data via the REST API. Keep it secret.
+                    </p>
+                    <div
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+                    >
+                      <code className="flex-1 text-xs text-white/60 font-mono truncate">
+                        {family.api_key}
+                      </code>
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(family.api_key!); toast.success('API key copied!') }}
+                        className="text-xs text-white/40 hover:text-cq-azure transition-all flex-shrink-0"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    <button
+                      onClick={handleRegenerateApiKey}
+                      className="text-xs text-white/25 hover:text-red-400 transition-all text-center"
+                    >
+                      Regenerate key (invalidates current key)
+                    </button>
                   </div>
                 </Section>
               )}

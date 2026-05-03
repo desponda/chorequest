@@ -98,6 +98,11 @@ export function getStreakLabel(streak: number): string | null {
   return null
 }
 
+/** Returns the lockout duration in ms for a given number of failed PIN attempts. */
+export function getLockDurationMs(attempts: number): number {
+  return attempts >= 8 ? 5 * 60_000 : 30_000
+}
+
 export const DEFAULT_QUESTS = [
   { title: 'Make Your Bed', icon: '🛏️', coins: 10, description: 'Straighten covers and fluff pillows' },
   { title: 'Brush Teeth', icon: '✨', coins: 5, description: 'Morning and evening' },
