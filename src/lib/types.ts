@@ -1,11 +1,13 @@
 export type KidColor = 'azure' | 'mystic'
 export type QuestFrequency = 'daily' | 'weekly' | 'once'
+export type QuestTier = 'normal' | 'heroic' | 'legendary' | 'epic'
 export type CompletionStatus = 'pending' | 'approved' | 'rejected'
 
 export interface Family {
   id: string
   name: string
   parent_pin: string | null
+  invite_token: string
   created_at: string
 }
 
@@ -37,6 +39,7 @@ export interface Quest {
   coins: number
   assigned_to: string | null
   frequency: QuestFrequency
+  tier: QuestTier
   active: boolean
   created_at: string
 }

@@ -1,4 +1,46 @@
-import type { KidColor } from './types'
+import type { KidColor, QuestTier } from './types'
+
+export const TIER_CONFIG: Record<QuestTier, {
+  label: string
+  icon: string
+  color: string
+  bg: string
+  border: string
+  glow: string | null
+}> = {
+  normal: {
+    label: 'Normal',
+    icon: '⚔️',
+    color: 'rgba(255,255,255,0.55)',
+    bg: 'rgba(255,255,255,0.05)',
+    border: 'rgba(255,255,255,0.12)',
+    glow: null,
+  },
+  heroic: {
+    label: 'Heroic',
+    icon: '🔵',
+    color: '#38bdf8',
+    bg: 'rgba(56,189,248,0.08)',
+    border: 'rgba(56,189,248,0.25)',
+    glow: null,
+  },
+  legendary: {
+    label: 'Legendary',
+    icon: '🌟',
+    color: '#fbbf24',
+    bg: 'rgba(251,191,36,0.08)',
+    border: 'rgba(251,191,36,0.28)',
+    glow: null,
+  },
+  epic: {
+    label: 'Epic',
+    icon: '💜',
+    color: '#a78bfa',
+    bg: 'rgba(167,139,250,0.1)',
+    border: 'rgba(167,139,250,0.3)',
+    glow: '0 0 20px rgba(167,139,250,0.2)',
+  },
+}
 
 export const QUEST_ICONS = [
   '⚔️', '🛡️', '🧹', '🍳', '📚', '🌿', '🐾',
