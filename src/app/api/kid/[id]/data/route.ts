@@ -34,7 +34,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     .filter((q) => q.exclusive && !(q.weekly_target != null && q.exclusive))
     .map((q: { id: string }) => q.id)
 
-  const [completionsRes, cursesRes, exclusiveClaimedRes, familyBountyRes] = await Promise.all([
+  const [completionsRes, cursesRes, exclusiveClaimedRes, familyBountyRes, pendingRedemptionsRes] = await Promise.all([
     supabase.from('completions').select('*').eq('kid_id', id).gte('date', weekStart),
     supabase.from('curse_instances').select('*, curse:curses(*)').eq('kid_id', id).eq('status', 'active'),
     exclusiveQuestIds.length > 0
@@ -43,6 +43,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     bountyQuestIds.length > 0
       ? supabase.from('completions').select('quest_id, kid_id, status').in('quest_id', bountyQuestIds).gte('date', weekStart)
       : Promise.resolve({ data: [] }),
+    supabase
+      .from('redemptions')
+      .select('id, reward_id, status, redeemed_at, reward:rewards(id, title, icon, cost)')
+      .eq('kid_id', id)
+      .eq('status', 'pending'),
   ])
 
   return Response.json({
@@ -54,5 +59,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     activeCurses: cursesRes.data ?? [],
     claimedExclusiveIds: (exclusiveClaimedRes.data ?? []).map((c: { quest_id: string }) => c.quest_id),
     familyBountyCompletions: familyBountyRes.data ?? [],
+    pendingRedemptions: pendingRedemptionsRes.data ?? [],
   })
 }
