@@ -73,27 +73,33 @@ export function useParentActions(deps: Deps): ParentActions {
     const bonus = getStreakBonus(completion.kid?.streak ?? 0)
     const coinsAwarded = Math.round((completion.quest?.coins ?? 0) * bonus)
 
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from('completions')
       .update({ status: 'approved', approved_at: new Date().toISOString(), coins_awarded: coinsAwarded })
       .eq('id', completionId)
+      .eq('status', 'pending')
+      .select('id')
 
-    if (!error) {
-      await supabase.from('kids').update({ coins: (completion.kid?.coins ?? 0) + coinsAwarded }).eq('id', completion.kid_id)
-
-      const today = questDateString(family?.daily_reset_hour ?? 0)
-      const lastDate = completion.kid?.last_completed_date
-      const newStreak = lastDate === yesterday() ? (completion.kid?.streak ?? 0) + 1 : 1
-
-      await supabase.from('kids').update({ streak: newStreak, last_completed_date: today }).eq('id', completion.kid_id)
-
-      if (completion.quest?.kind === 'oneoff') {
-        await supabase.from('quests').update({ active: false }).eq('id', completion.quest.id)
-      }
-
-      toast.success(`Quest approved! +${coinsAwarded} coins awarded ✨`)
+    if (error || !updated || updated.length === 0) {
+      toast.error('Quest was already undone — nothing to approve')
       await refetch()
+      return
     }
+
+    await supabase.from('kids').update({ coins: (completion.kid?.coins ?? 0) + coinsAwarded }).eq('id', completion.kid_id)
+
+    const today = questDateString(family?.daily_reset_hour ?? 0)
+    const lastDate = completion.kid?.last_completed_date
+    const newStreak = lastDate === yesterday() ? (completion.kid?.streak ?? 0) + 1 : 1
+
+    await supabase.from('kids').update({ streak: newStreak, last_completed_date: today }).eq('id', completion.kid_id)
+
+    if (completion.quest?.kind === 'oneoff') {
+      await supabase.from('quests').update({ active: false }).eq('id', completion.quest.id)
+    }
+
+    toast.success(`Quest approved! +${coinsAwarded} coins awarded ✨`)
+    await refetch()
   }, [completions, family?.daily_reset_hour, refetch, supabase])
 
   const reject = useCallback(async (completionId: string) => {

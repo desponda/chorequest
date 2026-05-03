@@ -190,6 +190,19 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
     [data, id, fetchData]
   )
 
+  const handleUndo = useCallback(
+    async (completionId: string) => {
+      const res = await fetch(`/api/kid/${id}/complete/${completionId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        toast.error('Could not undo — already reviewed?')
+        return
+      }
+      toast.success('Quest cancelled')
+      await fetchData()
+    },
+    [id, fetchData]
+  )
+
   const handleCancelRedemption = useCallback(
     async (redemptionId: string) => {
       const res = await fetch(`/api/kid/${id}/redeem/${redemptionId}`, { method: 'DELETE' })
@@ -393,33 +406,39 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
 
                 {personalDaily.length > 0 && (
                   <Section title={`Today (${personalDailyDoneCount}/${personalDaily.length})`}>
-                    {personalDaily.map((q, i) => (
-                      <QuestRowItem
-                        key={q.id}
-                        quest={q}
-                        index={i}
-                        completion={completions.find((c) => c.quest_id === q.id && c.date === today)}
-                        kidColor={kid.color}
-                        onComplete={() => handleComplete(q.id)}
-                      />
-                    ))}
+                    {personalDaily.map((q, i) => {
+                      const c = completions.find((c) => c.quest_id === q.id && c.date === today)
+                      return (
+                        <QuestRowItem
+                          key={q.id}
+                          quest={q}
+                          index={i}
+                          completion={c}
+                          kidColor={kid.color}
+                          onComplete={() => handleComplete(q.id)}
+                          onUndo={c?.status === 'pending' ? () => handleUndo(c.id) : undefined}
+                        />
+                      )
+                    })}
                   </Section>
                 )}
 
                 {personalWeekly.length > 0 && (
                   <Section title={`This Week (${personalWeeklyDoneCount}/${personalWeekly.length})`}>
-                    {personalWeekly.map((q, i) => (
-                      <QuestRowItem
-                        key={q.id}
-                        quest={q}
-                        index={i}
-                        completion={completions.find((c) =>
-                          c.quest_id === q.id && c.kid_id === kid.id && c.date >= weekStart,
-                        )}
-                        kidColor={kid.color}
-                        onComplete={() => handleComplete(q.id)}
-                      />
-                    ))}
+                    {personalWeekly.map((q, i) => {
+                      const c = completions.find((c) => c.quest_id === q.id && c.kid_id === kid.id && c.date >= weekStart)
+                      return (
+                        <QuestRowItem
+                          key={q.id}
+                          quest={q}
+                          index={i}
+                          completion={c}
+                          kidColor={kid.color}
+                          onComplete={() => handleComplete(q.id)}
+                          onUndo={c?.status === 'pending' ? () => handleUndo(c.id) : undefined}
+                        />
+                      )
+                    })}
                   </Section>
                 )}
 
@@ -454,6 +473,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                             isShareLocked={isShareLocked}
                             kidColor={kid.color}
                             onComplete={() => handleComplete(q.id)}
+                            onUndo={myCompletion?.status === 'pending' ? () => handleUndo(myCompletion.id) : undefined}
                           />
                         )
                       })}
@@ -503,7 +523,7 @@ function Section({ title, accent, children }: { title: string; accent?: 'gold'; 
 }
 
 function QuestRowItem({
-  quest, index, completion, sharedClaimed, isShareLocked, kidColor, onComplete,
+  quest, index, completion, sharedClaimed, isShareLocked, kidColor, onComplete, onUndo,
 }: {
   quest: Quest
   index: number
@@ -512,6 +532,7 @@ function QuestRowItem({
   isShareLocked?: boolean
   kidColor: 'azure' | 'mystic'
   onComplete: () => Promise<void>
+  onUndo?: () => Promise<void>
 }) {
   return (
     <motion.div
@@ -526,6 +547,7 @@ function QuestRowItem({
         isShareLocked={isShareLocked}
         kidColor={kidColor}
         onComplete={onComplete}
+        onUndo={onUndo}
       />
     </motion.div>
   )

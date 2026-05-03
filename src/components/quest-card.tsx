@@ -15,6 +15,7 @@ interface QuestCardProps {
   isShareLocked?: boolean
   kidColor: KidColor
   onComplete?: () => Promise<void>
+  onUndo?: () => Promise<void>
   isParent?: boolean
   onApprove?: (completionId: string) => Promise<void>
   onReject?: (completionId: string) => Promise<void>
@@ -41,6 +42,7 @@ export function QuestCard({
   isShareLocked = false,
   kidColor,
   onComplete,
+  onUndo,
   isParent,
   onApprove,
   onReject,
@@ -269,6 +271,26 @@ export function QuestCard({
             </motion.button>
           )}
         </AnimatePresence>
+
+        {!isParent && isPending && onUndo && (
+          <motion.button
+            onClick={async () => { setLoading(true); await onUndo(); setLoading(false) }}
+            disabled={loading}
+            className="mt-2 w-full py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-40"
+            style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: 'rgba(255,255,255,0.35)',
+            }}
+            whileHover={{ color: 'rgba(255,255,255,0.65)', borderColor: 'rgba(255,255,255,0.2)' }}
+            whileTap={{ scale: 0.97 }}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+          >
+            ↩ Undo submission
+          </motion.button>
+        )}
 
         {isParent && isPending && completion && (
           <div className="mt-3 flex gap-2">
