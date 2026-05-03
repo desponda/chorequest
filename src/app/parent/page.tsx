@@ -36,6 +36,7 @@ export default function ParentDashboard() {
   const [newQuestIcon, setNewQuestIcon] = useState('⚔️')
   const [newQuestCoins, setNewQuestCoins] = useState(10)
   const [newQuestFor, setNewQuestFor] = useState<string>('all')
+  const [newQuestFrequency, setNewQuestFrequency] = useState<'daily' | 'once'>('daily')
   const [newRewardTitle, setNewRewardTitle] = useState('')
   const [newRewardDesc, setNewRewardDesc] = useState('')
   const [newRewardIcon, setNewRewardIcon] = useState('🎁')
@@ -173,13 +174,14 @@ export default function ParentDashboard() {
       icon: newQuestIcon,
       coins: newQuestCoins,
       assigned_to: newQuestFor === 'all' ? null : newQuestFor,
-      frequency: 'daily',
+      frequency: newQuestFrequency,
       active: true,
     })
     if (!error) {
       toast.success('Quest added to the board! ⚔️')
       setNewQuestTitle('')
       setNewQuestDesc('')
+      setNewQuestFrequency('daily')
       await fetchData()
     } else {
       toast.error('Failed to add quest')
@@ -608,6 +610,25 @@ export default function ParentDashboard() {
                       </select>
                     </div>
                   </div>
+                  <div>
+                    <label className="text-xs text-white/40 mb-1.5 block">Frequency</label>
+                    <div className="flex gap-2">
+                      {(['daily', 'once'] as const).map((f) => (
+                        <button
+                          key={f}
+                          onClick={() => setNewQuestFrequency(f)}
+                          className="flex-1 py-2 rounded-xl text-sm font-semibold transition-all"
+                          style={{
+                            background: newQuestFrequency === f ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.05)',
+                            border: `1px solid ${newQuestFrequency === f ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.08)'}`,
+                            color: newQuestFrequency === f ? '#fbbf24' : 'rgba(255,255,255,0.5)',
+                          }}
+                        >
+                          {f === 'daily' ? '🔁 Daily' : '⭐ One-time'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <ActionButton onClick={handleAddQuest} label="+ Add Quest" />
                 </div>
               </Section>
@@ -1027,9 +1048,19 @@ function QuestRow({
     >
       <span className="text-xl">{quest.icon}</span>
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-semibold ${quest.active ? 'text-white/90' : 'text-white/40 line-through'}`}>
-          {quest.title}
-        </p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className={`text-sm font-semibold ${quest.active ? 'text-white/90' : 'text-white/40 line-through'}`}>
+            {quest.title}
+          </p>
+          {quest.frequency === 'once' && (
+            <span
+              className="text-xs px-1.5 py-0.5 rounded-md flex-shrink-0"
+              style={{ background: 'rgba(167,139,250,0.12)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.2)' }}
+            >
+              one-time
+            </span>
+          )}
+        </div>
         <p className="text-white/35 text-xs">
           🪙 {quest.coins} · {assignedKid ? assignedKid.name : 'All kids'}
         </p>
