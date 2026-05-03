@@ -76,6 +76,19 @@ describe('isQuestVisibleToKid', () => {
     const q = { ...baseQuest, active_days: [] }
     expect(isQuestVisibleToKid(q, 'kid-a', today, new Set())).toBe(true)
   })
+
+  it('shows shared quests to all kids — approved family completions do NOT hide them', () => {
+    const q = { ...baseQuest, kind: 'shared' as const, assigned_to: null }
+    // shared quests stay visible even when they appear in the approvedSet
+    // (they're not oneoff — they reset each period)
+    expect(isQuestVisibleToKid(q, 'kid-a', today, new Set(['q1']))).toBe(true)
+    expect(isQuestVisibleToKid(q, 'kid-b', today, new Set(['q1']))).toBe(true)
+  })
+
+  it('active_days with all 7 days behaves like no filter', () => {
+    const q = { ...baseQuest, active_days: [0, 1, 2, 3, 4, 5, 6] }
+    expect(isQuestVisibleToKid(q, 'kid-a', today, new Set())).toBe(true)
+  })
 })
 
 describe('countActiveCompletions', () => {
@@ -87,6 +100,27 @@ describe('countActiveCompletions', () => {
       { ...baseCompletion, id: 'd', quest_id: 'other', status: 'approved' },
     ]
     expect(countActiveCompletions(baseQuest, completions)).toBe(2)
+  })
+
+  it('returns 0 with no completions', () => {
+    expect(countActiveCompletions(baseQuest, [])).toBe(0)
+  })
+
+  it('does not count completions for other quests', () => {
+    const completions: Completion[] = [
+      { ...baseCompletion, id: 'a', quest_id: 'other-quest', status: 'approved' },
+      { ...baseCompletion, id: 'b', quest_id: 'another', status: 'pending' },
+    ]
+    expect(countActiveCompletions(baseQuest, completions)).toBe(0)
+  })
+
+  it('counts completions from multiple kids (shared quest scenario)', () => {
+    const completions: Completion[] = [
+      { ...baseCompletion, id: 'a', kid_id: 'kid-a', status: 'approved' },
+      { ...baseCompletion, id: 'b', kid_id: 'kid-b', status: 'pending' },
+      { ...baseCompletion, id: 'c', kid_id: 'kid-c', status: 'approved' },
+    ]
+    expect(countActiveCompletions(baseQuest, completions)).toBe(3)
   })
 })
 
@@ -125,13 +159,27 @@ describe('kidHasActiveCompletion', () => {
     expect(kidHasActiveCompletion(baseQuest, 'kid-a', completions)).toBe(true)
   })
 
+  it('returns true for approved', () => {
+    const completions: Completion[] = [{ ...baseCompletion, status: 'approved' }]
+    expect(kidHasActiveCompletion(baseQuest, 'kid-a', completions)).toBe(true)
+  })
+
   it('returns false when only rejected', () => {
     const completions: Completion[] = [{ ...baseCompletion, status: 'rejected' }]
     expect(kidHasActiveCompletion(baseQuest, 'kid-a', completions)).toBe(false)
   })
 
-  it('returns false for other kids', () => {
+  it('returns false with empty completions list', () => {
+    expect(kidHasActiveCompletion(baseQuest, 'kid-a', [])).toBe(false)
+  })
+
+  it('returns false for other kids even if they have active completions', () => {
     const completions: Completion[] = [{ ...baseCompletion, kid_id: 'kid-b', status: 'approved' }]
+    expect(kidHasActiveCompletion(baseQuest, 'kid-a', completions)).toBe(false)
+  })
+
+  it('returns false for other quests even for the same kid', () => {
+    const completions: Completion[] = [{ ...baseCompletion, quest_id: 'other', status: 'approved' }]
     expect(kidHasActiveCompletion(baseQuest, 'kid-a', completions)).toBe(false)
   })
 })
