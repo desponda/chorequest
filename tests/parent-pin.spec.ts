@@ -9,42 +9,36 @@ test.describe('Parent PIN gate', () => {
     await expect(page).toHaveURL(/\/login/)
   })
 
-  test('PIN gate shows lock icon and keypad', async ({ page }) => {
-    // Simulate an authenticated session with a locked parent area by
-    // injecting the locked state before the page loads.
-    // We can't fully auth without real credentials, but we can verify
-    // the gate renders correctly by testing the UI elements when
-    // the page is accessed in a state that triggers the lock.
+  test('sessionStorage key is absent on fresh page load', async ({ page }) => {
+    // Contract: no page or navigation auto-grants access — only the PIN keypad does.
+    // This was the regression: handleSaveParentPin used to call setItem('1'),
+    // permanently unlocking the session until the tab was closed.
     await page.goto('/login')
     await page.waitForLoadState('networkidle')
-    // The login page should be visible (not parent dashboard)
-    await expect(page.getByRole('heading', { name: 'ChoreQuest' })).toBeVisible()
+    const key = await page.evaluate((k) => sessionStorage.getItem(k), PARENT_PIN_SESSION_KEY)
+    expect(key).toBeNull()
   })
 
-  test('sessionStorage key absence triggers lock on /parent load', async ({ page }) => {
-    // This test documents the regression that was fixed:
-    // Previously, setting a parent PIN would auto-set sessionStorage='1',
-    // so navigating away and back would never show the PIN gate.
-    //
-    // The fix: sessionStorage is ONLY set when the user explicitly enters
-    // the correct PIN — not when saving the PIN config.
-    //
-    // We verify this contract by checking that the key is absent after
-    // a fresh page load (simulating a return visit without having entered the PIN).
+  test('realm and login pages never set the unlock key', async ({ page }) => {
+    // Neither the wall display nor the login page should touch the parent lock key.
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+    expect(await page.evaluate((k) => sessionStorage.getItem(k), PARENT_PIN_SESSION_KEY)).toBeNull()
+
     await page.goto('/login')
     await page.waitForLoadState('networkidle')
-    const keyValue = await page.evaluate((key) => sessionStorage.getItem(key), PARENT_PIN_SESSION_KEY)
-    expect(keyValue).toBeNull()
+    expect(await page.evaluate((k) => sessionStorage.getItem(k), PARENT_PIN_SESSION_KEY)).toBeNull()
   })
 
-  test('lock button clears sessionStorage and prevents re-entry', async ({ page }) => {
-    // Simulate: user was unlocked (had the sessionStorage key), then locked
+  test('lock clears sessionStorage so next /parent visit requires PIN', async ({ page }) => {
+    // Simulate: parent entered PIN (key = '1'), then explicitly locked (or navigated away).
     await page.goto('/login')
-    await page.evaluate((key) => sessionStorage.setItem(key, '1'), PARENT_PIN_SESSION_KEY)
-    // Simulate lock action
-    await page.evaluate((key) => sessionStorage.removeItem(key), PARENT_PIN_SESSION_KEY)
-    const keyValue = await page.evaluate((key) => sessionStorage.getItem(key), PARENT_PIN_SESSION_KEY)
-    expect(keyValue).toBeNull()
+    await page.evaluate((k) => sessionStorage.setItem(k, '1'), PARENT_PIN_SESSION_KEY)
+    expect(await page.evaluate((k) => sessionStorage.getItem(k), PARENT_PIN_SESSION_KEY)).toBe('1')
+
+    // Simulate lock action (mirrors handleLock and the unmount cleanup)
+    await page.evaluate((k) => sessionStorage.removeItem(k), PARENT_PIN_SESSION_KEY)
+    expect(await page.evaluate((k) => sessionStorage.getItem(k), PARENT_PIN_SESSION_KEY)).toBeNull()
   })
 })
 
@@ -56,10 +50,9 @@ test.describe('Parent dashboard (unauthenticated)', () => {
     await expect(page.locator('body')).not.toContainText('Internal Server Error')
   })
 
-  test('no sessionStorage key is set after visiting /login', async ({ page }) => {
-    await page.goto('/login')
+  test('no crash or error on direct /parent navigation', async ({ page }) => {
+    await page.goto('/parent')
     await page.waitForLoadState('networkidle')
-    const key = await page.evaluate((k) => sessionStorage.getItem(k), PARENT_PIN_SESSION_KEY)
-    expect(key).toBeNull()
+    await expect(page.locator('body')).not.toContainText('Application error')
   })
 })
