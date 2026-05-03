@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import { questDateString, questWeekKey } from '@/lib/utils'
+import { questWeekKey } from '@/lib/utils'
+import type { Quest } from '@/lib/types'
 import { NextRequest } from 'next/server'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -23,25 +24,16 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   ])
 
   const resetHour = familyRes.data?.daily_reset_hour ?? 0
-  const today = questDateString(resetHour)
   const weekStart = questWeekKey(resetHour)
 
-  const bountyQuestIds = (questsRes.data ?? [])
-    .filter((q) => q.weekly_target != null && q.exclusive)
-    .map((q: { id: string }) => q.id)
+  const allQuests: Quest[] = (questsRes.data ?? []) as Quest[]
+  const sharedQuestIds = allQuests.filter((q) => q.kind === 'shared' || q.kind === 'oneoff').map((q) => q.id)
 
-  const exclusiveQuestIds = (questsRes.data ?? [])
-    .filter((q) => q.exclusive && !(q.weekly_target != null && q.exclusive))
-    .map((q: { id: string }) => q.id)
-
-  const [completionsRes, cursesRes, exclusiveClaimedRes, familyBountyRes, pendingRedemptionsRes] = await Promise.all([
+  const [completionsRes, cursesRes, sharedFamilyRes, pendingRedemptionsRes] = await Promise.all([
     supabase.from('completions').select('*').eq('kid_id', id).gte('date', weekStart),
     supabase.from('curse_instances').select('*, curse:curses(*)').eq('kid_id', id).eq('status', 'active'),
-    exclusiveQuestIds.length > 0
-      ? supabase.from('completions').select('quest_id').in('quest_id', exclusiveQuestIds).eq('date', today).neq('kid_id', id)
-      : Promise.resolve({ data: [] }),
-    bountyQuestIds.length > 0
-      ? supabase.from('completions').select('quest_id, kid_id, status').in('quest_id', bountyQuestIds).gte('date', weekStart)
+    sharedQuestIds.length > 0
+      ? supabase.from('completions').select('quest_id, kid_id, status, date').in('quest_id', sharedQuestIds).gte('date', weekStart)
       : Promise.resolve({ data: [] }),
     supabase
       .from('redemptions')
@@ -53,12 +45,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   return Response.json({
     kid,
     resetHour,
-    quests: questsRes.data ?? [],
+    quests: allQuests,
     completions: completionsRes.data ?? [],
     rewards: rewardsRes.data ?? [],
     activeCurses: cursesRes.data ?? [],
-    claimedExclusiveIds: (exclusiveClaimedRes.data ?? []).map((c: { quest_id: string }) => c.quest_id),
-    familyBountyCompletions: familyBountyRes.data ?? [],
+    familySharedCompletions: sharedFamilyRes.data ?? [],
     pendingRedemptions: pendingRedemptionsRes.data ?? [],
   })
 }

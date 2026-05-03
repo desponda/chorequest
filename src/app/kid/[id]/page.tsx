@@ -11,26 +11,31 @@ import { QuestCard } from '@/components/quest-card'
 import { CoinCounter } from '@/components/coin-counter'
 import { StreakBadge } from '@/components/streak-badge'
 import type { Kid, Quest, Completion, Reward, CurseInstance, Redemption } from '@/lib/types'
-import { KID_COLORS, TIER_CONFIG, getLockDurationMs } from '@/lib/constants'
-import { questDateString } from '@/lib/utils'
+import { KID_COLORS, getLockDurationMs } from '@/lib/constants'
+import { questDateString, questWeekKey } from '@/lib/utils'
+import { isQuestVisibleToKid, sharedSlotsLeft, kidHasActiveCompletion } from '@/lib/quest-rules'
 import { toast } from 'sonner'
 
 const PIN_SESSION_KEY = 'cq_kid_pin_'
 
+interface KidDataPayload {
+  kid: Kid
+  resetHour: number
+  quests: Quest[]
+  completions: Completion[]
+  rewards: Reward[]
+  activeCurses: CurseInstance[]
+  familySharedCompletions: Array<{ quest_id: string; kid_id: string; status: string; date: string }>
+  pendingRedemptions: Redemption[]
+}
+
 export default function KidPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
 
-  const [kid, setKid] = useState<Kid | null>(null)
-  const [quests, setQuests] = useState<Quest[]>([])
-  const [completions, setCompletions] = useState<Completion[]>([])
-  const [rewards, setRewards] = useState<Reward[]>([])
-  const [activeCurses, setActiveCurses] = useState<CurseInstance[]>([])
-  const [claimedExclusiveIds, setClaimedExclusiveIds] = useState<Set<string>>(new Set())
-  const [familyBountyCompletions, setFamilyBountyCompletions] = useState<Array<{quest_id: string, kid_id: string, status: string}>>([])
-  const [pendingRedemptions, setPendingRedemptions] = useState<Redemption[]>([])
+  const [data, setData] = useState<KidDataPayload | null>(null)
   const prevPendingIdsRef = useRef<string[]>([])
   const isFirstFetchRef = useRef(true)
-  const [tab, setTab] = useState<'quests' | 'bounties' | 'rewards'>('quests')
+  const [tab, setTab] = useState<'quests' | 'rewards'>('quests')
   const [pinVerified, setPinVerified] = useState(() =>
     typeof window !== 'undefined'
       ? sessionStorage.getItem(PIN_SESSION_KEY + id) === 'verified'
@@ -43,7 +48,6 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   const [now, setNow] = useState(() => Date.now())
   const [loading, setLoading] = useState(true)
   const [supabase] = useState(createClient)
-  const [resetHour, setResetHour] = useState(0)
 
   const fetchData = useCallback(async () => {
     const res = await fetch(`/api/kid/${id}/data`)
@@ -51,32 +55,10 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
       setLoading(false)
       return
     }
-    const data = await res.json()
+    const payload: KidDataPayload = await res.json()
+    setData(payload)
 
-    setKid(data.kid)
-    setResetHour(data.resetHour)
-
-    const allCompletions: Completion[] = data.completions
-    const approvedOnceIds = new Set(
-      allCompletions.filter((c: Completion) => c.status === 'approved').map((c: Completion) => c.quest_id)
-    )
-    const dayOfWeek = new Date().getDay()
-    setQuests(
-      (data.quests as Quest[]).filter((q) => {
-        if (q.assigned_to && q.assigned_to !== id) return false
-        if (q.frequency === 'once' && approvedOnceIds.has(q.id)) return false
-        if (q.active_days?.length && !q.active_days.includes(dayOfWeek)) return false
-        return true
-      })
-    )
-
-    setCompletions(data.completions)
-    setActiveCurses(data.activeCurses as CurseInstance[])
-    setClaimedExclusiveIds(new Set(data.claimedExclusiveIds as string[]))
-    setFamilyBountyCompletions(data.familyBountyCompletions as Array<{quest_id: string, kid_id: string, status: string}>)
-    setRewards(data.rewards)
-
-    const incoming = (data.pendingRedemptions ?? []) as Redemption[]
+    const incoming = payload.pendingRedemptions ?? []
     if (!isFirstFetchRef.current) {
       const newIds = new Set(incoming.map((r) => r.id))
       const resolved = prevPendingIdsRef.current.filter((rid) => !newIds.has(rid))
@@ -86,7 +68,6 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
     }
     isFirstFetchRef.current = false
     prevPendingIdsRef.current = incoming.map((r) => r.id)
-    setPendingRedemptions(incoming)
 
     setLoading(false)
   }, [id])
@@ -96,7 +77,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
 
     const channel = supabase
       .channel(`kid-${id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'completions', filter: `kid_id=eq.${id}` }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'completions' }, fetchData)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'kids', filter: `id=eq.${id}` }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'curse_instances', filter: `kid_id=eq.${id}` }, fetchData)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'redemptions', filter: `kid_id=eq.${id}` }, fetchData)
@@ -145,24 +126,20 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
 
   const handleComplete = useCallback(
     async (questId: string) => {
-      const quest = quests.find((q) => q.id === questId)
+      if (!data) return
+      const quest = data.quests.find((q) => q.id === questId)
       if (!quest) return
 
-      const today = questDateString(resetHour)
-
-      if (quest.weekly_target != null) {
-        // Bounties use family-wide count; personal recurring use per-kid count
-        const isBounty = quest.weekly_target != null && quest.exclusive
-        const pool = isBounty ? familyBountyCompletions : completions
-        const weekCount = pool.filter(c =>
-          c.quest_id === questId && (c.status === 'approved' || c.status === 'pending')
-        ).length
-        if (weekCount >= quest.weekly_target) {
-          toast.error(isBounty ? 'Bounty fully claimed this week!' : 'Weekly target already reached!')
+      // For shared quests, double-check slot availability before posting
+      if (quest.kind === 'shared') {
+        const left = sharedSlotsLeft(quest, data.familySharedCompletions as Completion[])
+        if (left !== null && left <= 0) {
+          toast.error('All slots claimed for this period!')
           return
         }
       }
 
+      const today = questDateString(data.resetHour)
       const res = await fetch(`/api/kid/${id}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -171,23 +148,24 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
 
       if (!res.ok) {
         const { error } = await res.json().catch(() => ({}))
-        toast.error(error === '23505' ? 'Already done today!' : 'Something went wrong')
+        toast.error(error === '23505' ? 'Already done!' : 'Something went wrong')
         return
       }
 
       toast.success(`Quest submitted! ✨`, { description: `+${quest.coins} coins once approved` })
       await fetchData()
     },
-    [quests, id, fetchData, resetHour, completions, familyBountyCompletions]
+    [data, id, fetchData]
   )
 
   const handleRedeem = useCallback(
     async (rewardId: string) => {
-      const reward = rewards.find((r) => r.id === rewardId)
-      if (!reward || !kid) return
+      if (!data) return
+      const reward = data.rewards.find((r) => r.id === rewardId)
+      if (!reward) return
 
-      const pendingTotal = pendingRedemptions.reduce((sum, r) => sum + (r.reward?.cost ?? 0), 0)
-      const available = Math.max(0, kid.coins - pendingTotal)
+      const pendingTotal = data.pendingRedemptions.reduce((sum, r) => sum + (r.reward?.cost ?? 0), 0)
+      const available = Math.max(0, data.kid.coins - pendingTotal)
 
       if (available < reward.cost) {
         toast.error(`Need ${reward.cost - available} more coins!`)
@@ -209,7 +187,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
       toast.success(`Reward requested! 🎁`, { description: 'Ask a parent to approve it' })
       await fetchData()
     },
-    [rewards, kid, id, pendingRedemptions, fetchData]
+    [data, id, fetchData]
   )
 
   const handleCancelRedemption = useCallback(
@@ -225,7 +203,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
     [id, fetchData]
   )
 
-  if (loading || !kid) {
+  if (loading || !data) {
     return (
       <div className="min-h-screen bg-quest-void flex items-center justify-center">
         <StarField />
@@ -240,7 +218,9 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
     )
   }
 
+  const { kid, resetHour, quests, completions, rewards, activeCurses, familySharedCompletions, pendingRedemptions } = data
   const today = questDateString(resetHour)
+  const weekStart = questWeekKey(resetHour)
   const colors = KID_COLORS[kid.color]
   const pendingTotal = pendingRedemptions.reduce((sum, r) => sum + (r.reward?.cost ?? 0), 0)
   const availableCoins = Math.max(0, kid.coins - pendingTotal)
@@ -310,7 +290,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                   border: d ? '1px solid rgba(255,255,255,0.09)' : 'none',
                   color: d === '⌫' ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.85)',
                 }}
-                whileHover={d ? { background: `rgba(${kidColor(kid.color)}, 0.12)` } : {}}
+                whileHover={d ? { background: `rgba(${kidColorRgb(kid.color)}, 0.12)` } : {}}
                 whileTap={d ? { scale: 0.93 } : {}}
               >
                 {d}
@@ -329,330 +309,358 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
     )
   }
 
-  // Kid's quest board
+  // ─── Quest categorization ────────────────────────────────────────────────
+  const approvedOnceIds = new Set(
+    completions.filter((c) => c.status === 'approved').map((c) => c.quest_id),
+  )
+  const visibleQuests = quests.filter((q) =>
+    isQuestVisibleToKid(q, kid.id, today, approvedOnceIds),
+  )
+
+  const personalDaily = visibleQuests.filter((q) => q.kind === 'personal' && q.frequency === 'daily')
+  const personalWeekly = visibleQuests.filter((q) => q.kind === 'personal' && q.frequency === 'weekly')
+  const upForGrabs = visibleQuests.filter((q) => q.kind === 'shared' || q.kind === 'oneoff')
+
+  const personalDailyDoneCount = personalDaily.filter((q) =>
+    completions.some((c) => c.quest_id === q.id && c.date === today && (c.status === 'approved' || c.status === 'pending')),
+  ).length
+  const allDailiesDone = personalDaily.length > 0 && personalDailyDoneCount === personalDaily.length
+
+  const personalWeeklyDoneCount = personalWeekly.filter((q) =>
+    kidHasActiveCompletion(q, kid.id, completions),
+  ).length
+
   return (
     <div className="min-h-screen bg-quest-void flex flex-col">
       <StarField />
 
       <div className="relative z-10 flex flex-col flex-1 w-full max-w-md mx-auto">
-      {/* Header */}
-      <motion.header
-        className="flex items-center gap-4 px-6 py-5 flex-shrink-0"
-        initial={{ opacity: 0, y: -16 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <Link href="/" className="text-white/40 hover:text-white/70 transition-all text-sm">
-          ← Realm
-        </Link>
+        <motion.header
+          className="flex items-center gap-4 px-6 py-5 flex-shrink-0"
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Link href="/" className="text-white/40 hover:text-white/70 transition-all text-sm">
+            ← Realm
+          </Link>
 
-        <div className="flex-1 flex items-center gap-3 justify-center">
-          <span className="text-3xl">{kid.avatar}</span>
-          <div>
-            <h1 className="font-heading text-2xl font-bold text-white/95">{kid.name}</h1>
-            <p className="text-xs" style={{ color: colors.primary }}>Level {Math.floor(kid.coins / 50) + 1} Adventurer</p>
+          <div className="flex-1 flex items-center gap-3 justify-center">
+            <span className="text-3xl">{kid.avatar}</span>
+            <div>
+              <h1 className="font-heading text-2xl font-bold text-white/95">{kid.name}</h1>
+              <p className="text-xs" style={{ color: colors.primary }}>Level {Math.floor(kid.coins / 50) + 1} Adventurer</p>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          {kid.streak > 1 && <StreakBadge streak={kid.streak} compact />}
-          <CoinCounter value={availableCoins} size="sm" />
-        </div>
-      </motion.header>
+          <div className="flex items-center gap-2">
+            {kid.streak > 1 && <StreakBadge streak={kid.streak} compact />}
+            <CoinCounter value={availableCoins} size="sm" />
+          </div>
+        </motion.header>
 
-      {/* Tab bar */}
-      <div className="flex px-6 gap-2 mb-4 flex-shrink-0">
-        {(['quests', 'bounties', 'rewards'] as const).map((t) => {
-          const labels = { quests: '⚔️ Quests', bounties: '⚡ Bounties', rewards: '🎁 Rewards' }
-          return (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className="flex-1 py-2 rounded-xl text-sm font-semibold transition-all"
-              style={{
-                background: tab === t ? colors.bg : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${tab === t ? colors.border : 'rgba(255,255,255,0.07)'}`,
-                color: tab === t ? colors.primary : 'rgba(255,255,255,0.45)',
-              }}
-            >
-              {labels[t]}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Content */}
-      <main className="flex-1 px-6 pb-8 overflow-y-auto scrollbar-thin-glass">
-        <AnimatePresence mode="wait">
-          {tab === 'quests' ? (
-            <motion.div
-              key="quests"
-              className="flex flex-col gap-3"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              transition={{ duration: 0.2 }}
-            >
-              {/* Active curses */}
-              {activeCurses.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="rounded-2xl p-4 flex flex-col gap-2"
-                  style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}
-                >
-                  <p className="text-xs font-bold uppercase tracking-widest text-red-400/80">⚠️ Afflictions</p>
-                  {activeCurses.map(ci => {
-                    const curse = ci.curse as { title: string; icon: string; penalty: number } | undefined
-                    return (
-                      <div key={ci.id} className="flex items-center gap-3">
-                        <span className="text-xl">{curse?.icon ?? '☠️'}</span>
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-red-300">{curse?.title ?? 'Curse'}</p>
-                          <p className="text-xs text-red-400/60">−{ci.coins_deducted} coins deducted</p>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </motion.div>
-              )}
-
-              {quests.filter(q => !(q.weekly_target != null && q.exclusive)).length === 0 ? (
-                <div className="text-center py-16 text-white/30">
-                  <p className="text-4xl mb-3">🧙</p>
-                  <p>No quests yet — ask a parent to add some!</p>
-                </div>
-              ) : (
-                quests.filter(q => !(q.weekly_target != null && q.exclusive)).map((quest, i) => {
-                  const completion = quest.frequency === 'once'
-                    ? completions.find(c => c.quest_id === quest.id)
-                    : completions.find(c => c.quest_id === quest.id && c.date === today)
-
-                  const weeklyCount = quest.weekly_target != null
-                    ? completions.filter(c =>
-                        c.quest_id === quest.id &&
-                        (c.status === 'approved' || c.status === 'pending')
-                      ).length
-                    : undefined
-
-                  const isExclusiveLocked = quest.exclusive && !completion && claimedExclusiveIds.has(quest.id)
-
-                  return (
-                    <motion.div
-                      key={quest.id}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.06 }}
-                    >
-                      <QuestCard
-                        quest={quest}
-                        completion={completion}
-                        weeklyCount={weeklyCount}
-                        isExclusiveLocked={isExclusiveLocked}
-                        kidColor={kid.color}
-                        onComplete={() => handleComplete(quest.id)}
-                      />
-                    </motion.div>
-                  )
-                })
-              )}
-            </motion.div>
-          ) : tab === 'bounties' ? (
-            <motion.div
-              key="bounties"
-              className="flex flex-col gap-3"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              transition={{ duration: 0.2 }}
-            >
-              <p className="text-xs text-white/30 text-center pb-1">
-                Shared tasks — first to claim each slot earns the coins
-              </p>
-              {quests.filter(q => q.weekly_target != null && q.exclusive).length === 0 ? (
-                <div className="text-center py-16 text-white/30">
-                  <p className="text-4xl mb-3">⚡</p>
-                  <p>No bounties available today</p>
-                </div>
-              ) : (
-                quests.filter(q => q.weekly_target != null && q.exclusive).map((quest, i) => {
-                  const familyCount = familyBountyCompletions.filter(c =>
-                    c.quest_id === quest.id && (c.status === 'approved' || c.status === 'pending')
-                  ).length
-                  const isFull = quest.weekly_target != null && familyCount >= quest.weekly_target
-                  const myCompletion = completions.find(c => c.quest_id === quest.id && (c.date === today || quest.frequency === 'weekly'))
-                  const tier = TIER_CONFIG[quest.tier ?? 'normal']
-
-                  return (
-                    <motion.div
-                      key={quest.id}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.06 }}
-                      className="rounded-2xl p-4"
-                      style={{
-                        background: isFull && !myCompletion ? 'rgba(255,255,255,0.02)' : tier.bg,
-                        border: `1px solid ${isFull && !myCompletion ? 'rgba(255,255,255,0.06)' : tier.border}`,
-                        boxShadow: isFull && !myCompletion ? 'none' : (tier.glow ?? 'none'),
-                        opacity: isFull && !myCompletion ? 0.5 : 1,
-                      }}
-                    >
-                      <div className="flex items-start gap-3">
-                        <span className="text-2xl leading-none mt-0.5">{quest.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <p className={`font-semibold text-sm ${myCompletion?.status === 'approved' ? 'line-through opacity-40' : 'text-white/90'}`}>
-                              {quest.title}
-                            </p>
-                            <span
-                              className="text-xs px-1.5 py-0.5 rounded-md font-bold flex-shrink-0"
-                              style={{ background: `${tier.color}18`, color: tier.color, border: `1px solid ${tier.color}40` }}
-                            >
-                              {tier.label}
-                            </span>
-                          </div>
-                          <p className="text-xs mt-1" style={{ color: isFull ? 'rgba(74,222,128,0.7)' : 'rgba(255,255,255,0.35)' }}>
-                            {isFull ? '✓ fully claimed this week' : `${familyCount}/${quest.weekly_target} claimed this week`}
-                          </p>
-                        </div>
-                        <div className="flex-shrink-0 text-right">
-                          <div className="flex items-center gap-1 justify-end">
-                            <span className="text-sm">🪙</span>
-                            <span className="font-bold text-sm" style={{ color: tier.color }}>{quest.coins}</span>
-                          </div>
-                          {myCompletion?.status === 'pending' && (
-                            <p className="text-xs text-amber-400 mt-0.5">awaiting...</p>
-                          )}
-                          {myCompletion?.status === 'approved' && (
-                            <p className="text-xs text-green-400 mt-0.5">✓ done!</p>
-                          )}
-                          {isFull && !myCompletion && (
-                            <p className="text-xs text-white/30 mt-0.5">all taken</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {!isFull && !myCompletion && (
-                        <motion.button
-                          onClick={() => handleComplete(quest.id)}
-                          className="mt-3 w-full py-2.5 rounded-xl text-sm font-bold tracking-wide"
-                          style={{
-                            background: `linear-gradient(135deg, ${colors.bg}, transparent)`,
-                            border: `1px solid ${colors.border}`,
-                            color: colors.primary,
-                          }}
-                          whileHover={{ scale: 1.01 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          ⚡ Claim Bounty
-                        </motion.button>
-                      )}
-                    </motion.div>
-                  )
-                })
-              )}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="rewards"
-              className="flex flex-col gap-3"
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div
-                className="rounded-2xl p-4 mb-2 flex items-center gap-3"
+        <div className="flex px-6 gap-2 mb-4 flex-shrink-0">
+          {(['quests', 'rewards'] as const).map((t) => {
+            const labels = { quests: '⚔️ Quests', rewards: '🎁 Rewards' }
+            return (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className="flex-1 py-2 rounded-xl text-sm font-semibold transition-all"
                 style={{
-                  background: 'rgba(251, 191, 36, 0.08)',
-                  border: '1px solid rgba(251, 191, 36, 0.2)',
+                  background: tab === t ? colors.bg : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${tab === t ? colors.border : 'rgba(255,255,255,0.07)'}`,
+                  color: tab === t ? colors.primary : 'rgba(255,255,255,0.45)',
                 }}
               >
-                <span className="text-2xl">🪙</span>
-                <div className="flex-1">
-                  <p className="text-white/70 text-sm">{pendingTotal > 0 ? 'Available coins' : 'Your coin balance'}</p>
-                  <p className="font-heading text-2xl font-bold text-cq-gold">{availableCoins.toLocaleString()}</p>
-                  {pendingTotal > 0 && (
-                    <p className="text-xs text-amber-400/55 mt-0.5">
-                      {kid.coins.toLocaleString()} total · {pendingTotal.toLocaleString()} pending approval
-                    </p>
-                  )}
-                </div>
-              </div>
+                {labels[t]}
+              </button>
+            )
+          })}
+        </div>
 
-              {pendingRedemptions.length > 0 && (
-                <div
-                  className="rounded-2xl p-4 mb-2 flex flex-col gap-2"
-                  style={{ background: 'rgba(251, 191, 36, 0.04)', border: '1px solid rgba(251, 191, 36, 0.15)' }}
-                >
-                  <p className="text-xs font-bold uppercase tracking-widest text-amber-400/55">⏳ Awaiting Approval</p>
-                  {pendingRedemptions.map((r) => (
-                    <div key={r.id} className="flex items-center gap-3">
-                      <span className="text-lg">{r.reward?.icon ?? '🎁'}</span>
-                      <p className="flex-1 text-sm text-white/70">{r.reward?.title ?? 'Reward'}</p>
-                      <span className="text-xs text-white/35">🪙 {r.reward?.cost ?? '?'}</span>
-                      <button
-                        onClick={() => handleCancelRedemption(r.id)}
-                        className="text-xs text-white/25 hover:text-red-400 transition-all flex-shrink-0 px-1.5 py-0.5 rounded-lg"
-                        title="Cancel request"
+        <main className="flex-1 px-6 pb-8 overflow-y-auto scrollbar-thin-glass">
+          <AnimatePresence mode="wait">
+            {tab === 'quests' ? (
+              <motion.div
+                key="quests"
+                className="flex flex-col gap-5"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ duration: 0.2 }}
+              >
+                {activeCurses.length > 0 && <ActiveCursesSection curses={activeCurses} />}
+
+                {personalDaily.length > 0 && (
+                  <Section title={`Today (${personalDailyDoneCount}/${personalDaily.length})`}>
+                    {personalDaily.map((q, i) => (
+                      <QuestRowItem
+                        key={q.id}
+                        quest={q}
+                        index={i}
+                        completion={completions.find((c) => c.quest_id === q.id && c.date === today)}
+                        kidColor={kid.color}
+                        onComplete={() => handleComplete(q.id)}
+                      />
+                    ))}
+                  </Section>
+                )}
+
+                {personalWeekly.length > 0 && (
+                  <Section title={`This Week (${personalWeeklyDoneCount}/${personalWeekly.length})`}>
+                    {personalWeekly.map((q, i) => (
+                      <QuestRowItem
+                        key={q.id}
+                        quest={q}
+                        index={i}
+                        completion={completions.find((c) =>
+                          c.quest_id === q.id && c.kid_id === kid.id && c.date >= weekStart,
+                        )}
+                        kidColor={kid.color}
+                        onComplete={() => handleComplete(q.id)}
+                      />
+                    ))}
+                  </Section>
+                )}
+
+                {upForGrabs.length > 0 && (
+                  <div>
+                    {allDailiesDone && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="rounded-2xl p-3 mb-3 text-center"
+                        style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)' }}
                       >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+                        <p className="text-cq-forest text-sm font-bold">🎉 All caught up — grab something extra</p>
+                      </motion.div>
+                    )}
+                    <Section title="⚡ Up for Grabs" accent="gold">
+                      {upForGrabs.map((q, i) => {
+                        const claimed = familySharedCompletions.filter(
+                          (c) => c.quest_id === q.id && (c.status === 'approved' || c.status === 'pending'),
+                        ).length
+                        const myCompletion = completions.find(
+                          (c) => c.quest_id === q.id && c.kid_id === kid.id && (c.date === today || c.date >= weekStart),
+                        )
+                        const isShareLocked = !myCompletion && claimed >= q.slots
+                        return (
+                          <QuestRowItem
+                            key={q.id}
+                            quest={q}
+                            index={i}
+                            completion={myCompletion}
+                            sharedClaimed={claimed}
+                            isShareLocked={isShareLocked}
+                            kidColor={kid.color}
+                            onComplete={() => handleComplete(q.id)}
+                          />
+                        )
+                      })}
+                    </Section>
+                  </div>
+                )}
 
-              {rewards.length === 0 ? (
-                <div className="text-center py-16 text-white/30">
-                  <p className="text-4xl mb-3">🎁</p>
-                  <p>No rewards yet — ask a parent to add some!</p>
-                </div>
-              ) : (
-                rewards.map((reward, i) => (
-                  <motion.div
-                    key={reward.id}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.06 }}
-                    className="rounded-2xl p-4 flex items-center gap-4"
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.04)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                    }}
-                  >
-                    <span className="text-3xl">{reward.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-white/90">{reward.title}</p>
-                      {reward.description && (
-                        <p className="text-white/45 text-sm truncate">{reward.description}</p>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => handleRedeem(reward.id)}
-                      disabled={availableCoins < reward.cost}
-                      className="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
-                      style={{
-                        background: availableCoins >= reward.cost
-                          ? 'rgba(251, 191, 36, 0.18)'
-                          : 'rgba(255,255,255,0.05)',
-                        border: `1px solid ${availableCoins >= reward.cost ? 'rgba(251, 191, 36, 0.4)' : 'rgba(255,255,255,0.08)'}`,
-                        color: availableCoins >= reward.cost ? '#fbbf24' : 'rgba(255,255,255,0.4)',
-                      }}
-                    >
-                      🪙 {reward.cost}
-                    </button>
-                  </motion.div>
-                ))
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
+                {visibleQuests.length === 0 && (
+                  <div className="text-center py-16 text-white/30">
+                    <p className="text-4xl mb-3">🧙</p>
+                    <p>No quests yet — ask a parent to add some!</p>
+                  </div>
+                )}
+              </motion.div>
+            ) : (
+              <RewardsTab
+                rewards={rewards}
+                kid={kid}
+                pendingRedemptions={pendingRedemptions}
+                pendingTotal={pendingTotal}
+                availableCoins={availableCoins}
+                onRedeem={handleRedeem}
+                onCancel={handleCancelRedemption}
+              />
+            )}
+          </AnimatePresence>
+        </main>
       </div>
     </div>
   )
 }
 
-function kidColor(color: string) {
+// ─── Sub-components ────────────────────────────────────────────────────────────
+
+function Section({ title, accent, children }: { title: string; accent?: 'gold'; children: React.ReactNode }) {
+  return (
+    <div>
+      <p
+        className="text-xs font-bold uppercase tracking-widest mb-2"
+        style={{ color: accent === 'gold' ? 'rgba(251,191,36,0.7)' : 'rgba(255,255,255,0.35)' }}
+      >
+        {title}
+      </p>
+      <div className="flex flex-col gap-3">{children}</div>
+    </div>
+  )
+}
+
+function QuestRowItem({
+  quest, index, completion, sharedClaimed, isShareLocked, kidColor, onComplete,
+}: {
+  quest: Quest
+  index: number
+  completion?: Completion
+  sharedClaimed?: number
+  isShareLocked?: boolean
+  kidColor: 'azure' | 'mystic'
+  onComplete: () => Promise<void>
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.06 }}
+    >
+      <QuestCard
+        quest={quest}
+        completion={completion}
+        sharedClaimed={sharedClaimed}
+        isShareLocked={isShareLocked}
+        kidColor={kidColor}
+        onComplete={onComplete}
+      />
+    </motion.div>
+  )
+}
+
+function ActiveCursesSection({ curses }: { curses: CurseInstance[] }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl p-4 flex flex-col gap-2"
+      style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}
+    >
+      <p className="text-xs font-bold uppercase tracking-widest text-red-400/80">⚠️ Afflictions</p>
+      {curses.map(ci => {
+        const curse = ci.curse as { title: string; icon: string; penalty: number } | undefined
+        return (
+          <div key={ci.id} className="flex items-center gap-3">
+            <span className="text-xl">{curse?.icon ?? '☠️'}</span>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-red-300">{curse?.title ?? 'Curse'}</p>
+              <p className="text-xs text-red-400/60">−{ci.coins_deducted} coins deducted</p>
+            </div>
+          </div>
+        )
+      })}
+    </motion.div>
+  )
+}
+
+function RewardsTab({
+  rewards, kid, pendingRedemptions, pendingTotal, availableCoins, onRedeem, onCancel,
+}: {
+  rewards: Reward[]
+  kid: Kid
+  pendingRedemptions: Redemption[]
+  pendingTotal: number
+  availableCoins: number
+  onRedeem: (rewardId: string) => Promise<void>
+  onCancel: (redemptionId: string) => Promise<void>
+}) {
+  return (
+    <motion.div
+      key="rewards"
+      className="flex flex-col gap-3"
+      initial={{ opacity: 0, x: 10 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -10 }}
+      transition={{ duration: 0.2 }}
+    >
+      <div
+        className="rounded-2xl p-4 mb-2 flex items-center gap-3"
+        style={{ background: 'rgba(251, 191, 36, 0.08)', border: '1px solid rgba(251, 191, 36, 0.2)' }}
+      >
+        <span className="text-2xl">🪙</span>
+        <div className="flex-1">
+          <p className="text-white/70 text-sm">{pendingTotal > 0 ? 'Available coins' : 'Your coin balance'}</p>
+          <p className="font-heading text-2xl font-bold text-cq-gold">{availableCoins.toLocaleString()}</p>
+          {pendingTotal > 0 && (
+            <p className="text-xs text-amber-400/55 mt-0.5">
+              {kid.coins.toLocaleString()} total · {pendingTotal.toLocaleString()} pending approval
+            </p>
+          )}
+        </div>
+      </div>
+
+      {pendingRedemptions.length > 0 && (
+        <div
+          className="rounded-2xl p-4 mb-2 flex flex-col gap-2"
+          style={{ background: 'rgba(251, 191, 36, 0.04)', border: '1px solid rgba(251, 191, 36, 0.15)' }}
+        >
+          <p className="text-xs font-bold uppercase tracking-widest text-amber-400/55">⏳ Awaiting Approval</p>
+          {pendingRedemptions.map((r) => (
+            <div key={r.id} className="flex items-center gap-3">
+              <span className="text-lg">{r.reward?.icon ?? '🎁'}</span>
+              <p className="flex-1 text-sm text-white/70">{r.reward?.title ?? 'Reward'}</p>
+              <span className="text-xs text-white/35">🪙 {r.reward?.cost ?? '?'}</span>
+              <button
+                onClick={() => onCancel(r.id)}
+                className="text-xs text-white/25 hover:text-red-400 transition-all flex-shrink-0 px-1.5 py-0.5 rounded-lg"
+                title="Cancel request"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {rewards.length === 0 ? (
+        <div className="text-center py-16 text-white/30">
+          <p className="text-4xl mb-3">🎁</p>
+          <p>No rewards yet — ask a parent to add some!</p>
+        </div>
+      ) : (
+        rewards.map((reward, i) => (
+          <motion.div
+            key={reward.id}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.06 }}
+            className="rounded-2xl p-4 flex items-center gap-4"
+            style={{
+              background: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+            }}
+          >
+            <span className="text-3xl">{reward.icon}</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-white/90">{reward.title}</p>
+              {reward.description && (
+                <p className="text-white/45 text-sm truncate">{reward.description}</p>
+              )}
+            </div>
+            <button
+              onClick={() => onRedeem(reward.id)}
+              disabled={availableCoins < reward.cost}
+              className="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
+              style={{
+                background: availableCoins >= reward.cost
+                  ? 'rgba(251, 191, 36, 0.18)'
+                  : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${availableCoins >= reward.cost ? 'rgba(251, 191, 36, 0.4)' : 'rgba(255,255,255,0.08)'}`,
+                color: availableCoins >= reward.cost ? '#fbbf24' : 'rgba(255,255,255,0.4)',
+              }}
+            >
+              🪙 {reward.cost}
+            </button>
+          </motion.div>
+        ))
+      )}
+    </motion.div>
+  )
+}
+
+function kidColorRgb(color: string) {
   return color === 'azure' ? '56,189,248' : '167,139,250'
 }
