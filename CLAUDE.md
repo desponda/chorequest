@@ -145,8 +145,12 @@ vercel --prod        # Deploy to production (CI/CD via GitHub is preferred)
 - Preview deploys: every branch/PR gets a unique Vercel URL
 - **CI jobs** (`.github/workflows/ci.yml`):
   - `typecheck` + `lint` + `unit tests` — run on every push to main and every PR
-  - `playwright` (E2E) — **PRs only**, not on direct pushes to main (too slow for routine commits)
-- Supabase env vars are set as GitHub Actions secrets (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`)
+  - `playwright` (E2E) — **manual trigger only** (`workflow_dispatch`)
+- **DB migrate** (`.github/workflows/db-migrate.yml`):
+  - Runs on push to main when any file under `supabase/migrations/**` changes, or via manual trigger
+  - Calls `supabase link` + `supabase db push` — applies only unapplied migrations (idempotent)
+  - Requires two GH Actions secrets: `SUPABASE_ACCESS_TOKEN` (personal access token from supabase.com) and `SUPABASE_DB_PASSWORD` (project DB password)
+- Supabase env vars as GitHub Actions secrets: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`
 
 ## Environment Variables
 
