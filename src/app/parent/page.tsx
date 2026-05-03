@@ -135,6 +135,7 @@ export default function ParentDashboard() {
       .channel('parent-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'completions' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'redemptions' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'curse_instances' }, fetchData)
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [fetchData, supabase])
@@ -473,8 +474,14 @@ export default function ParentDashboard() {
     })
     if (instanceError) { toast.error('Failed to cast curse'); return }
 
-    await supabase.from('kids').update({ coins: Math.max(0, kid.coins - curse.penalty) }).eq('id', kidId)
-    toast.success(`${curse.icon} ${curse.title} cast on ${kid.name}! −${curse.penalty} coins`)
+    // Re-fetch current coins to avoid deducting from stale state
+    const { data: freshKid } = await supabase.from('kids').select('coins').eq('id', kidId).single()
+    const { error: coinsError } = await supabase
+      .from('kids')
+      .update({ coins: Math.max(0, (freshKid?.coins ?? kid.coins) - curse.penalty) })
+      .eq('id', kidId)
+    if (coinsError) toast.error('Curse cast but coin deduction failed — check manually')
+    else toast.success(`${curse.icon} ${curse.title} cast on ${kid.name}! −${curse.penalty} coins`)
     setCastingCurseId(null)
     await fetchData()
   }
@@ -484,10 +491,21 @@ export default function ParentDashboard() {
     const kid = instance?.kid as Kid | undefined
     if (!instance || !kid) return
 
-    await supabase.from('curse_instances').update({ status: 'resolved', resolved_at: new Date().toISOString() }).eq('id', instanceId)
+    const { error: resolveError } = await supabase
+      .from('curse_instances')
+      .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+      .eq('id', instanceId)
+    if (resolveError) { toast.error('Failed to resolve curse'); return }
+
     if (refund) {
-      await supabase.from('kids').update({ coins: kid.coins + instance.coins_deducted }).eq('id', kid.id)
-      toast.success(`Curse lifted — ${instance.coins_deducted} coins refunded to ${kid.name}`)
+      // Re-fetch current coins to avoid clobbering coins earned since last data load
+      const { data: freshKid } = await supabase.from('kids').select('coins').eq('id', kid.id).single()
+      const { error: coinsError } = await supabase
+        .from('kids')
+        .update({ coins: (freshKid?.coins ?? kid.coins) + instance.coins_deducted })
+        .eq('id', kid.id)
+      if (coinsError) toast.error('Curse lifted but refund failed — check manually')
+      else toast.success(`Curse lifted — ${instance.coins_deducted} coins refunded to ${kid.name}`)
     } else {
       toast.success('Curse resolved')
     }
