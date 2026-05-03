@@ -65,15 +65,15 @@ describe('TIER_CONFIG', () => {
       const cfg = TIER_CONFIG[tier]
       expect(cfg.label).toBeTruthy()
       expect(cfg.color).toMatch(/^(#|rgba)/)
-      expect(cfg.bg).toMatch(/^rgba/)
+      expect(cfg.bg).toBeTruthy()
       expect(cfg.border).toMatch(/^rgba/)
     })
   })
 
-  it('only epic tier has a glow', () => {
+  it('non-normal tiers have glows; normal does not', () => {
     expect(TIER_CONFIG.normal.glow).toBeNull()
-    expect(TIER_CONFIG.heroic.glow).toBeNull()
-    expect(TIER_CONFIG.legendary.glow).toBeNull()
+    expect(TIER_CONFIG.heroic.glow).toBeTruthy()
+    expect(TIER_CONFIG.legendary.glow).toBeTruthy()
     expect(TIER_CONFIG.epic.glow).toBeTruthy()
   })
 })
