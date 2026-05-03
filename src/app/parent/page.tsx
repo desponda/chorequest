@@ -13,6 +13,8 @@ import type { Kid, Quest, Completion, Reward, Family } from '@/lib/types'
 import { KID_COLORS, KID_AVATARS, QUEST_ICONS, DEFAULT_QUESTS } from '@/lib/constants'
 import { toast } from 'sonner'
 
+const PARENT_PIN_SESSION_KEY = 'cq_parent_unlocked'
+
 type Tab = 'approvals' | 'quests' | 'family' | 'rewards'
 
 export default function ParentDashboard() {
@@ -40,6 +42,11 @@ export default function ParentDashboard() {
   const [newRewardCost, setNewRewardCost] = useState(50)
   const [familyName, setFamilyName] = useState('')
   const [savingFamily, setSavingFamily] = useState(false)
+  const [parentLocked, setParentLocked] = useState(false)
+  const [lockPinInput, setLockPinInput] = useState('')
+  const [lockPinError, setLockPinError] = useState(false)
+  const [newParentPin, setNewParentPin] = useState('')
+  const [savingParentPin, setSavingParentPin] = useState(false)
 
   const [supabase] = useState(createClient)
   const router = useRouter()
@@ -61,6 +68,12 @@ export default function ParentDashboard() {
     if (familyRes.data) {
       setFamily(familyRes.data)
       setFamilyName(familyRes.data.name)
+      if (familyRes.data.parent_pin) {
+        const unlocked = typeof window !== 'undefined'
+          ? sessionStorage.getItem(PARENT_PIN_SESSION_KEY) === '1'
+          : false
+        if (!unlocked) setParentLocked(true)
+      }
     }
     if (kidsRes.data) setKids(kidsRes.data)
     if (questsRes.data) setQuests(questsRes.data)
@@ -212,6 +225,57 @@ export default function ParentDashboard() {
     await fetchData()
   }
 
+  const handleParentPinDigit = (digit: string) => {
+    const next = lockPinInput + digit
+    setLockPinInput(next)
+    if (next.length === 4) {
+      if (family?.parent_pin && next === family.parent_pin) {
+        sessionStorage.setItem(PARENT_PIN_SESSION_KEY, '1')
+        setParentLocked(false)
+        setLockPinError(false)
+        setLockPinInput('')
+      } else {
+        setLockPinError(true)
+        setTimeout(() => {
+          setLockPinInput('')
+          setLockPinError(false)
+        }, 700)
+      }
+    }
+  }
+
+  const handleLock = () => {
+    sessionStorage.removeItem(PARENT_PIN_SESSION_KEY)
+    setParentLocked(true)
+    setLockPinInput('')
+  }
+
+  const handleSaveParentPin = async () => {
+    if (!family || newParentPin.length !== 4) return
+    setSavingParentPin(true)
+    const { error } = await supabase
+      .from('families')
+      .update({ parent_pin: newParentPin })
+      .eq('id', family.id)
+    if (!error) {
+      sessionStorage.setItem(PARENT_PIN_SESSION_KEY, '1')
+      setNewParentPin('')
+      toast.success('Parent lock PIN set! 🔒')
+      await fetchData()
+    } else {
+      toast.error('Failed to set PIN')
+    }
+    setSavingParentPin(false)
+  }
+
+  const handleRemoveParentPin = async () => {
+    if (!family) return
+    await supabase.from('families').update({ parent_pin: null }).eq('id', family.id)
+    sessionStorage.removeItem(PARENT_PIN_SESSION_KEY)
+    toast.success('Parent lock removed')
+    await fetchData()
+  }
+
   const pendingCompletions = completions.filter((c) => c.status === 'pending')
 
   if (loading) {
@@ -225,6 +289,77 @@ export default function ParentDashboard() {
         >
           ✦ Loading ✦
         </motion.p>
+      </div>
+    )
+  }
+
+  if (parentLocked) {
+    return (
+      <div className="min-h-screen bg-quest-void flex items-center justify-center px-4">
+        <StarField />
+        <motion.div
+          className="relative z-10 w-full max-w-xs text-center"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <motion.span
+            className="text-6xl block mb-4"
+            animate={{ y: [0, -6, 0] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            🔒
+          </motion.span>
+          <h2 className="font-heading text-3xl font-bold text-white mb-1">Parent Command</h2>
+          <p className="text-white/40 text-sm mb-8">Enter your parent PIN</p>
+
+          <div className="flex justify-center gap-4 mb-8">
+            {Array.from({ length: 4 }, (_, i) => (
+              <motion.div
+                key={i}
+                className="w-4 h-4 rounded-full border-2"
+                style={{
+                  borderColor: lockPinError ? '#f87171' : 'rgba(251,191,36,0.5)',
+                  background: lockPinInput.length > i
+                    ? (lockPinError ? '#f87171' : '#fbbf24')
+                    : 'transparent',
+                }}
+                animate={lockPinError ? { x: [-4, 4, -4, 4, 0] } : {}}
+                transition={{ duration: 0.3 }}
+              />
+            ))}
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 max-w-[240px] mx-auto">
+            {['1','2','3','4','5','6','7','8','9','','0','⌫'].map((d) => (
+              <motion.button
+                key={d}
+                onClick={() => {
+                  if (d === '⌫') {
+                    setLockPinInput((p) => p.slice(0, -1))
+                    setLockPinError(false)
+                  } else if (d && lockPinInput.length < 4) {
+                    handleParentPinDigit(d)
+                  }
+                }}
+                disabled={!d}
+                className="h-14 rounded-2xl font-heading font-bold text-xl transition-all disabled:opacity-0"
+                style={{
+                  background: d ? 'rgba(255,255,255,0.06)' : 'transparent',
+                  border: d ? '1px solid rgba(255,255,255,0.09)' : 'none',
+                  color: d === '⌫' ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.85)',
+                }}
+                whileHover={d ? { background: 'rgba(251,191,36,0.12)' } : {}}
+                whileTap={d ? { scale: 0.93 } : {}}
+              >
+                {d}
+              </motion.button>
+            ))}
+          </div>
+
+          <Link href="/" className="block mt-8 text-white/25 text-sm hover:text-white/50 transition-all">
+            ← Back to Realm
+          </Link>
+        </motion.div>
       </div>
     )
   }
@@ -254,12 +389,23 @@ export default function ParentDashboard() {
         <div className="flex-1 text-center">
           <span className="font-heading text-lg font-bold text-white/80">Parent Command</span>
         </div>
-        <button
-          onClick={handleSignOut}
-          className="text-white/30 hover:text-white/60 transition-all text-sm flex-shrink-0"
-        >
-          Sign out
-        </button>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {family?.parent_pin && (
+            <button
+              onClick={handleLock}
+              className="text-white/30 hover:text-cq-gold transition-all text-lg"
+              title="Lock parent area"
+            >
+              🔒
+            </button>
+          )}
+          <button
+            onClick={handleSignOut}
+            className="text-white/30 hover:text-white/60 transition-all text-sm"
+          >
+            Sign out
+          </button>
+        </div>
       </motion.header>
 
       {/* Tab nav */}
@@ -452,6 +598,73 @@ export default function ParentDashboard() {
                     className="flex-shrink-0 px-5"
                   />
                 </div>
+              </Section>
+
+              {/* Parent lock */}
+              <Section title="Parent Lock">
+                {family?.parent_pin ? (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">🔒</span>
+                      <div className="flex-1">
+                        <p className="text-white/80 text-sm font-semibold">Parent lock is active</p>
+                        <p className="text-white/40 text-xs">Kids cannot access this area</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <input
+                          type="tel"
+                          maxLength={4}
+                          pattern="[0-9]{4}"
+                          placeholder="New 4-digit PIN"
+                          value={newParentPin}
+                          onChange={(e) => setNewParentPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                          className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none tracking-widest"
+                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                        />
+                      </div>
+                      <ActionButton
+                        onClick={handleSaveParentPin}
+                        label={savingParentPin ? '...' : 'Change'}
+                        disabled={newParentPin.length !== 4 || savingParentPin}
+                        className="flex-shrink-0 px-5"
+                      />
+                    </div>
+                    <button
+                      onClick={handleRemoveParentPin}
+                      className="text-xs text-white/30 hover:text-red-400 transition-all text-center"
+                    >
+                      Remove parent lock
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <p className="text-white/50 text-sm">
+                      Set a PIN so kids can&apos;t access this area on a shared device.
+                    </p>
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <input
+                          type="tel"
+                          maxLength={4}
+                          pattern="[0-9]{4}"
+                          placeholder="4-digit PIN"
+                          value={newParentPin}
+                          onChange={(e) => setNewParentPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                          className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none tracking-widest"
+                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                        />
+                      </div>
+                      <ActionButton
+                        onClick={handleSaveParentPin}
+                        label={savingParentPin ? '...' : 'Set PIN'}
+                        disabled={newParentPin.length !== 4 || savingParentPin}
+                        className="flex-shrink-0 px-5"
+                      />
+                    </div>
+                  </div>
+                )}
               </Section>
 
               {/* Add kid */}

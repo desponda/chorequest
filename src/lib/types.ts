@@ -5,6 +5,7 @@ export type CompletionStatus = 'pending' | 'approved' | 'rejected'
 export interface Family {
   id: string
   name: string
+  parent_pin: string | null
   created_at: string
 }
 
