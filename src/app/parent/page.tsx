@@ -196,24 +196,36 @@ export default function ParentDashboard() {
     const reward = redemption.reward as Reward | undefined
     if (!kid || !reward) return
 
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from('redemptions')
       .update({ status: 'approved' })
       .eq('id', redemptionId)
+      .select('id')
 
-    if (!error) {
-      await supabase
-        .from('kids')
-        .update({ coins: Math.max(0, kid.coins - reward.cost) })
-        .eq('id', kid.id)
-      toast.success(`${kid.name} got ${reward.title}! 🎁 -${reward.cost} coins`)
+    if (error) return
+
+    if (!updated || updated.length === 0) {
+      // Row was already cancelled by the kid before parent approved
+      toast.error('Request was already cancelled by the kid')
       await fetchData()
+      return
     }
+
+    await supabase
+      .from('kids')
+      .update({ coins: Math.max(0, kid.coins - reward.cost) })
+      .eq('id', kid.id)
+    toast.success(`${kid.name} got ${reward.title}! 🎁 -${reward.cost} coins`)
+    await fetchData()
   }
 
   const handleDenyRedemption = async (redemptionId: string) => {
-    await supabase.from('redemptions').delete().eq('id', redemptionId)
-    toast.success('Reward request denied')
+    const { data: deleted } = await supabase
+      .from('redemptions')
+      .delete()
+      .eq('id', redemptionId)
+      .select('id')
+    toast.success(deleted && deleted.length > 0 ? 'Reward request denied' : 'Already cancelled by the kid')
     await fetchData()
   }
 
