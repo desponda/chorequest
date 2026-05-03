@@ -46,7 +46,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-quest-void flex items-center justify-center px-4">
+    <div className="min-h-screen bg-quest-void flex items-center justify-center px-4 overflow-x-hidden">
       <StarField />
 
       <motion.div

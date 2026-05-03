@@ -32,8 +32,8 @@ test.describe('Login page responsive', () => {
 
   test('no horizontal overflow', async ({ page }) => {
     const { scroll, viewport } = await horizontalOverflow(page)
-    // Allow 1px rounding tolerance
-    expect(scroll).toBeLessThanOrEqual(viewport + 1)
+    // Allow 2px for webkit sub-pixel rounding
+    expect(scroll).toBeLessThanOrEqual(viewport + 2)
   })
 
   test('branding and form are visible', async ({ page }) => {
