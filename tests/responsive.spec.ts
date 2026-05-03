@@ -69,10 +69,11 @@ test.describe('Auth redirect', () => {
     await expect(page).toHaveURL(/login/)
   })
 
-  test('/kid/[id] redirects to /login when unauthenticated', async ({ page }) => {
+  test('/kid/[id] is accessible without auth (has own PIN protection)', async ({ page }) => {
     await page.goto('/kid/00000000-0000-0000-0000-000000000000')
     await page.waitForLoadState('networkidle')
-    await expect(page).toHaveURL(/login/)
+    // Should NOT redirect to login — kid view is public with its own PIN lock
+    expect(page.url()).not.toMatch(/login/)
   })
 })
 
