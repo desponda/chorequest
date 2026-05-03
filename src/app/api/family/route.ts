@@ -12,7 +12,7 @@ export async function GET(req: Request) {
   const supabase = createServiceClient()
 
   const [familyRes, kidsRes] = await Promise.all([
-    supabase.from('families').select('id, name, api_key, created_at').eq('id', auth.familyId).single(),
+    supabase.from('families').select('id, name, created_at').eq('id', auth.familyId).single(),
     supabase.from('kids').select('id, name, avatar, color, coins, streak, last_completed_date, created_at').eq('family_id', auth.familyId).order('created_at'),
   ])
 

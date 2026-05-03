@@ -6,7 +6,7 @@ export type CompletionStatus = 'pending' | 'approved' | 'rejected'
 export interface Family {
   id: string
   name: string
-  parent_pin: string | null
+  has_parent_pin: boolean
   invite_token: string
   created_at: string
 }
@@ -26,7 +26,7 @@ export interface Kid {
   coins: number
   streak: number
   last_completed_date: string | null
-  pin: string
+  pin?: string
   created_at: string
 }
 

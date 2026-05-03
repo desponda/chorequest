@@ -25,13 +25,22 @@ ChoreQuest is a fantasy-themed family chore app. Parents manage quests and rewar
 ```
 src/
   app/
-    page.tsx          # Wall display — real-time grid of kid columns (always fullscreen)
-    login/page.tsx    # Auth — email/password login and signup
-    parent/page.tsx   # Parent dashboard — 4 tabs: Approvals, Quests, Family, Rewards
-    kid/[id]/page.tsx # Kid view — PIN lock + quest board + rewards tab
+    page.tsx                        # Wall display — real-time grid of kid columns (always fullscreen)
+    login/page.tsx                  # Auth — email/password login and signup
+    parent/page.tsx                 # Parent dashboard — 4 tabs: Approvals, Quests, Family, Rewards
+    kid/[id]/page.tsx               # Kid view — PIN lock + quest board + rewards tab
+    join/[token]/page.tsx           # Public family invite page — kid picker → PIN screen
+    auth/callback/route.ts          # Supabase OAuth callback (validates next param)
+    api/
+      kid/[id]/verify-pin/route.ts  # Server-side kid PIN verification (no PIN in browser)
+      parent/verify-pin/route.ts    # Server-side parent PIN verification (requires auth session)
+      family/route.ts               # External REST API — family info (no api_key exposed)
+      kids/route.ts                 # External REST API — kids list (no pin exposed)
+      quests/route.ts               # External REST API — quests CRUD
+      rewards/route.ts              # External REST API — rewards CRUD
   components/
     kid-column.tsx    # Quest list column used on the wall display
-    quest-card.tsx    # Individual quest card with approve/reject controls
+    quest-card.tsx    # Individual quest card with tier badge + approve/reject controls
     coin-counter.tsx  # Animated coin display
     streak-badge.tsx  # Streak flame badge
     star-field.tsx    # Animated starfield background
@@ -39,8 +48,10 @@ src/
     supabase/
       client.ts       # Browser Supabase client (createBrowserClient)
       server.ts       # Server Supabase client (createServerClient)
+      service.ts      # Service role client — used only in API routes, bypasses RLS
     types.ts          # Shared TypeScript types
-    constants.ts      # KID_COLORS, KID_AVATARS, QUEST_ICONS, DEFAULT_QUESTS
+    constants.ts      # KID_COLORS, KID_AVATARS, QUEST_ICONS, DEFAULT_QUESTS, TIER_CONFIG
+    api-auth.ts       # External API key auth helper + CORS headers
     utils.ts          # Tailwind cn() helper
   proxy.ts            # Next.js 16 middleware (replaces middleware.ts) — auth redirect
 ```
@@ -64,13 +75,22 @@ src/
 
 | Table | Purpose |
 |-------|---------|
-| `families` | One per account, created automatically on signup |
+| `families` | One per account — has `invite_token` (public join link) and `api_key` (external API auth) |
 | `profiles` | Links auth.users → families |
-| `kids` | Kid records with avatar, color, coins, streak, PIN |
-| `quests` | Chore templates — daily, assigned to a kid or all kids |
+| `kids` | Kid records with avatar, color, coins, streak, PIN (pin never sent to browser) |
+| `quests` | Chore templates — `frequency` (daily/once), `tier` (normal/heroic/legendary/epic) |
 | `completions` | Records of quests completed: pending → approved/rejected |
 | `rewards` | Prize catalog managed by parent |
 | `redemptions` | Kid reward redemption requests |
+
+## Security Model
+
+- **Kid PIN**: Never fetched to the browser. Verification goes through `/api/kid/[id]/verify-pin` (service client, server-side). Client enforces 5-attempt lockout.
+- **Parent PIN**: Not stored in React state — only `has_parent_pin: boolean` is kept. Verification goes through `/api/parent/verify-pin` (requires active auth session).
+- **Public routes**: `/login`, `/api/*`, `/join/*` — no Supabase session required. All others redirect to login.
+- **RLS**: All tables use `get_user_family_id()` — authenticated users only see their own family's data.
+- **External API**: Bearer `api_key` auth. Never returns `pin` or `api_key` in responses. CORS restricted to `CORS_ORIGIN` env var (defaults to `https://chorequest.dresponda.com` in production).
+- **`get_family_by_invite_token(uuid)`**: Anon-callable RPC that returns only id/name/kids without PINs.
 
 ## Design System
 
@@ -89,6 +109,21 @@ src/
 - Real-time subscriptions are set up in `useEffect` and cleaned up on unmount
 - Toasts use `sonner` — imported from `@/components/ui/sonner` (Toaster) and `sonner` (toast)
 - Inline styles are used alongside Tailwind for dynamic/theme-specific values
+- **Never use `select('*')` on tables with sensitive columns** — always enumerate columns explicitly
+
+## Testing Strategy (Testing Pyramid)
+
+The project follows the testing pyramid — unit tests are fastest and cheapest; E2E is reserved for critical paths.
+
+| Layer | Tool | When to run | What to test |
+|-------|------|-------------|--------------|
+| Unit | Vitest | Every commit (fast, <5s) | Pure functions, utilities, constants, type guards |
+| Integration | Vitest + MSW | Every PR (medium, ~30s) | API route handlers, auth logic, data transforms |
+| E2E | Playwright | PR + main only (slow, ~2min) | Critical user journeys: login, quest complete, approval |
+
+- Unit/integration tests live in `src/**/__tests__/` or `*.test.ts` files
+- Playwright tests live in `e2e/`
+- CI runs unit+integration on every push; Playwright only on PRs and pushes to main
 
 ## Commands
 
@@ -118,6 +153,19 @@ vercel --prod        # Deploy to production (CI/CD via GitHub is preferred)
 ```
 NEXT_PUBLIC_SUPABASE_URL       # https://xdidpzzsfoxijugvrjvc.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY  # Supabase anon key (publishable, safe for browser)
+SUPABASE_SERVICE_ROLE_KEY      # Service role key — server-side only (API routes, verify-pin endpoints)
+NEXT_PUBLIC_SENTRY_DSN         # Sentry DSN for error tracking
+SENTRY_ORG                     # Sentry org slug (build-time source map upload)
+SENTRY_PROJECT                 # Sentry project slug
+CORS_ORIGIN                    # Allowed CORS origin for external API (default: https://chorequest.dresponda.com)
 ```
 
 Set in Vercel dashboard for production. For local dev: create `.env.local` (gitignored).
+
+## PR Checklist
+
+Every PR should:
+- [ ] Update `CLAUDE.md` if architecture, security model, or conventions change
+- [ ] Update `supabase/schema.sql` for any DB migrations
+- [ ] Run `npm run build` locally before pushing
+- [ ] Add unit/integration tests for new utility functions or API routes
