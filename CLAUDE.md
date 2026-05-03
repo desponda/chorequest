@@ -2,6 +2,20 @@
 
 # ChoreQuest — Claude Code Guide
 
+## New Machine Setup
+
+Enable these plugins in Claude Code settings (`claude settings` → Plugins), then authenticate:
+
+| Plugin | Purpose | Auth |
+|--------|---------|------|
+| `supabase@claude-plugins-official` | Run migrations, execute SQL, manage schema | `claude mcp auth supabase` after enabling |
+| `vercel@claude-plugins-official` | Check deployments, logs, manage project | OAuth via browser prompt |
+| `cloudflare@claude-plugins-official` | DNS, Workers, domain management | OAuth via browser prompt |
+| `frontend-design@claude-plugins-official` | UI design guidance | No auth needed |
+| `superpowers@claude-plugins-official` | Core skill runner (required) | No auth needed |
+
+`.mcp.json` in the repo root already points Claude at the Supabase MCP endpoint — just auth and it works.
+
 ## Project Overview
 
 ChoreQuest is a fantasy-themed family chore app. Parents manage quests and rewards; kids complete quests to earn coins. Built with Next.js 16 App Router, Supabase, and Tailwind CSS.
