@@ -446,7 +446,11 @@ export default function ParentDashboard() {
                     onChange={setFamilyName}
                     className="flex-1"
                   />
-                  <ActionButton onClick={handleSaveFamilyName} label={savingFamily ? '...' : 'Save'} />
+                  <ActionButton
+                    onClick={handleSaveFamilyName}
+                    label={savingFamily ? '...' : 'Save'}
+                    className="flex-shrink-0 px-5"
+                  />
                 </div>
               </Section>
 
@@ -670,17 +674,18 @@ function FormInput({
 }
 
 function ActionButton({
-  onClick, label, disabled = false
+  onClick, label, disabled = false, className = 'w-full'
 }: {
   onClick: () => void
   label: string
   disabled?: boolean
+  className?: string
 }) {
   return (
     <motion.button
       onClick={onClick}
       disabled={disabled}
-      className="w-full py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
+      className={`${className} py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-40`}
       style={{
         background: 'rgba(251, 191, 36, 0.15)',
         border: '1px solid rgba(251, 191, 36, 0.35)',

@@ -25,7 +25,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: 'https://chorequest.dresponda.com' },
+        options: { emailRedirectTo: 'https://chorequest.dresponda.com/auth/callback?next=/parent' },
       })
       if (error) {
         toast.error(error.message)
