@@ -44,6 +44,9 @@ export default function ParentDashboard() {
   const [newQuestFor, setNewQuestFor] = useState<string>('all')
   const [newQuestFrequency, setNewQuestFrequency] = useState<'daily' | 'once'>('daily')
   const [newQuestTier, setNewQuestTier] = useState<QuestTier>('normal')
+  const [newQuestActiveDays, setNewQuestActiveDays] = useState<number[]>([])
+  const [newQuestIsBounty, setNewQuestIsBounty] = useState(false)
+  const [newQuestWeeklyTarget, setNewQuestWeeklyTarget] = useState(3)
   const [qrKidId, setQrKidId] = useState<string | null>(null)
   const [newRewardTitle, setNewRewardTitle] = useState('')
   const [newRewardDesc, setNewRewardDesc] = useState('')
@@ -245,13 +248,19 @@ export default function ParentDashboard() {
       frequency: newQuestFrequency,
       tier: newQuestTier,
       active: true,
+      exclusive: newQuestIsBounty,
+      weekly_target: newQuestIsBounty ? newQuestWeeklyTarget : null,
+      active_days: newQuestActiveDays.length > 0 ? newQuestActiveDays : null,
     })
     if (!error) {
-      toast.success('Quest added to the board! ⚔️')
+      toast.success(newQuestIsBounty ? 'Bounty added to the board! ⚡' : 'Quest added to the board! ⚔️')
       setNewQuestTitle('')
       setNewQuestDesc('')
       setNewQuestFrequency('daily')
       setNewQuestTier('normal')
+      setNewQuestActiveDays([])
+      setNewQuestIsBounty(false)
+      setNewQuestWeeklyTarget(3)
       await fetchData()
     } else {
       toast.error('Failed to add quest')
@@ -763,52 +772,66 @@ export default function ParentDashboard() {
                 })
               )}
 
-              {(completions.filter((c) => c.status !== 'pending').length > 0 || approvedRedemptions.length > 0) && (
-                <div>
-                  <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Reviewed today</p>
-                  {completions
+              {(completions.filter((c) => c.status !== 'pending').length > 0 || approvedRedemptions.length > 0) && (() => {
+                type ReviewedItem =
+                  | { kind: 'completion'; ts: string; item: Completion }
+                  | { kind: 'redemption'; ts: string; item: Redemption }
+
+                const reviewed: ReviewedItem[] = [
+                  ...completions
                     .filter((c) => c.status !== 'pending')
-                    .map((c) => {
-                      const kid = c.kid as Kid | undefined
-                      if (!kid) return null
+                    .map((c) => ({ kind: 'completion' as const, ts: c.completed_at, item: c })),
+                  ...approvedRedemptions
+                    .map((r) => ({ kind: 'redemption' as const, ts: r.redeemed_at, item: r })),
+                ].sort((a, b) => b.ts.localeCompare(a.ts))
+
+                return (
+                  <div>
+                    <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Reviewed today</p>
+                    {reviewed.map((entry) => {
+                      if (entry.kind === 'completion') {
+                        const c = entry.item
+                        const kid = c.kid as Kid | undefined
+                        if (!kid) return null
+                        return (
+                          <div key={c.id} className="flex items-center gap-3 py-2">
+                            <span className="text-lg">{kid.avatar}</span>
+                            <span className="text-white/50 text-sm">{kid.name}</span>
+                            <span className="text-white/35 text-sm flex-1 truncate">{(c.quest as Quest)?.title}</span>
+                            <span className={`text-xs font-semibold flex-shrink-0 ${c.status === 'approved' ? 'text-cq-forest' : 'text-red-400'}`}>
+                              {c.status === 'approved' ? `✓ +${c.coins_awarded}🪙` : '✗'}
+                            </span>
+                            <button
+                              onClick={() => c.status === 'approved'
+                                ? handleUndoApproval(c.id)
+                                : handleUndoRejection(c.id)
+                              }
+                              className="text-xs text-white/20 hover:text-cq-gold transition-all flex-shrink-0 ml-1"
+                              title="Undo"
+                            >
+                              ↩
+                            </button>
+                          </div>
+                        )
+                      }
+                      const r = entry.item
+                      const kid = r.kid as Kid | undefined
+                      const reward = r.reward as Reward | undefined
+                      if (!kid || !reward) return null
                       return (
-                        <div key={c.id} className="flex items-center gap-3 py-2">
+                        <div key={r.id} className="flex items-center gap-3 py-2">
                           <span className="text-lg">{kid.avatar}</span>
                           <span className="text-white/50 text-sm">{kid.name}</span>
-                          <span className="text-white/35 text-sm flex-1 truncate">{(c.quest as Quest)?.title}</span>
-                          <span className={`text-xs font-semibold flex-shrink-0 ${c.status === 'approved' ? 'text-cq-forest' : 'text-red-400'}`}>
-                            {c.status === 'approved' ? `✓ +${c.coins_awarded}🪙` : '✗'}
+                          <span className="text-white/35 text-sm flex-1 truncate">{reward.icon} {reward.title}</span>
+                          <span className="text-xs font-semibold flex-shrink-0 text-cq-gold">
+                            🎁 -{reward.cost}🪙
                           </span>
-                          <button
-                            onClick={() => c.status === 'approved'
-                              ? handleUndoApproval(c.id)
-                              : handleUndoRejection(c.id)
-                            }
-                            className="text-xs text-white/20 hover:text-cq-gold transition-all flex-shrink-0 ml-1"
-                            title="Undo"
-                          >
-                            ↩
-                          </button>
                         </div>
                       )
                     })}
-                  {approvedRedemptions.map((r) => {
-                    const kid = r.kid as Kid | undefined
-                    const reward = r.reward as Reward | undefined
-                    if (!kid || !reward) return null
-                    return (
-                      <div key={r.id} className="flex items-center gap-3 py-2">
-                        <span className="text-lg">{kid.avatar}</span>
-                        <span className="text-white/50 text-sm">{kid.name}</span>
-                        <span className="text-white/35 text-sm flex-1 truncate">{reward.icon} {reward.title}</span>
-                        <span className="text-xs font-semibold flex-shrink-0 text-cq-gold">
-                          🎁 -{reward.cost}🪙
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+                  </div>
+                )
+              })()}
             </motion.div>
           )}
 
@@ -881,6 +904,66 @@ export default function ParentDashboard() {
                       ))}
                     </div>
                   </div>
+
+                  {newQuestFrequency === 'daily' && (
+                    <div>
+                      <label className="text-xs text-white/40 mb-1.5 block">
+                        Active Days <span className="text-white/20 font-normal">(none = every day)</span>
+                      </label>
+                      <div className="flex gap-1">
+                        {['Su','Mo','Tu','We','Th','Fr','Sa'].map((day, i) => {
+                          const on = newQuestActiveDays.includes(i)
+                          return (
+                            <button
+                              key={i}
+                              onClick={() => setNewQuestActiveDays(prev =>
+                                prev.includes(i) ? prev.filter(d => d !== i) : [...prev, i].sort((a,b)=>a-b)
+                              )}
+                              className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all"
+                              style={{
+                                background: on ? 'rgba(56,189,248,0.18)' : 'rgba(255,255,255,0.05)',
+                                border: `1px solid ${on ? 'rgba(56,189,248,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                                color: on ? '#38bdf8' : 'rgba(255,255,255,0.35)',
+                              }}
+                            >
+                              {day}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <button
+                      onClick={() => setNewQuestIsBounty(b => !b)}
+                      className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-between px-4"
+                      style={{
+                        background: newQuestIsBounty ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.04)',
+                        border: `1px solid ${newQuestIsBounty ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                        color: newQuestIsBounty ? '#fbbf24' : 'rgba(255,255,255,0.45)',
+                      }}
+                    >
+                      <span>⚡ Bounty Quest</span>
+                      <span className="text-xs opacity-60">family-wide · first to claim earns coins</span>
+                    </button>
+                    {newQuestIsBounty && (
+                      <div className="mt-2 flex items-center gap-3">
+                        <label className="text-xs text-white/40 flex-shrink-0">Weekly claim slots</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={20}
+                          value={newQuestWeeklyTarget}
+                          onChange={(e) => setNewQuestWeeklyTarget(Math.max(1, Number(e.target.value)))}
+                          className="w-20 px-3 py-2 rounded-xl text-sm text-white/90 outline-none"
+                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                        />
+                        <span className="text-xs text-white/25">kids can claim</span>
+                      </div>
+                    )}
+                  </div>
+
                   <div>
                     <label className="text-xs text-white/40 mb-1.5 block">Tier</label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
@@ -1671,6 +1754,9 @@ function QuestRow({
   const [forKid, setForKid] = useState<string>(quest.assigned_to ?? 'all')
   const [frequency, setFrequency] = useState<'daily' | 'once'>(quest.frequency === 'once' ? 'once' : 'daily')
   const [tier, setTier] = useState<QuestTier>(quest.tier ?? 'normal')
+  const [activeDays, setActiveDays] = useState<number[]>(quest.active_days ?? [])
+  const [isBounty, setIsBounty] = useState(!!(quest.exclusive && quest.weekly_target != null))
+  const [weeklyTarget, setWeeklyTarget] = useState(quest.weekly_target ?? 3)
 
   const assignedKid = kids.find((k) => k.id === quest.assigned_to)
   const tierCfg = TIER_CONFIG[quest.tier ?? 'normal']
@@ -1684,6 +1770,9 @@ function QuestRow({
       assigned_to: forKid === 'all' ? null : forKid,
       frequency,
       tier,
+      exclusive: isBounty,
+      weekly_target: isBounty ? weeklyTarget : null,
+      active_days: activeDays.length > 0 ? activeDays : null,
     })
     setEditing(false)
   }
@@ -1717,9 +1806,20 @@ function QuestRow({
                 one-time
               </span>
             )}
+            {quest.exclusive && quest.weekly_target != null && (
+              <span
+                className="text-xs px-1.5 py-0.5 rounded-md flex-shrink-0"
+                style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.25)' }}
+              >
+                ⚡ bounty ×{quest.weekly_target}
+              </span>
+            )}
           </div>
           <p className="text-white/35 text-xs">
             🪙 {quest.coins} · {assignedKid ? assignedKid.name : 'All kids'}
+            {quest.active_days && quest.active_days.length > 0
+              ? ` · ${quest.active_days.map(d => ['Su','Mo','Tu','We','Th','Fr','Sa'][d]).join(' ')}`
+              : ''}
           </p>
         </div>
         <button
@@ -1842,6 +1942,65 @@ function QuestRow({
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {frequency === 'daily' && (
+                <div>
+                  <label className="text-xs text-white/40 mb-1.5 block">
+                    Active Days <span className="text-white/20 font-normal">(none = every day)</span>
+                  </label>
+                  <div className="flex gap-1">
+                    {['Su','Mo','Tu','We','Th','Fr','Sa'].map((day, i) => {
+                      const on = activeDays.includes(i)
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => setActiveDays(prev =>
+                            prev.includes(i) ? prev.filter(d => d !== i) : [...prev, i].sort((a,b)=>a-b)
+                          )}
+                          className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all"
+                          style={{
+                            background: on ? 'rgba(56,189,248,0.18)' : 'rgba(255,255,255,0.05)',
+                            border: `1px solid ${on ? 'rgba(56,189,248,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                            color: on ? '#38bdf8' : 'rgba(255,255,255,0.35)',
+                          }}
+                        >
+                          {day}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <button
+                  onClick={() => setIsBounty(b => !b)}
+                  className="w-full py-2 rounded-xl text-sm font-semibold transition-all flex items-center justify-between px-3"
+                  style={{
+                    background: isBounty ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${isBounty ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                    color: isBounty ? '#fbbf24' : 'rgba(255,255,255,0.45)',
+                  }}
+                >
+                  <span>⚡ Bounty Quest</span>
+                  <span className="text-xs opacity-60">family-wide · first to claim earns</span>
+                </button>
+                {isBounty && (
+                  <div className="mt-2 flex items-center gap-3">
+                    <label className="text-xs text-white/40 flex-shrink-0">Weekly slots</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={weeklyTarget}
+                      onChange={(e) => setWeeklyTarget(Math.max(1, Number(e.target.value)))}
+                      className="w-20 px-3 py-2 rounded-xl text-sm text-white/90 outline-none"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    />
+                    <span className="text-xs text-white/25">kids can claim</span>
+                  </div>
+                )}
               </div>
 
               <div>
