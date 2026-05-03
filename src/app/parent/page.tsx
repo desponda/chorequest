@@ -763,52 +763,66 @@ export default function ParentDashboard() {
                 })
               )}
 
-              {(completions.filter((c) => c.status !== 'pending').length > 0 || approvedRedemptions.length > 0) && (
-                <div>
-                  <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Reviewed today</p>
-                  {completions
+              {(completions.filter((c) => c.status !== 'pending').length > 0 || approvedRedemptions.length > 0) && (() => {
+                type ReviewedItem =
+                  | { kind: 'completion'; ts: string; item: Completion }
+                  | { kind: 'redemption'; ts: string; item: Redemption }
+
+                const reviewed: ReviewedItem[] = [
+                  ...completions
                     .filter((c) => c.status !== 'pending')
-                    .map((c) => {
-                      const kid = c.kid as Kid | undefined
-                      if (!kid) return null
+                    .map((c) => ({ kind: 'completion' as const, ts: c.completed_at, item: c })),
+                  ...approvedRedemptions
+                    .map((r) => ({ kind: 'redemption' as const, ts: r.redeemed_at, item: r })),
+                ].sort((a, b) => b.ts.localeCompare(a.ts))
+
+                return (
+                  <div>
+                    <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Reviewed today</p>
+                    {reviewed.map((entry) => {
+                      if (entry.kind === 'completion') {
+                        const c = entry.item
+                        const kid = c.kid as Kid | undefined
+                        if (!kid) return null
+                        return (
+                          <div key={c.id} className="flex items-center gap-3 py-2">
+                            <span className="text-lg">{kid.avatar}</span>
+                            <span className="text-white/50 text-sm">{kid.name}</span>
+                            <span className="text-white/35 text-sm flex-1 truncate">{(c.quest as Quest)?.title}</span>
+                            <span className={`text-xs font-semibold flex-shrink-0 ${c.status === 'approved' ? 'text-cq-forest' : 'text-red-400'}`}>
+                              {c.status === 'approved' ? `✓ +${c.coins_awarded}🪙` : '✗'}
+                            </span>
+                            <button
+                              onClick={() => c.status === 'approved'
+                                ? handleUndoApproval(c.id)
+                                : handleUndoRejection(c.id)
+                              }
+                              className="text-xs text-white/20 hover:text-cq-gold transition-all flex-shrink-0 ml-1"
+                              title="Undo"
+                            >
+                              ↩
+                            </button>
+                          </div>
+                        )
+                      }
+                      const r = entry.item
+                      const kid = r.kid as Kid | undefined
+                      const reward = r.reward as Reward | undefined
+                      if (!kid || !reward) return null
                       return (
-                        <div key={c.id} className="flex items-center gap-3 py-2">
+                        <div key={r.id} className="flex items-center gap-3 py-2">
                           <span className="text-lg">{kid.avatar}</span>
                           <span className="text-white/50 text-sm">{kid.name}</span>
-                          <span className="text-white/35 text-sm flex-1 truncate">{(c.quest as Quest)?.title}</span>
-                          <span className={`text-xs font-semibold flex-shrink-0 ${c.status === 'approved' ? 'text-cq-forest' : 'text-red-400'}`}>
-                            {c.status === 'approved' ? `✓ +${c.coins_awarded}🪙` : '✗'}
+                          <span className="text-white/35 text-sm flex-1 truncate">{reward.icon} {reward.title}</span>
+                          <span className="text-xs font-semibold flex-shrink-0 text-cq-gold">
+                            🎁 -{reward.cost}🪙
                           </span>
-                          <button
-                            onClick={() => c.status === 'approved'
-                              ? handleUndoApproval(c.id)
-                              : handleUndoRejection(c.id)
-                            }
-                            className="text-xs text-white/20 hover:text-cq-gold transition-all flex-shrink-0 ml-1"
-                            title="Undo"
-                          >
-                            ↩
-                          </button>
                         </div>
                       )
                     })}
-                  {approvedRedemptions.map((r) => {
-                    const kid = r.kid as Kid | undefined
-                    const reward = r.reward as Reward | undefined
-                    if (!kid || !reward) return null
-                    return (
-                      <div key={r.id} className="flex items-center gap-3 py-2">
-                        <span className="text-lg">{kid.avatar}</span>
-                        <span className="text-white/50 text-sm">{kid.name}</span>
-                        <span className="text-white/35 text-sm flex-1 truncate">{reward.icon} {reward.title}</span>
-                        <span className="text-xs font-semibold flex-shrink-0 text-cq-gold">
-                          🎁 -{reward.cost}🪙
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+                  </div>
+                )
+              })()}
             </motion.div>
           )}
 
