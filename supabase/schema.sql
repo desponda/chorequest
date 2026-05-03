@@ -7,6 +7,7 @@ create table families (
   id uuid primary key default gen_random_uuid(),
   name text not null default 'My Family',
   parent_pin text check (parent_pin ~ '^[0-9]{4}$'), -- optional 4-digit lock PIN
+  invite_token uuid not null default gen_random_uuid() unique,
   created_at timestamptz default now()
 );
 
@@ -39,6 +40,7 @@ create table quests (
   coins integer not null default 10,
   assigned_to uuid references kids(id) on delete set null,
   frequency text not null default 'daily',
+  tier text not null default 'normal' check (tier in ('normal', 'heroic', 'legendary', 'epic')),
   active boolean not null default true,
   created_at timestamptz default now()
 );
@@ -141,6 +143,39 @@ create index completions_status_idx on completions(status);
 
 alter publication supabase_realtime add table completions;
 alter publication supabase_realtime add table kids;
+
+-- ─── Public invite token lookup (no auth required) ───────────────────────────
+
+create or replace function get_family_by_invite_token(token uuid)
+returns json
+language plpgsql
+security definer
+stable
+as $$
+declare
+  result json;
+begin
+  select json_build_object(
+    'id', f.id,
+    'name', f.name,
+    'kids', coalesce((
+      select json_agg(json_build_object(
+        'id', k.id,
+        'name', k.name,
+        'avatar', k.avatar,
+        'color', k.color
+      ) order by k.created_at)
+      from kids k where k.family_id = f.id
+    ), '[]'::json)
+  ) into result
+  from families f
+  where f.invite_token = token;
+
+  return result;
+end;
+$$;
+
+grant execute on function get_family_by_invite_token(uuid) to anon;
 
 -- ─── Auto-create profile + family on signup ───────────────────────────────────
 

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Quest, Completion, KidColor } from '@/lib/types'
-import { KID_COLORS } from '@/lib/constants'
+import { KID_COLORS, TIER_CONFIG } from '@/lib/constants'
 import { CoinBurst } from './coin-burst'
 
 interface QuestCardProps {
@@ -35,13 +35,15 @@ export function QuestCard({
   const isApproved = status === 'approved'
   const isRejected = status === 'rejected'
 
+  const tier = TIER_CONFIG[quest.tier ?? 'normal']
+
   const cardBg = isApproved
     ? 'rgba(74, 222, 128, 0.06)'
     : isPending
     ? 'rgba(251, 191, 36, 0.06)'
     : isRejected
     ? 'rgba(239, 68, 68, 0.05)'
-    : colors.bg
+    : tier.bg
 
   const cardBorder = isApproved
     ? 'rgba(74, 222, 128, 0.25)'
@@ -49,13 +51,13 @@ export function QuestCard({
     ? 'rgba(251, 191, 36, 0.35)'
     : isRejected
     ? 'rgba(239, 68, 68, 0.2)'
-    : colors.border
+    : tier.border
 
   const cardShadow = isPending
     ? '0 0 20px rgba(251, 191, 36, 0.12)'
     : isApproved
     ? '0 0 16px rgba(74, 222, 128, 0.1)'
-    : 'none'
+    : tier.glow ?? 'none'
 
   const handleComplete = async () => {
     if (!onComplete || loading || !isTodo) return
@@ -87,13 +89,23 @@ export function QuestCard({
           <span className="text-2xl leading-none mt-0.5 flex-shrink-0">{quest.icon}</span>
 
           <div className="flex-1 min-w-0">
-            <p
-              className={`font-semibold text-sm leading-snug ${
-                isApproved ? 'line-through opacity-40' : 'text-white/90'
-              }`}
-            >
-              {quest.title}
-            </p>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p
+                className={`font-semibold text-sm leading-snug ${
+                  isApproved ? 'line-through opacity-40' : 'text-white/90'
+                }`}
+              >
+                {quest.title}
+              </p>
+              {(quest.tier ?? 'normal') !== 'normal' && (
+                <span
+                  className="text-xs px-1.5 py-0.5 rounded-md font-semibold flex-shrink-0"
+                  style={{ background: tier.bg, color: tier.color, border: `1px solid ${tier.border}` }}
+                >
+                  {tier.label}
+                </span>
+              )}
+            </div>
             {quest.description && (
               <p className="text-white/40 text-xs mt-0.5 truncate">{quest.description}</p>
             )}

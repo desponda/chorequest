@@ -10,7 +10,9 @@ import { createClient } from '@/lib/supabase/client'
 import { StarField } from '@/components/star-field'
 import { QuestCard } from '@/components/quest-card'
 import type { Kid, Quest, Completion, Reward, Family } from '@/lib/types'
-import { KID_COLORS, KID_AVATARS, QUEST_ICONS, DEFAULT_QUESTS } from '@/lib/constants'
+import { KID_COLORS, KID_AVATARS, QUEST_ICONS, DEFAULT_QUESTS, TIER_CONFIG } from '@/lib/constants'
+import type { QuestTier } from '@/lib/types'
+import QRCode from 'react-qr-code'
 import { toast } from 'sonner'
 
 const PARENT_PIN_SESSION_KEY = 'cq_parent_unlocked'
@@ -37,6 +39,8 @@ export default function ParentDashboard() {
   const [newQuestCoins, setNewQuestCoins] = useState(10)
   const [newQuestFor, setNewQuestFor] = useState<string>('all')
   const [newQuestFrequency, setNewQuestFrequency] = useState<'daily' | 'once'>('daily')
+  const [newQuestTier, setNewQuestTier] = useState<QuestTier>('normal')
+  const [qrKidId, setQrKidId] = useState<string | null>(null)
   const [newRewardTitle, setNewRewardTitle] = useState('')
   const [newRewardDesc, setNewRewardDesc] = useState('')
   const [newRewardIcon, setNewRewardIcon] = useState('🎁')
@@ -50,6 +54,7 @@ export default function ParentDashboard() {
   const [savingParentPin, setSavingParentPin] = useState(false)
   const [editingCoinsKidId, setEditingCoinsKidId] = useState<string | null>(null)
   const [editCoinsValue, setEditCoinsValue] = useState('')
+  const [revealPinKidId, setRevealPinKidId] = useState<string | null>(null)
 
   const [supabase] = useState(createClient)
   const router = useRouter()
@@ -175,6 +180,7 @@ export default function ParentDashboard() {
       coins: newQuestCoins,
       assigned_to: newQuestFor === 'all' ? null : newQuestFor,
       frequency: newQuestFrequency,
+      tier: newQuestTier,
       active: true,
     })
     if (!error) {
@@ -182,6 +188,7 @@ export default function ParentDashboard() {
       setNewQuestTitle('')
       setNewQuestDesc('')
       setNewQuestFrequency('daily')
+      setNewQuestTier('normal')
       await fetchData()
     } else {
       toast.error('Failed to add quest')
@@ -327,6 +334,13 @@ export default function ParentDashboard() {
     await supabase.from('families').update({ parent_pin: null }).eq('id', family.id)
     sessionStorage.removeItem(PARENT_PIN_SESSION_KEY)
     toast.success('Parent lock removed')
+    await fetchData()
+  }
+
+  const handleRegenerateToken = async () => {
+    if (!family) return
+    await supabase.from('families').update({ invite_token: crypto.randomUUID() }).eq('id', family.id)
+    toast.success('Invite link regenerated')
     await fetchData()
   }
 
@@ -629,6 +643,30 @@ export default function ParentDashboard() {
                       ))}
                     </div>
                   </div>
+                  <div>
+                    <label className="text-xs text-white/40 mb-1.5 block">Tier</label>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {(['normal', 'heroic', 'legendary', 'epic'] as const).map((t) => {
+                        const tc = TIER_CONFIG[t]
+                        const selected = newQuestTier === t
+                        return (
+                          <button
+                            key={t}
+                            onClick={() => setNewQuestTier(t)}
+                            className="py-2 rounded-xl text-xs font-semibold transition-all"
+                            style={{
+                              background: selected ? tc.bg : 'rgba(255,255,255,0.04)',
+                              border: `1px solid ${selected ? tc.border : 'rgba(255,255,255,0.08)'}`,
+                              color: selected ? tc.color : 'rgba(255,255,255,0.4)',
+                              boxShadow: selected && tc.glow ? tc.glow : 'none',
+                            }}
+                          >
+                            {tc.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
                   <ActionButton onClick={handleAddQuest} label="+ Add Quest" />
                 </div>
               </Section>
@@ -875,13 +913,66 @@ export default function ParentDashboard() {
                               </button>
                             )}
                           </div>
-                          <span className="text-xs text-white/30 font-mono">PIN: {kid.pin}</span>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <button
+                              onClick={() => setRevealPinKidId(revealPinKidId === kid.id ? null : kid.id)}
+                              className="text-xs text-white/30 font-mono hover:text-white/60 transition-all"
+                              title={revealPinKidId === kid.id ? 'Hide PIN' : 'Show PIN'}
+                            >
+                              {revealPinKidId === kid.id ? `PIN: ${kid.pin}` : 'PIN: ····'}
+                            </button>
+                            <button
+                              onClick={() => setQrKidId(kid.id)}
+                              className="text-lg hover:scale-110 transition-all"
+                              title="Show QR code"
+                            >
+                              📱
+                            </button>
+                          </div>
                         </div>
                       )
                     })}
                   </div>
                 )}
               </Section>
+
+              {/* Invite link */}
+              {family && (
+                <Section title="Family Invite Link">
+                  <div className="flex flex-col gap-3">
+                    <p className="text-white/50 text-sm">
+                      Share this link so anyone in your family can pick their adventurer and jump straight to their PIN screen.
+                    </p>
+                    <div
+                      className="px-3 py-2.5 rounded-xl text-xs text-white/60 font-mono break-all select-all"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    >
+                      {typeof window !== 'undefined' ? `${window.location.origin}/join/${family.invite_token}` : `/join/${family.invite_token}`}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          const url = `${window.location.origin}/join/${family.invite_token}`
+                          navigator.clipboard.writeText(url)
+                          toast.success('Invite link copied!')
+                        }}
+                        className="flex-1 py-2 rounded-xl text-sm font-semibold transition-all"
+                        style={{ background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.25)', color: '#38bdf8' }}
+                      >
+                        Copy Link
+                      </button>
+                      <button
+                        onClick={handleRegenerateToken}
+                        className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}
+                        title="Regenerate to invalidate old link"
+                      >
+                        ↻
+                      </button>
+                    </div>
+                  </div>
+                </Section>
+              )}
             </motion.div>
           )}
 
@@ -957,6 +1048,65 @@ export default function ParentDashboard() {
         </AnimatePresence>
       </main>
       </div>
+
+      {/* QR code modal */}
+      <AnimatePresence>
+        {qrKidId && (() => {
+          const kid = kids.find((k) => k.id === qrKidId)
+          if (!kid) return null
+          const kidUrl = typeof window !== 'undefined'
+            ? `${window.location.origin}/kid/${kid.id}`
+            : `/kid/${kid.id}`
+          return (
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setQrKidId(null)}
+            >
+              <motion.div
+                className="relative w-full max-w-xs rounded-3xl p-6 text-center"
+                style={{ background: '#0e0b24', border: '1px solid rgba(255,255,255,0.12)' }}
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={() => setQrKidId(null)}
+                  className="absolute top-4 right-4 text-white/30 hover:text-white/70 transition-all text-lg"
+                >
+                  ✕
+                </button>
+                <span className="text-4xl block mb-2">{kid.avatar}</span>
+                <h3 className="font-heading font-bold text-white text-xl mb-4">{kid.name}</h3>
+                <div className="bg-white p-4 rounded-2xl inline-block mb-4">
+                  <QRCode value={kidUrl} size={160} />
+                </div>
+                <p className="text-white/40 text-xs mb-4">Scan to go straight to {kid.name}&apos;s PIN screen</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(kidUrl); toast.success('Link copied!') }}
+                    className="flex-1 py-2 rounded-xl text-sm font-semibold transition-all"
+                    style={{ background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.25)', color: '#38bdf8' }}
+                  >
+                    Copy Link
+                  </button>
+                  <button
+                    onClick={() => window.print()}
+                    className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}
+                  >
+                    Print
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )
+        })()}
+      </AnimatePresence>
     </div>
   )
 }
@@ -1041,6 +1191,7 @@ function QuestRow({
   onDelete: (id: string) => void
 }) {
   const assignedKid = kids.find((k) => k.id === quest.assigned_to)
+  const tier = TIER_CONFIG[quest.tier ?? 'normal']
   return (
     <div
       className="flex items-center gap-3 p-3 rounded-xl mb-2"
@@ -1052,6 +1203,14 @@ function QuestRow({
           <p className={`text-sm font-semibold ${quest.active ? 'text-white/90' : 'text-white/40 line-through'}`}>
             {quest.title}
           </p>
+          {(quest.tier ?? 'normal') !== 'normal' && (
+            <span
+              className="text-xs px-1.5 py-0.5 rounded-md flex-shrink-0"
+              style={{ background: tier.bg, color: tier.color, border: `1px solid ${tier.border}` }}
+            >
+              {tier.label}
+            </span>
+          )}
           {quest.frequency === 'once' && (
             <span
               className="text-xs px-1.5 py-0.5 rounded-md flex-shrink-0"
