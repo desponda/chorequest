@@ -29,8 +29,10 @@ export function isAuthError(result: AuthSuccess | AuthError): result is AuthErro
 }
 
 export function cors() {
+  const origin = process.env.CORS_ORIGIN
+    ?? (process.env.NODE_ENV === 'production' ? 'https://chorequest.dresponda.com' : '*')
   return {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Authorization, Content-Type',
   }
