@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -52,6 +52,7 @@ export default function ParentDashboard() {
 
   const [supabase] = useState(createClient)
   const router = useRouter()
+  const hasCheckedParentPin = useRef(false)
 
   const fetchData = useCallback(async () => {
     const { data: profile } = await supabase.from('profiles').select('family_id').single()
@@ -70,12 +71,6 @@ export default function ParentDashboard() {
     if (familyRes.data) {
       setFamily(familyRes.data)
       setFamilyName(familyRes.data.name)
-      if (familyRes.data.parent_pin) {
-        const unlocked = typeof window !== 'undefined'
-          ? sessionStorage.getItem(PARENT_PIN_SESSION_KEY) === '1'
-          : false
-        if (!unlocked) setParentLocked(true)
-      }
     }
     if (kidsRes.data) setKids(kidsRes.data)
     if (questsRes.data) setQuests(questsRes.data)
@@ -83,6 +78,17 @@ export default function ParentDashboard() {
     if (rewardsRes.data) setRewards(rewardsRes.data)
     setLoading(false)
   }, [supabase])
+
+  // Check parent PIN lock once, on initial family load only.
+  // Using a ref so repeated fetchData calls (realtime, approvals) never re-lock.
+  useEffect(() => {
+    if (!family || hasCheckedParentPin.current) return
+    hasCheckedParentPin.current = true
+    if (family.parent_pin) {
+      const unlocked = sessionStorage.getItem(PARENT_PIN_SESSION_KEY) === '1'
+      if (!unlocked) setParentLocked(true)
+    }
+  }, [family])
 
   useEffect(() => {
     fetchData()
@@ -300,7 +306,6 @@ export default function ParentDashboard() {
       .update({ parent_pin: newParentPin })
       .eq('id', family.id)
     if (!error) {
-      sessionStorage.setItem(PARENT_PIN_SESSION_KEY, '1')
       setNewParentPin('')
       toast.success('Parent lock PIN set! 🔒')
       await fetchData()
