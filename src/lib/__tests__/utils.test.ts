@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isValidPin } from '../utils'
+import { isValidPin, questDateString } from '../utils'
 
 describe('isValidPin', () => {
   it('accepts exactly 4 numeric digits', () => {
@@ -39,5 +39,35 @@ describe('isValidPin', () => {
     expect(isValidPin(' 1234')).toBe(false)
     expect(isValidPin('1234 ')).toBe(false)
     expect(isValidPin(' 1234 ')).toBe(false)
+  })
+})
+
+describe('questDateString', () => {
+  const date = (h: number, min = 0) => {
+    const d = new Date(2025, 5, 15, h, min) // 2025-06-15, local time
+    return d
+  }
+
+  it('returns today when current hour is at or after resetHour', () => {
+    expect(questDateString(0, date(0))).toBe('2025-06-15')   // midnight reset, midnight
+    expect(questDateString(3, date(3))).toBe('2025-06-15')   // 3 AM reset, exactly 3 AM
+    expect(questDateString(3, date(9))).toBe('2025-06-15')   // 3 AM reset, 9 AM
+    expect(questDateString(6, date(23))).toBe('2025-06-15')  // 6 AM reset, 11 PM
+  })
+
+  it('returns yesterday when current hour is before resetHour', () => {
+    expect(questDateString(3, date(2))).toBe('2025-06-14')   // 3 AM reset, 2 AM → still yesterday
+    expect(questDateString(6, date(5))).toBe('2025-06-14')   // 6 AM reset, 5 AM → still yesterday
+    expect(questDateString(3, date(0))).toBe('2025-06-14')   // 3 AM reset, midnight → still yesterday
+  })
+
+  it('defaults to midnight reset (resetHour=0)', () => {
+    expect(questDateString(0, date(0))).toBe('2025-06-15')
+    expect(questDateString(0, date(23, 59))).toBe('2025-06-15')
+  })
+
+  it('handles month boundary correctly', () => {
+    const lastDayOfMonth = new Date(2025, 5, 1, 2) // June 1 at 2 AM, resetHour=3
+    expect(questDateString(3, lastDayOfMonth)).toBe('2025-05-31') // rolls back to May 31
   })
 })

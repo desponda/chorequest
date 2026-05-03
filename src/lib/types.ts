@@ -9,6 +9,7 @@ export interface Family {
   has_parent_pin: boolean
   invite_token: string
   api_key?: string
+  daily_reset_hour: number
   created_at: string
 }
 
