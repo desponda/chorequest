@@ -212,6 +212,19 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
     [rewards, kid, id, pendingRedemptions, fetchData]
   )
 
+  const handleCancelRedemption = useCallback(
+    async (redemptionId: string) => {
+      const res = await fetch(`/api/kid/${id}/redeem/${redemptionId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        toast.error('Could not cancel request')
+        return
+      }
+      toast.success('Request cancelled')
+      await fetchData()
+    },
+    [id, fetchData]
+  )
+
   if (loading || !kid) {
     return (
       <div className="min-h-screen bg-quest-void flex items-center justify-center">
@@ -342,7 +355,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
 
         <div className="flex items-center gap-2">
           {kid.streak > 1 && <StreakBadge streak={kid.streak} compact />}
-          <CoinCounter value={kid.coins} size="sm" />
+          <CoinCounter value={availableCoins} size="sm" />
         </div>
       </motion.header>
 
@@ -577,7 +590,13 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                       <span className="text-lg">{r.reward?.icon ?? '🎁'}</span>
                       <p className="flex-1 text-sm text-white/70">{r.reward?.title ?? 'Reward'}</p>
                       <span className="text-xs text-white/35">🪙 {r.reward?.cost ?? '?'}</span>
-                      <span className="text-xs text-amber-400/50">waiting...</span>
+                      <button
+                        onClick={() => handleCancelRedemption(r.id)}
+                        className="text-xs text-white/25 hover:text-red-400 transition-all flex-shrink-0 px-1.5 py-0.5 rounded-lg"
+                        title="Cancel request"
+                      >
+                        ✕
+                      </button>
                     </div>
                   ))}
                 </div>
