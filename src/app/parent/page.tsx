@@ -266,6 +266,16 @@ export default function ParentDashboard() {
     await fetchData()
   }
 
+  const handleSaveQuest = async (questId: string, updates: Partial<Quest>) => {
+    const { error } = await supabase.from('quests').update(updates).eq('id', questId)
+    if (error) {
+      toast.error('Failed to save quest')
+    } else {
+      toast.success('Quest updated!')
+      await fetchData()
+    }
+  }
+
   const handleAddReward = async () => {
     if (!newRewardTitle.trim() || !family) return
     const { error } = await supabase.from('rewards').insert({
@@ -880,7 +890,7 @@ export default function ParentDashboard() {
                   <Empty icon="⚔️" message="No active quests" />
                 ) : (
                   quests.filter((q) => q.active).map((q) => (
-                    <QuestRow key={q.id} quest={q} kids={kids} onToggle={handleToggleQuest} onDelete={handleDeleteQuest} />
+                    <QuestRow key={q.id} quest={q} kids={kids} onToggle={handleToggleQuest} onDelete={handleDeleteQuest} onSave={handleSaveQuest} />
                   ))
                 )}
               </Section>
@@ -888,7 +898,7 @@ export default function ParentDashboard() {
               {quests.filter((q) => !q.active).length > 0 && (
                 <Section title="Archived Quests">
                   {quests.filter((q) => !q.active).map((q) => (
-                    <QuestRow key={q.id} quest={q} kids={kids} onToggle={handleToggleQuest} onDelete={handleDeleteQuest} />
+                    <QuestRow key={q.id} quest={q} kids={kids} onToggle={handleToggleQuest} onDelete={handleDeleteQuest} onSave={handleSaveQuest} />
                   ))}
                 </Section>
               )}
@@ -1610,63 +1620,240 @@ function ActionButton({
 }
 
 function QuestRow({
-  quest, kids, onToggle, onDelete
+  quest, kids, onToggle, onDelete, onSave
 }: {
   quest: Quest
   kids: Kid[]
   onToggle: (id: string, active: boolean) => void
   onDelete: (id: string) => void
+  onSave: (id: string, updates: Partial<Quest>) => Promise<void>
 }) {
+  const [editing, setEditing] = useState(false)
+  const [title, setTitle] = useState(quest.title)
+  const [desc, setDesc] = useState(quest.description ?? '')
+  const [icon, setIcon] = useState(quest.icon)
+  const [coins, setCoins] = useState(quest.coins)
+  const [forKid, setForKid] = useState<string>(quest.assigned_to ?? 'all')
+  const [frequency, setFrequency] = useState<'daily' | 'once'>(quest.frequency === 'once' ? 'once' : 'daily')
+  const [tier, setTier] = useState<QuestTier>(quest.tier ?? 'normal')
+
   const assignedKid = kids.find((k) => k.id === quest.assigned_to)
-  const tier = TIER_CONFIG[quest.tier ?? 'normal']
+  const tierCfg = TIER_CONFIG[quest.tier ?? 'normal']
+
+  const handleSave = async () => {
+    await onSave(quest.id, {
+      title: title.trim(),
+      description: desc.trim() || null,
+      icon,
+      coins,
+      assigned_to: forKid === 'all' ? null : forKid,
+      frequency,
+      tier,
+    })
+    setEditing(false)
+  }
+
   return (
     <div
-      className="flex items-center gap-3 p-3 rounded-xl mb-2"
+      className="rounded-xl mb-2 overflow-hidden"
       style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
     >
-      <span className="text-xl">{quest.icon}</span>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className={`text-sm font-semibold ${quest.active ? 'text-white/90' : 'text-white/40 line-through'}`}>
-            {quest.title}
+      {/* Summary row */}
+      <div className="flex items-center gap-3 p-3">
+        <span className="text-xl">{quest.icon}</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className={`text-sm font-semibold ${quest.active ? 'text-white/90' : 'text-white/40 line-through'}`}>
+              {quest.title}
+            </p>
+            {(quest.tier ?? 'normal') !== 'normal' && (
+              <span
+                className="text-xs px-1.5 py-0.5 rounded-md flex-shrink-0"
+                style={{ background: `${tierCfg.color}18`, color: tierCfg.color, border: `1px solid ${tierCfg.border}` }}
+              >
+                {tierCfg.label}
+              </span>
+            )}
+            {quest.frequency === 'once' && (
+              <span
+                className="text-xs px-1.5 py-0.5 rounded-md flex-shrink-0"
+                style={{ background: 'rgba(167,139,250,0.12)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.2)' }}
+              >
+                one-time
+              </span>
+            )}
+          </div>
+          <p className="text-white/35 text-xs">
+            🪙 {quest.coins} · {assignedKid ? assignedKid.name : 'All kids'}
           </p>
-          {(quest.tier ?? 'normal') !== 'normal' && (
-            <span
-              className="text-xs px-1.5 py-0.5 rounded-md flex-shrink-0"
-              style={{ background: tier.bg, color: tier.color, border: `1px solid ${tier.border}` }}
-            >
-              {tier.label}
-            </span>
-          )}
-          {quest.frequency === 'once' && (
-            <span
-              className="text-xs px-1.5 py-0.5 rounded-md flex-shrink-0"
-              style={{ background: 'rgba(167,139,250,0.12)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.2)' }}
-            >
-              one-time
-            </span>
-          )}
         </div>
-        <p className="text-white/35 text-xs">
-          🪙 {quest.coins} · {assignedKid ? assignedKid.name : 'All kids'}
-        </p>
+        <button
+          onClick={() => setEditing((e) => !e)}
+          className="text-xs px-2.5 py-1 rounded-lg transition-all"
+          style={{
+            background: editing ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.05)',
+            color: editing ? '#fbbf24' : 'rgba(255,255,255,0.4)',
+          }}
+        >
+          ✏️
+        </button>
+        <button
+          onClick={() => onToggle(quest.id, quest.active)}
+          className="text-xs px-2.5 py-1 rounded-lg transition-all"
+          style={{
+            background: quest.active ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.05)',
+            color: quest.active ? '#4ade80' : 'rgba(255,255,255,0.35)',
+          }}
+        >
+          {quest.active ? 'On' : 'Off'}
+        </button>
+        <button
+          onClick={() => onDelete(quest.id)}
+          className="text-white/20 hover:text-red-400 transition-all text-xs ml-1"
+        >
+          ✕
+        </button>
       </div>
-      <button
-        onClick={() => onToggle(quest.id, quest.active)}
-        className="text-xs px-2.5 py-1 rounded-lg transition-all"
-        style={{
-          background: quest.active ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.05)',
-          color: quest.active ? '#4ade80' : 'rgba(255,255,255,0.35)',
-        }}
-      >
-        {quest.active ? 'On' : 'Off'}
-      </button>
-      <button
-        onClick={() => onDelete(quest.id)}
-        className="text-white/20 hover:text-red-400 transition-all text-xs ml-1"
-      >
-        ✕
-      </button>
+
+      {/* Inline edit form */}
+      <AnimatePresence>
+        {editing && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div
+              className="px-3 pb-3 pt-1 flex flex-col gap-3"
+              style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}
+            >
+              {/* Icon picker */}
+              <div className="flex flex-wrap gap-1.5">
+                {QUEST_ICONS.map((ic) => (
+                  <button
+                    key={ic}
+                    onClick={() => setIcon(ic)}
+                    className="text-xl w-9 h-9 rounded-lg flex items-center justify-center transition-all"
+                    style={{
+                      background: icon === ic ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.04)',
+                      border: `1px solid ${icon === ic ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.07)'}`,
+                    }}
+                  >
+                    {ic}
+                  </button>
+                ))}
+              </div>
+
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Quest title..."
+                className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+              />
+              <input
+                value={desc}
+                onChange={(e) => setDesc(e.target.value)}
+                placeholder="Description (optional)..."
+                className="w-full px-3 py-2.5 rounded-xl text-sm text-white/60 outline-none"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+              />
+
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-xs text-white/40 mb-1 block">Coins</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={coins}
+                    onChange={(e) => setCoins(Number(e.target.value))}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs text-white/40 mb-1 block">For</label>
+                  <select
+                    value={forKid}
+                    onChange={(e) => setForKid(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
+                    style={{ background: 'rgba(12,8,32,0.95)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  >
+                    <option value="all">All kids</option>
+                    {kids.map((k) => (
+                      <option key={k.id} value={k.id}>{k.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-white/40 mb-1.5 block">Frequency</label>
+                <div className="flex gap-2">
+                  {(['daily', 'once'] as const).map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setFrequency(f)}
+                      className="flex-1 py-2 rounded-xl text-sm font-semibold transition-all"
+                      style={{
+                        background: frequency === f ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.05)',
+                        border: `1px solid ${frequency === f ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.08)'}`,
+                        color: frequency === f ? '#fbbf24' : 'rgba(255,255,255,0.5)',
+                      }}
+                    >
+                      {f === 'daily' ? '🔁 Daily' : '⭐ One-time'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-white/40 mb-1.5 block">Tier</label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {(['normal', 'heroic', 'legendary', 'epic'] as const).map((t) => {
+                    const tc = TIER_CONFIG[t]
+                    const selected = tier === t
+                    return (
+                      <button
+                        key={t}
+                        onClick={() => setTier(t)}
+                        className="py-2 rounded-xl text-xs font-semibold transition-all"
+                        style={{
+                          background: selected ? tc.bg : 'rgba(255,255,255,0.04)',
+                          border: `1px solid ${selected ? tc.border : 'rgba(255,255,255,0.08)'}`,
+                          color: selected ? tc.color : 'rgba(255,255,255,0.4)',
+                          boxShadow: selected && tc.glow ? tc.glow : 'none',
+                        }}
+                      >
+                        {tc.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSave}
+                  className="flex-1 py-2 rounded-xl text-sm font-bold transition-all"
+                  style={{ background: 'rgba(74,222,128,0.14)', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80' }}
+                >
+                  Save Changes
+                </button>
+                <button
+                  onClick={() => setEditing(false)}
+                  className="px-4 py-2 rounded-xl text-sm transition-all"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
