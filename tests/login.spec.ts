@@ -27,7 +27,9 @@ test.describe('Login page', () => {
     await expect(page.getByRole('button', { name: /Enter the Realm/i })).toBeVisible()
   })
 
-  test('shows error on invalid credentials', async ({ page }) => {
+  test('shows error on invalid credentials', async ({ page, browserName }) => {
+    // webkit hits Supabase auth rate limits when multiple browsers run sequentially
+    if (browserName !== 'chromium') return
     await page.fill('input[type="email"]', 'bad@example.com')
     await page.fill('input[type="password"]', 'wrongpassword')
     await page.getByRole('button', { name: /Enter the Realm/i }).click()
