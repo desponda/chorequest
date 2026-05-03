@@ -848,7 +848,7 @@ export default function ParentDashboard() {
                   </div>
                   <div>
                     <label className="text-xs text-white/40 mb-1.5 block">Tier</label>
-                    <div className="grid grid-cols-4 gap-1.5">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                       {(['normal', 'heroic', 'legendary', 'epic'] as const).map((t) => {
                         const tc = TIER_CONFIG[t]
                         const selected = newQuestTier === t
@@ -933,7 +933,7 @@ export default function ParentDashboard() {
                       <span className="text-white/30"> · {Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
                     )}
                   </p>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {([0, 3, 5, 6] as const).map((h) => {
                       const label = h === 0 ? '12 AM' : `${h} AM`
                       const selected = (family?.daily_reset_hour ?? 0) === h
@@ -1811,7 +1811,7 @@ function QuestRow({
 
               <div>
                 <label className="text-xs text-white/40 mb-1.5 block">Tier</label>
-                <div className="grid grid-cols-4 gap-1.5">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                   {(['normal', 'heroic', 'legendary', 'epic'] as const).map((t) => {
                     const tc = TIER_CONFIG[t]
                     const selected = tier === t

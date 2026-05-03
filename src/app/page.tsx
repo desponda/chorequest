@@ -24,6 +24,7 @@ export default function WallDisplay() {
   const [claimingBounty, setClaimingBounty] = useState<Quest | null>(null)
   const [rewards, setRewards] = useState<Reward[]>([])
   const [showRewards, setShowRewards] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const [supabase] = useState(createClient)
 
   const fetchData = useCallback(async () => {
@@ -67,6 +68,13 @@ export default function WallDisplay() {
 
     setLoading(false)
   }, [supabase])
+
+  useEffect(() => {
+    const update = () => setIsMobile(window.innerWidth < 640)
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
 
   useEffect(() => {
     fetchData()
@@ -215,7 +223,7 @@ export default function WallDisplay() {
 
       {/* Header */}
       <motion.header
-        className="relative z-10 flex items-center justify-between px-8 py-5 flex-shrink-0"
+        className="relative z-10 flex items-center justify-between px-4 sm:px-8 py-3 sm:py-5 flex-shrink-0"
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
@@ -223,27 +231,27 @@ export default function WallDisplay() {
         <div className="flex-1" />
 
         <div className="text-center">
-          <h1 className="font-heading text-4xl font-black text-gradient-gold tracking-widest">
+          <h1 className="font-heading text-2xl sm:text-4xl font-black text-gradient-gold tracking-widest">
             ChoreQuest
           </h1>
           {family && (
-            <p className="text-white/35 text-xs tracking-[0.3em] uppercase mt-1">
+            <p className="hidden sm:block text-white/35 text-xs tracking-[0.3em] uppercase mt-1">
               The {family.name} Realm
             </p>
           )}
         </div>
 
-        <div className="flex-1 flex justify-end items-center gap-3">
+        <div className="flex-1 flex justify-end items-center gap-2 sm:gap-3">
           <button
             onClick={() => setShowRewards(true)}
-            className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+            className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-xl text-sm font-semibold transition-all"
             style={{
               background: 'rgba(251,191,36,0.08)',
               border: '1px solid rgba(251,191,36,0.2)',
               color: 'rgba(251,191,36,0.7)',
             }}
           >
-            🎁 Rewards
+            🎁<span className="hidden sm:inline"> Rewards</span>
           </button>
           {pendingCount > 0 && (
             <motion.div
@@ -252,34 +260,34 @@ export default function WallDisplay() {
             >
               <Link
                 href="/parent"
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-xl text-sm font-semibold transition-all"
                 style={{
                   background: 'rgba(251, 191, 36, 0.14)',
                   border: '1px solid rgba(251, 191, 36, 0.32)',
                   color: '#fbbf24',
                 }}
               >
-                <span className="relative flex h-2 w-2">
+                <span className="relative flex h-2 w-2 flex-shrink-0">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cq-gold opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-cq-gold" />
                 </span>
-                {pendingCount} pending
+                <span className="hidden sm:inline">{pendingCount} pending</span>
               </Link>
             </motion.div>
           )}
           <Link
             href="/parent"
-            className="px-4 py-2 rounded-xl text-sm text-white/50 hover:text-white/80 transition-all glass border-glass"
+            className="px-2.5 sm:px-4 py-2 rounded-xl text-sm text-white/50 hover:text-white/80 transition-all glass border-glass"
           >
-            ⚙️ Parent
+            ⚙️<span className="hidden sm:inline"> Parent</span>
           </Link>
         </div>
       </motion.header>
 
       {/* Kid columns */}
       <main
-        className="relative z-10 flex-1 grid gap-6 px-8 pb-4 min-h-0"
-        style={{ gridTemplateColumns: `repeat(${kids.length}, 1fr)` }}
+        className="relative z-10 flex-1 grid gap-4 sm:gap-6 px-4 sm:px-8 pb-4 min-h-0"
+        style={{ gridTemplateColumns: `repeat(${isMobile ? 1 : kids.length}, 1fr)` }}
       >
         {kids.map((kid, i) => (
           <motion.div
@@ -306,7 +314,7 @@ export default function WallDisplay() {
       {/* Bounty Board */}
       {bountyQuests.length > 0 && (
         <motion.section
-          className="relative z-10 px-8 pb-6 flex-shrink-0"
+          className="relative z-10 px-4 sm:px-8 pb-6 flex-shrink-0"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
@@ -328,7 +336,7 @@ export default function WallDisplay() {
 
           <div
             className="grid gap-3"
-            style={{ gridTemplateColumns: `repeat(${Math.min(bountyQuests.length, 4)}, 1fr)` }}
+            style={{ gridTemplateColumns: `repeat(${isMobile ? Math.min(bountyQuests.length, 2) : Math.min(bountyQuests.length, 4)}, 1fr)` }}
           >
             {bountyQuests.map((quest, i) => {
               const count = getFamilyCount(quest.id)
@@ -411,7 +419,7 @@ export default function WallDisplay() {
             onClick={() => setShowRewards(false)}
           >
             <motion.div
-              className="rounded-3xl mx-4 w-full max-w-lg overflow-hidden"
+              className="rounded-3xl mx-4 w-full max-w-sm sm:max-w-lg overflow-hidden"
               style={{
                 background: 'rgba(10,6,28,0.98)',
                 border: '1px solid rgba(251,191,36,0.18)',
