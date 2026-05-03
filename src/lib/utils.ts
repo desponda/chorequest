@@ -30,3 +30,19 @@ export function questDateString(resetHour = 0, now = new Date()): string {
   }
   return localDateString(effective)
 }
+
+/**
+ * Returns the Monday of the current quest-week as YYYY-MM-DD.
+ * Used to scope "weekly" and weekly_target quest completions.
+ */
+export function questWeekKey(resetHour = 0, now = new Date()): string {
+  const effective = new Date(now)
+  if (now.getHours() < resetHour) {
+    effective.setDate(effective.getDate() - 1)
+  }
+  const day = effective.getDay() // 0=Sun … 6=Sat
+  const daysFromMonday = day === 0 ? 6 : day - 1
+  const monday = new Date(effective)
+  monday.setDate(effective.getDate() - daysFromMonday)
+  return localDateString(monday)
+}

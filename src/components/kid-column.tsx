@@ -12,6 +12,9 @@ interface KidColumnProps {
   kid: Kid
   quests: Quest[]
   completions: Completion[]
+  today: string
+  claimedExclusiveIds?: Set<string>
+  activeCurseCount?: number
   onComplete?: (questId: string) => Promise<void>
   isParent?: boolean
   onApprove?: (completionId: string) => Promise<void>
@@ -23,6 +26,9 @@ export function KidColumn({
   kid,
   quests,
   completions,
+  today,
+  claimedExclusiveIds,
+  activeCurseCount = 0,
   onComplete,
   isParent,
   onApprove,
@@ -30,10 +36,25 @@ export function KidColumn({
   linkToKidView = true,
 }: KidColumnProps) {
   const colors = KID_COLORS[kid.color]
-  const getCompletion = (questId: string) =>
-    completions.find((c) => c.quest_id === questId && c.kid_id === kid.id)
 
-  const completedCount = completions.filter((c) => c.kid_id === kid.id && c.status === 'approved').length
+  const getCompletion = (quest: Quest): Completion | undefined => {
+    if (quest.frequency === 'weekly') {
+      return completions.find(c => c.quest_id === quest.id && c.kid_id === kid.id)
+    }
+    return completions.find(c => c.quest_id === quest.id && c.kid_id === kid.id && c.date === today)
+  }
+
+  const getWeeklyCount = (quest: Quest): number =>
+    completions.filter(c =>
+      c.quest_id === quest.id &&
+      c.kid_id === kid.id &&
+      (c.status === 'approved' || c.status === 'pending')
+    ).length
+
+  const completedCount = quests.filter(quest => {
+    if (quest.weekly_target != null) return getWeeklyCount(quest) >= quest.weekly_target
+    return getCompletion(quest)?.status === 'approved'
+  }).length
   const totalCount = quests.length
   const progress = totalCount > 0 ? completedCount / totalCount : 0
 
@@ -94,7 +115,19 @@ export function KidColumn({
 
         <CoinCounter value={kid.coins} size="md" />
 
-        {kid.streak > 1 && <StreakBadge streak={kid.streak} />}
+        <div className="flex items-center gap-2">
+          {kid.streak > 1 && <StreakBadge streak={kid.streak} />}
+          {activeCurseCount > 0 && (
+            <motion.span
+              className="text-xs px-2 py-0.5 rounded-full font-bold"
+              style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171' }}
+              animate={{ scale: [1, 1.06, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              ☠️ {activeCurseCount} curse{activeCurseCount > 1 ? 's' : ''}
+            </motion.span>
+          )}
+        </div>
 
         {/* Progress bar */}
         {totalCount > 0 && (
@@ -117,14 +150,14 @@ export function KidColumn({
       </motion.div>
 
       {/* Quest list */}
-      <div className="flex flex-col gap-2.5 flex-1 overflow-y-auto scrollbar-thin-glass min-h-0 pb-1">
-        {quests.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-32 text-white/25">
-            <span className="text-3xl mb-2">🧙</span>
-            <p className="text-sm">No quests yet</p>
-          </div>
-        ) : (
-          quests.map((quest, i) => (
+      {(() => {
+        const personalQuests = quests.filter(q => q.weekly_target == null && !q.exclusive)
+        const bountyQuests = quests.filter(q => q.weekly_target != null || q.exclusive)
+        let cardIndex = 0
+
+        const renderCard = (quest: Quest) => {
+          const i = cardIndex++
+          return (
             <motion.div
               key={quest.id}
               initial={{ opacity: 0, x: -12 }}
@@ -133,7 +166,9 @@ export function KidColumn({
             >
               <QuestCard
                 quest={quest}
-                completion={getCompletion(quest.id)}
+                completion={getCompletion(quest)}
+                weeklyCount={quest.weekly_target != null ? getWeeklyCount(quest) : undefined}
+                isExclusiveLocked={quest.exclusive && !getCompletion(quest) && (claimedExclusiveIds?.has(quest.id) ?? false)}
                 kidColor={kid.color}
                 onComplete={onComplete ? () => onComplete(quest.id) : undefined}
                 isParent={isParent}
@@ -141,9 +176,48 @@ export function KidColumn({
                 onReject={onReject}
               />
             </motion.div>
-          ))
-        )}
-      </div>
+          )
+        }
+
+        if (quests.length === 0) {
+          return (
+            <div className="flex flex-col gap-2.5 flex-1 overflow-y-auto scrollbar-thin-glass min-h-0 pb-1">
+              <div className="flex flex-col items-center justify-center h-32 text-white/25">
+                <span className="text-3xl mb-2">🧙</span>
+                <p className="text-sm">No quests yet</p>
+              </div>
+            </div>
+          )
+        }
+
+        return (
+          <div className="flex flex-col gap-2.5 flex-1 overflow-y-auto scrollbar-thin-glass min-h-0 pb-1">
+            {personalQuests.map(renderCard)}
+
+            {bountyQuests.length > 0 && (
+              <>
+                {/* Bounty section divider */}
+                <div className="flex items-center gap-2 py-1 mt-1">
+                  <div className="flex-1 h-px" style={{ background: 'rgba(251,191,36,0.2)' }} />
+                  <span
+                    className="text-xs font-bold tracking-widest uppercase px-2 py-0.5 rounded-full flex-shrink-0"
+                    style={{
+                      background: 'rgba(251,191,36,0.1)',
+                      border: '1px solid rgba(251,191,36,0.25)',
+                      color: 'rgba(251,191,36,0.75)',
+                    }}
+                  >
+                    ⚡ Bounties
+                  </span>
+                  <div className="flex-1 h-px" style={{ background: 'rgba(251,191,36,0.2)' }} />
+                </div>
+
+                {bountyQuests.map(renderCard)}
+              </>
+            )}
+          </div>
+        )
+      })()}
     </div>
   )
 }

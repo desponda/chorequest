@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { StarField } from '@/components/star-field'
 import { QuestCard } from '@/components/quest-card'
-import type { Kid, Quest, Completion, Reward, Redemption, Family } from '@/lib/types'
+import type { Kid, Quest, Completion, Reward, Redemption, Family, Curse, CurseInstance } from '@/lib/types'
 import { KID_COLORS, KID_AVATARS, QUEST_ICONS, DEFAULT_QUESTS, TIER_CONFIG, getLockDurationMs } from '@/lib/constants'
 import { questDateString } from '@/lib/utils'
 import type { QuestTier } from '@/lib/types'
@@ -18,7 +18,7 @@ import { toast } from 'sonner'
 
 const PARENT_PIN_SESSION_KEY = 'cq_parent_unlocked'
 
-type Tab = 'approvals' | 'quests' | 'family' | 'rewards'
+type Tab = 'approvals' | 'quests' | 'family' | 'rewards' | 'curses'
 
 export default function ParentDashboard() {
   const [tab, setTab] = useState<Tab>('approvals')
@@ -28,6 +28,8 @@ export default function ParentDashboard() {
   const [completions, setCompletions] = useState<Completion[]>([])
   const [rewards, setRewards] = useState<Reward[]>([])
   const [redemptions, setRedemptions] = useState<Redemption[]>([])
+  const [curses, setCurses] = useState<Curse[]>([])
+  const [activeCurseInstances, setActiveCurseInstances] = useState<CurseInstance[]>([])
   const [loading, setLoading] = useState(true)
 
   // Forms
@@ -47,6 +49,10 @@ export default function ParentDashboard() {
   const [newRewardDesc, setNewRewardDesc] = useState('')
   const [newRewardIcon, setNewRewardIcon] = useState('🎁')
   const [newRewardCost, setNewRewardCost] = useState(50)
+  const [newCurseTitle, setNewCurseTitle] = useState('')
+  const [newCurseIcon, setNewCurseIcon] = useState('☠️')
+  const [newCursePenalty, setNewCursePenalty] = useState(10)
+  const [castingCurseId, setCastingCurseId] = useState<string | null>(null)
   const [familyName, setFamilyName] = useState('')
   const [savingFamily, setSavingFamily] = useState(false)
   const [parentLocked, setParentLocked] = useState(false)
@@ -75,13 +81,15 @@ export default function ParentDashboard() {
 
     const kidCols = 'id, name, avatar, color, coins, streak, last_completed_date, family_id, created_at'
 
-    const [familyRes, kidsRes, questsRes, completionsRes, rewardsRes, redemptionsRes] = await Promise.all([
+    const [familyRes, kidsRes, questsRes, completionsRes, rewardsRes, redemptionsRes, cursesRes, curseInstancesRes] = await Promise.all([
       supabase.from('families').select('id, name, invite_token, api_key, daily_reset_hour, created_at, parent_pin').eq('id', profile.family_id).single(),
       supabase.from('kids').select(kidCols).eq('family_id', profile.family_id).order('created_at'),
       supabase.from('quests').select('*').eq('family_id', profile.family_id).order('created_at'),
       supabase.from('completions').select(`*, quest:quests(*), kid:kids(${kidCols})`).eq('date', today).order('completed_at', { ascending: false }),
       supabase.from('rewards').select('*').eq('family_id', profile.family_id).order('created_at'),
       supabase.from('redemptions').select(`*, reward:rewards(*), kid:kids(${kidCols})`).eq('status', 'pending').order('redeemed_at', { ascending: false }),
+      supabase.from('curses').select('*').eq('family_id', profile.family_id).order('created_at'),
+      supabase.from('curse_instances').select(`*, curse:curses(*), kid:kids(${kidCols})`).eq('status', 'active').order('cast_at', { ascending: false }),
     ])
 
     if (familyRes.data) {
@@ -94,6 +102,8 @@ export default function ParentDashboard() {
     if (completionsRes.data) setCompletions(completionsRes.data)
     if (rewardsRes.data) setRewards(rewardsRes.data)
     if (redemptionsRes.data) setRedemptions(redemptionsRes.data)
+    if (cursesRes.data) setCurses(cursesRes.data)
+    if (curseInstancesRes.data) setActiveCurseInstances(curseInstancesRes.data as CurseInstance[])
     setLoading(false)
   }, [supabase])
 
@@ -425,6 +435,55 @@ export default function ParentDashboard() {
     await fetchData()
   }
 
+  const handleAddCurse = async () => {
+    if (!newCurseTitle.trim() || !family) return
+    const { error } = await supabase.from('curses').insert({
+      family_id: family.id,
+      title: newCurseTitle.trim(),
+      icon: newCurseIcon,
+      penalty: newCursePenalty,
+    })
+    if (!error) {
+      toast.success('Curse added to the arsenal! ☠️')
+      setNewCurseTitle('')
+      await fetchData()
+    }
+  }
+
+  const handleCastCurse = async (curseId: string, kidId: string) => {
+    const curse = curses.find(c => c.id === curseId)
+    const kid = kids.find(k => k.id === kidId)
+    if (!curse || !kid) return
+
+    const { error: instanceError } = await supabase.from('curse_instances').insert({
+      curse_id: curseId,
+      kid_id: kidId,
+      coins_deducted: curse.penalty,
+      status: 'active',
+    })
+    if (instanceError) { toast.error('Failed to cast curse'); return }
+
+    await supabase.from('kids').update({ coins: Math.max(0, kid.coins - curse.penalty) }).eq('id', kidId)
+    toast.success(`${curse.icon} ${curse.title} cast on ${kid.name}! −${curse.penalty} coins`)
+    setCastingCurseId(null)
+    await fetchData()
+  }
+
+  const handleResolveCurse = async (instanceId: string, refund: boolean) => {
+    const instance = activeCurseInstances.find(ci => ci.id === instanceId)
+    const kid = instance?.kid as Kid | undefined
+    if (!instance || !kid) return
+
+    await supabase.from('curse_instances').update({ status: 'resolved', resolved_at: new Date().toISOString() }).eq('id', instanceId)
+    if (refund) {
+      await supabase.from('kids').update({ coins: kid.coins + instance.coins_deducted }).eq('id', kid.id)
+      toast.success(`Curse lifted — ${instance.coins_deducted} coins refunded to ${kid.name}`)
+    } else {
+      toast.success('Curse resolved')
+    }
+    await fetchData()
+  }
+
   const pendingCompletions = completions.filter((c) => c.status === 'pending')
   const pendingRedemptions = redemptions.filter((r) => r.status === 'pending')
 
@@ -524,8 +583,9 @@ export default function ParentDashboard() {
   const tabs: { id: Tab; label: string; badge?: number }[] = [
     { id: 'approvals', label: '✓ Approvals', badge: pendingCompletions.length + pendingRedemptions.length },
     { id: 'quests', label: '⚔️ Quests' },
-    { id: 'family', label: '👨‍👩‍👧 Family' },
     { id: 'rewards', label: '🎁 Rewards' },
+    { id: 'curses', label: '☠️ Curses', badge: activeCurseInstances.length || undefined },
+    { id: 'family', label: '👨‍👩‍👧 Family' },
   ]
 
   return (
@@ -1184,6 +1244,162 @@ export default function ParentDashboard() {
                   </div>
                 </Section>
               )}
+            </motion.div>
+          )}
+
+          {tab === 'curses' && (
+            <motion.div key="curses" {...fadeSlide} className="flex flex-col gap-6">
+              {/* Define curses */}
+              <Section title="Define Curses">
+                <div className="flex flex-col gap-3">
+                  <p className="text-white/45 text-xs">
+                    Create named penalties you can cast instantly when bad behavior happens.
+                  </p>
+                  <div className="flex gap-2 flex-wrap">
+                    {['☠️','😈','🌩️','🔥','💀','👿','🦂','🕸️'].map((icon) => (
+                      <button
+                        key={icon}
+                        onClick={() => setNewCurseIcon(icon)}
+                        className="text-xl w-10 h-10 rounded-xl transition-all"
+                        style={{
+                          background: newCurseIcon === icon ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)',
+                          border: `1px solid ${newCurseIcon === icon ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                        }}
+                      >
+                        {icon}
+                      </button>
+                    ))}
+                  </div>
+                  <FormInput placeholder="Curse name (e.g. Whining, Tantrum)..." value={newCurseTitle} onChange={setNewCurseTitle} />
+                  <div>
+                    <label className="text-xs text-white/40 mb-1 block">Coin penalty</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={200}
+                      value={newCursePenalty}
+                      onChange={(e) => setNewCursePenalty(Number(e.target.value))}
+                      className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    />
+                  </div>
+                  <motion.button
+                    onClick={handleAddCurse}
+                    disabled={!newCurseTitle.trim()}
+                    className="w-full py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
+                    style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171' }}
+                    whileHover={{ background: 'rgba(239,68,68,0.22)' }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    + Add Curse
+                  </motion.button>
+
+                  {curses.length > 0 && (
+                    <div className="flex flex-col gap-2 mt-1">
+                      {curses.map(curse => (
+                        <div
+                          key={curse.id}
+                          className="flex items-center gap-3 p-3 rounded-xl"
+                          style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}
+                        >
+                          <span className="text-xl">{curse.icon}</span>
+                          <div className="flex-1">
+                            <p className="text-white/85 text-sm font-semibold">{curse.title}</p>
+                            <p className="text-red-400/60 text-xs">−{curse.penalty} coins</p>
+                          </div>
+                          {/* Cast button */}
+                          {castingCurseId === curse.id ? (
+                            <div className="flex gap-1 flex-wrap">
+                              {kids.map(k => (
+                                <button
+                                  key={k.id}
+                                  onClick={() => handleCastCurse(curse.id, k.id)}
+                                  className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all"
+                                  style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171' }}
+                                >
+                                  {k.avatar} {k.name}
+                                </button>
+                              ))}
+                              <button
+                                onClick={() => setCastingCurseId(null)}
+                                className="px-2 py-1 rounded-lg text-xs text-white/30 hover:text-white/60 transition-all"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => setCastingCurseId(curse.id)}
+                                className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+                                style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171' }}
+                              >
+                                Cast ⚡
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  await supabase.from('curses').delete().eq('id', curse.id)
+                                  await fetchData()
+                                }}
+                                className="text-white/20 hover:text-red-400 transition-all text-xs"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </Section>
+
+              {/* Active curses */}
+              <Section title="Active Afflictions">
+                {activeCurseInstances.length === 0 ? (
+                  <Empty icon="✨" message="No active curses — all is well!" />
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {activeCurseInstances.map(ci => {
+                      const curse = ci.curse as Curse | undefined
+                      const kid = ci.kid as Kid | undefined
+                      return (
+                        <div
+                          key={ci.id}
+                          className="flex items-center gap-3 p-3 rounded-xl"
+                          style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)' }}
+                        >
+                          <span className="text-xl">{curse?.icon ?? '☠️'}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white/85 text-sm font-semibold truncate">{curse?.title ?? 'Curse'}</p>
+                            <p className="text-white/40 text-xs">
+                              {kid?.avatar} {kid?.name} · −{ci.coins_deducted} coins
+                            </p>
+                          </div>
+                          <div className="flex gap-1.5 flex-shrink-0">
+                            <button
+                              onClick={() => handleResolveCurse(ci.id, true)}
+                              className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all"
+                              style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.25)', color: '#4ade80' }}
+                              title="Lift curse and refund coins"
+                            >
+                              ↩ Forgive
+                            </button>
+                            <button
+                              onClick={() => handleResolveCurse(ci.id, false)}
+                              className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all"
+                              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}
+                              title="Resolve without refund"
+                            >
+                              Resolve
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </Section>
             </motion.div>
           )}
 

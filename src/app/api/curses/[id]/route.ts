@@ -12,7 +12,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params
   const body = await req.json().catch(() => ({}))
 
-  const allowed = ['title', 'description', 'icon', 'coins', 'assigned_to', 'frequency', 'tier', 'exclusive', 'active_days', 'weekly_target', 'active']
+  const allowed = ['title', 'icon', 'penalty']
   const updates: Record<string, unknown> = {}
   for (const key of allowed) {
     if (key in body) updates[key] = body[key]
@@ -24,7 +24,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const supabase = createServiceClient()
   const { data, error } = await supabase
-    .from('quests')
+    .from('curses')
     .update(updates)
     .eq('id', id)
     .eq('family_id', auth.familyId)
@@ -32,10 +32,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     .single()
 
   if (error || !data) {
-    return Response.json({ error: error?.message ?? 'Quest not found' }, { status: error ? 500 : 404, headers: cors() })
+    return Response.json({ error: error?.message ?? 'Curse not found' }, { status: error ? 500 : 404, headers: cors() })
   }
 
-  return Response.json({ quest: data }, { headers: cors() })
+  return Response.json({ curse: data }, { headers: cors() })
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -46,12 +46,11 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const supabase = createServiceClient()
 
   const { error } = await supabase
-    .from('quests')
+    .from('curses')
     .delete()
     .eq('id', id)
     .eq('family_id', auth.familyId)
 
   if (error) return Response.json({ error: error.message }, { status: 500, headers: cors() })
-
   return Response.json({ deleted: true }, { headers: cors() })
 }

@@ -9,36 +9,36 @@ export const TIER_CONFIG: Record<QuestTier, {
   glow: string | null
 }> = {
   normal: {
-    label: 'Normal',
+    label: 'Common',
     icon: '⚔️',
     color: 'rgba(255,255,255,0.55)',
-    bg: 'rgba(255,255,255,0.05)',
-    border: 'rgba(255,255,255,0.12)',
+    bg: 'rgba(255,255,255,0.04)',
+    border: 'rgba(255,255,255,0.1)',
     glow: null,
   },
   heroic: {
     label: 'Heroic',
     icon: '🔵',
     color: '#38bdf8',
-    bg: 'rgba(56,189,248,0.08)',
-    border: 'rgba(56,189,248,0.25)',
-    glow: null,
+    bg: 'linear-gradient(135deg, rgba(56,189,248,0.14) 0%, rgba(56,189,248,0.05) 100%)',
+    border: 'rgba(56,189,248,0.48)',
+    glow: '0 0 20px rgba(56,189,248,0.2), 0 0 0 1px rgba(56,189,248,0.14)',
   },
   legendary: {
     label: 'Legendary',
     icon: '🌟',
     color: '#fbbf24',
-    bg: 'rgba(251,191,36,0.08)',
-    border: 'rgba(251,191,36,0.28)',
-    glow: null,
+    bg: 'linear-gradient(135deg, rgba(251,191,36,0.18) 0%, rgba(251,191,36,0.07) 100%)',
+    border: 'rgba(251,191,36,0.55)',
+    glow: '0 0 28px rgba(251,191,36,0.28), 0 0 0 1px rgba(251,191,36,0.2)',
   },
   epic: {
     label: 'Epic',
     icon: '💜',
     color: '#a78bfa',
-    bg: 'rgba(167,139,250,0.1)',
-    border: 'rgba(167,139,250,0.3)',
-    glow: '0 0 20px rgba(167,139,250,0.2)',
+    bg: 'linear-gradient(135deg, rgba(167,139,250,0.18) 0%, rgba(167,139,250,0.07) 100%)',
+    border: 'rgba(167,139,250,0.55)',
+    glow: '0 0 28px rgba(167,139,250,0.28), 0 0 0 1px rgba(167,139,250,0.2)',
   },
 }
 

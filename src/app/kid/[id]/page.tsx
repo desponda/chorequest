@@ -10,9 +10,9 @@ import { StarField } from '@/components/star-field'
 import { QuestCard } from '@/components/quest-card'
 import { CoinCounter } from '@/components/coin-counter'
 import { StreakBadge } from '@/components/streak-badge'
-import type { Kid, Quest, Completion, Reward } from '@/lib/types'
+import type { Kid, Quest, Completion, Reward, CurseInstance } from '@/lib/types'
 import { KID_COLORS, getLockDurationMs } from '@/lib/constants'
-import { questDateString } from '@/lib/utils'
+import { questDateString, questWeekKey } from '@/lib/utils'
 import { toast } from 'sonner'
 
 const PIN_SESSION_KEY = 'cq_kid_pin_'
@@ -24,6 +24,8 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   const [quests, setQuests] = useState<Quest[]>([])
   const [completions, setCompletions] = useState<Completion[]>([])
   const [rewards, setRewards] = useState<Reward[]>([])
+  const [activeCurses, setActiveCurses] = useState<CurseInstance[]>([])
+  const [claimedExclusiveIds, setClaimedExclusiveIds] = useState<Set<string>>(new Set())
   const [pinVerified, setPinVerified] = useState(() =>
     typeof window !== 'undefined'
       ? sessionStorage.getItem(PIN_SESSION_KEY + id) === 'verified'
@@ -40,38 +42,59 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   const [resetHour, setResetHour] = useState(0)
 
   const fetchData = useCallback(async () => {
-    const [kidRes, questsRes, completionsRes, rewardsRes] = await Promise.all([
+    const [kidRes, questsRes, rewardsRes] = await Promise.all([
       supabase.from('kids').select('id, name, avatar, color, coins, streak, last_completed_date, family_id, created_at').eq('id', id).single(),
       supabase.from('quests').select('*').eq('active', true).order('created_at'),
-      supabase.from('completions').select('*').eq('kid_id', id),
       supabase.from('rewards').select('*').eq('available', true),
     ])
 
+    let fetchedResetHour = resetHour
     if (kidRes.data?.family_id) {
       const { data: fam } = await supabase.from('families').select('daily_reset_hour').eq('id', kidRes.data.family_id).single()
-      if (fam) setResetHour(fam.daily_reset_hour ?? 0)
+      if (fam) {
+        fetchedResetHour = fam.daily_reset_hour ?? 0
+        setResetHour(fetchedResetHour)
+      }
     }
 
+    const today = questDateString(fetchedResetHour)
+    const weekStart = questWeekKey(fetchedResetHour)
+
+    const [completionsRes, cursesRes, exclusiveRes] = await Promise.all([
+      supabase.from('completions').select('*').eq('kid_id', id).gte('date', weekStart),
+      supabase.from('curse_instances').select('*, curse:curses(*)').eq('kid_id', id).eq('status', 'active'),
+      // Check exclusive quests claimed by other kids today
+      (async () => {
+        const exclusiveIds = (questsRes.data ?? []).filter(q => q.exclusive).map(q => q.id)
+        if (exclusiveIds.length === 0) return { data: [] }
+        return supabase.from('completions').select('quest_id').in('quest_id', exclusiveIds).eq('date', today).neq('kid_id', id)
+      })(),
+    ])
+
     if (kidRes.data) setKid(kidRes.data)
+
     if (questsRes.data) {
       const allCompletions: Completion[] = completionsRes.data ?? []
       const approvedOnceIds = new Set(
-        allCompletions
-          .filter((c: Completion) => c.status === 'approved')
-          .map((c: Completion) => c.quest_id)
+        allCompletions.filter(c => c.status === 'approved').map(c => c.quest_id)
       )
+      const dayOfWeek = new Date().getDay()
       setQuests(
         questsRes.data.filter((q: Quest) => {
           if (q.assigned_to && q.assigned_to !== id) return false
           if (q.frequency === 'once' && approvedOnceIds.has(q.id)) return false
+          if (q.active_days?.length && !q.active_days.includes(dayOfWeek)) return false
           return true
         })
       )
     }
+
     if (completionsRes.data) setCompletions(completionsRes.data)
+    if (cursesRes.data) setActiveCurses(cursesRes.data as CurseInstance[])
+    setClaimedExclusiveIds(new Set((exclusiveRes.data ?? []).map(c => c.quest_id)))
     if (rewardsRes.data) setRewards(rewardsRes.data)
     setLoading(false)
-  }, [id, supabase])
+  }, [id, supabase, resetHour])
 
   useEffect(() => {
     fetchData()
@@ -80,6 +103,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
       .channel(`kid-${id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'completions', filter: `kid_id=eq.${id}` }, fetchData)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'kids', filter: `id=eq.${id}` }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'curse_instances', filter: `kid_id=eq.${id}` }, fetchData)
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
@@ -87,8 +111,8 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
 
   useEffect(() => {
     if (!lockedUntil) return
-    const id = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(id)
+    const timerId = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(timerId)
   }, [lockedUntil])
 
   const handlePinDigit = async (digit: string) => {
@@ -128,11 +152,23 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
       const quest = quests.find((q) => q.id === questId)
       if (!quest) return
 
+      const today = questDateString(resetHour)
+
+      if (quest.weekly_target != null) {
+        const weekCount = completions.filter(c =>
+          c.quest_id === questId && (c.status === 'approved' || c.status === 'pending')
+        ).length
+        if (weekCount >= quest.weekly_target) {
+          toast.error('Weekly target already reached!')
+          return
+        }
+      }
+
       const { error } = await supabase.from('completions').insert({
         quest_id: questId,
         kid_id: id,
         status: 'pending',
-        date: questDateString(resetHour),
+        date: today,
       })
 
       if (error) {
@@ -143,7 +179,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
       toast.success(`Quest submitted! ✨`, { description: `+${quest.coins} coins once approved` })
       await fetchData()
     },
-    [quests, id, supabase, fetchData, resetHour]
+    [quests, id, supabase, fetchData, resetHour, completions]
   )
 
   const handleRedeem = useCallback(
@@ -219,7 +255,6 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
             </p>
           )}
 
-          {/* PIN dots */}
           <div className="flex justify-center gap-4 mb-8">
             {Array.from({ length: 4 }, (_, i) => (
               <motion.div
@@ -237,7 +272,6 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
             ))}
           </div>
 
-          {/* Numpad */}
           <div className="grid grid-cols-3 gap-3 max-w-[240px] mx-auto">
             {['1','2','3','4','5','6','7','8','9','','0','⌫'].map((d) => (
               <motion.button
@@ -336,6 +370,30 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
               exit={{ opacity: 0, x: 10 }}
               transition={{ duration: 0.2 }}
             >
+              {/* Active curses */}
+              {activeCurses.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rounded-2xl p-4 flex flex-col gap-2"
+                  style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}
+                >
+                  <p className="text-xs font-bold uppercase tracking-widest text-red-400/80">⚠️ Afflictions</p>
+                  {activeCurses.map(ci => {
+                    const curse = ci.curse as { title: string; icon: string; penalty: number } | undefined
+                    return (
+                      <div key={ci.id} className="flex items-center gap-3">
+                        <span className="text-xl">{curse?.icon ?? '☠️'}</span>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-red-300">{curse?.title ?? 'Curse'}</p>
+                          <p className="text-xs text-red-400/60">−{ci.coins_deducted} coins deducted</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </motion.div>
+              )}
+
               {quests.length === 0 ? (
                 <div className="text-center py-16 text-white/30">
                   <p className="text-4xl mb-3">🧙</p>
@@ -343,9 +401,21 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                 </div>
               ) : (
                 quests.map((quest, i) => {
-                  const completion = quest.frequency === 'once'
-                    ? completions.find((c) => c.quest_id === quest.id)
-                    : completions.find((c) => c.quest_id === quest.id && c.date === today)
+                  const completion = quest.frequency === 'weekly'
+                    ? completions.find(c => c.quest_id === quest.id)
+                    : quest.frequency === 'once'
+                    ? completions.find(c => c.quest_id === quest.id)
+                    : completions.find(c => c.quest_id === quest.id && c.date === today)
+
+                  const weeklyCount = quest.weekly_target != null
+                    ? completions.filter(c =>
+                        c.quest_id === quest.id &&
+                        (c.status === 'approved' || c.status === 'pending')
+                      ).length
+                    : undefined
+
+                  const isExclusiveLocked = quest.exclusive && !completion && claimedExclusiveIds.has(quest.id)
+
                   return (
                     <motion.div
                       key={quest.id}
@@ -356,6 +426,8 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                       <QuestCard
                         quest={quest}
                         completion={completion}
+                        weeklyCount={weeklyCount}
+                        isExclusiveLocked={isExclusiveLocked}
                         kidColor={kid.color}
                         onComplete={() => handleComplete(quest.id)}
                       />

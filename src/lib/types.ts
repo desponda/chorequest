@@ -43,7 +43,31 @@ export interface Quest {
   frequency: QuestFrequency
   tier: QuestTier
   active: boolean
+  exclusive: boolean
+  active_days: number[] | null
+  weekly_target: number | null
   created_at: string
+}
+
+export interface Curse {
+  id: string
+  family_id: string
+  title: string
+  icon: string
+  penalty: number
+  created_at: string
+}
+
+export interface CurseInstance {
+  id: string
+  curse_id: string
+  kid_id: string
+  status: 'active' | 'resolved'
+  cast_at: string
+  resolved_at: string | null
+  coins_deducted: number
+  curse?: Curse
+  kid?: Kid
 }
 
 export interface Completion {
