@@ -12,14 +12,25 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
+  expect: {
+    toHaveScreenshot: {
+      // Allow up to 0.2% pixel difference — handles minor anti-aliasing variance
+      maxDiffPixelRatio: 0.002,
+      animations: 'disabled',
+    },
+  },
   projects: [
     {
-      name: 'chromium',
+      name: 'Desktop Chrome',
       use: { ...devices['Desktop Chrome'] },
     },
     {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
+      name: 'iPhone 14',
+      use: { ...devices['iPhone 14'] },
+    },
+    {
+      name: 'iPad',
+      use: { ...devices['iPad (gen 7)'] },
     },
   ],
   webServer: {
