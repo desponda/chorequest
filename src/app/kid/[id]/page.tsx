@@ -33,20 +33,31 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'quests' | 'rewards'>('quests')
   const [supabase] = useState(createClient)
+  const today = new Date().toISOString().split('T')[0]
 
   const fetchData = useCallback(async () => {
-    const today = new Date().toISOString().split('T')[0]
-
     const [kidRes, questsRes, completionsRes, rewardsRes] = await Promise.all([
       supabase.from('kids').select('*').eq('id', id).single(),
       supabase.from('quests').select('*').eq('active', true).order('created_at'),
-      supabase.from('completions').select('*').eq('kid_id', id).eq('date', today),
+      supabase.from('completions').select('*').eq('kid_id', id),
       supabase.from('rewards').select('*').eq('available', true),
     ])
 
     if (kidRes.data) setKid(kidRes.data)
     if (questsRes.data) {
-      setQuests(questsRes.data.filter((q: Quest) => !q.assigned_to || q.assigned_to === id))
+      const allCompletions: Completion[] = completionsRes.data ?? []
+      const approvedOnceIds = new Set(
+        allCompletions
+          .filter((c: Completion) => c.status === 'approved')
+          .map((c: Completion) => c.quest_id)
+      )
+      setQuests(
+        questsRes.data.filter((q: Quest) => {
+          if (q.assigned_to && q.assigned_to !== id) return false
+          if (q.frequency === 'once' && approvedOnceIds.has(q.id)) return false
+          return true
+        })
+      )
     }
     if (completionsRes.data) setCompletions(completionsRes.data)
     if (rewardsRes.data) setRewards(rewardsRes.data)
@@ -294,21 +305,26 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                   <p>No quests yet — ask a parent to add some!</p>
                 </div>
               ) : (
-                quests.map((quest, i) => (
-                  <motion.div
-                    key={quest.id}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.06 }}
-                  >
-                    <QuestCard
-                      quest={quest}
-                      completion={completions.find((c) => c.quest_id === quest.id)}
-                      kidColor={kid.color}
-                      onComplete={() => handleComplete(quest.id)}
-                    />
-                  </motion.div>
-                ))
+                quests.map((quest, i) => {
+                  const completion = quest.frequency === 'once'
+                    ? completions.find((c) => c.quest_id === quest.id)
+                    : completions.find((c) => c.quest_id === quest.id && c.date === today)
+                  return (
+                    <motion.div
+                      key={quest.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.06 }}
+                    >
+                      <QuestCard
+                        quest={quest}
+                        completion={completion}
+                        kidColor={kid.color}
+                        onComplete={() => handleComplete(quest.id)}
+                      />
+                    </motion.div>
+                  )
+                })
               )}
             </motion.div>
           ) : (
