@@ -96,7 +96,10 @@ src/
 npm run dev          # Start dev server at localhost:3000
 npm run build        # Production build
 npm run lint         # ESLint
-npx playwright test  # Run E2E tests (requires dev server running)
+npm test             # Unit tests (Vitest, ~200ms, no env vars needed)
+npm run test:watch   # Unit tests in watch mode
+npm run test:coverage  # Unit tests with coverage report
+npx playwright test  # E2E tests (requires dev server + Supabase env vars)
 vercel --prod        # Deploy to production (CI/CD via GitHub is preferred)
 ```
 
@@ -105,8 +108,10 @@ vercel --prod        # Deploy to production (CI/CD via GitHub is preferred)
 - GitHub repo: `https://github.com/desponda/chorequest`
 - Vercel project: connected to GitHub — pushes to `main` auto-deploy to production
 - Preview deploys: every branch/PR gets a unique Vercel URL
-- Playwright tests run on every push/PR via `.github/workflows/playwright.yml`
-- Supabase env vars are set as GitHub Actions secrets (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
+- **CI jobs** (`.github/workflows/ci.yml`):
+  - `typecheck` + `lint` + `unit tests` — run on every push to main and every PR
+  - `playwright` (E2E) — **PRs only**, not on direct pushes to main (too slow for routine commits)
+- Supabase env vars are set as GitHub Actions secrets (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`)
 
 ## Environment Variables
 
