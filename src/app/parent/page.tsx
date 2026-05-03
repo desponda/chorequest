@@ -81,13 +81,14 @@ export default function ParentDashboard() {
 
     const kidCols = 'id, name, avatar, color, coins, streak, last_completed_date, family_id, created_at'
 
-    const [familyRes, kidsRes, questsRes, completionsRes, rewardsRes, redemptionsRes, cursesRes, curseInstancesRes] = await Promise.all([
+    const [familyRes, kidsRes, questsRes, completionsRes, rewardsRes, pendingRedemptionsRes, approvedRedemptionsRes, cursesRes, curseInstancesRes] = await Promise.all([
       supabase.from('families').select('id, name, invite_token, api_key, daily_reset_hour, created_at, parent_pin').eq('id', profile.family_id).single(),
       supabase.from('kids').select(kidCols).eq('family_id', profile.family_id).order('created_at'),
       supabase.from('quests').select('*').eq('family_id', profile.family_id).order('created_at'),
       supabase.from('completions').select(`*, quest:quests(*), kid:kids(${kidCols})`).eq('date', today).order('completed_at', { ascending: false }),
       supabase.from('rewards').select('*').eq('family_id', profile.family_id).order('created_at'),
       supabase.from('redemptions').select(`*, reward:rewards(*), kid:kids(${kidCols})`).eq('status', 'pending').order('redeemed_at', { ascending: false }),
+      supabase.from('redemptions').select(`*, reward:rewards(*), kid:kids(${kidCols})`).eq('status', 'approved').gte('redeemed_at', today).order('redeemed_at', { ascending: false }),
       supabase.from('curses').select('*').eq('family_id', profile.family_id).order('created_at'),
       supabase.from('curse_instances').select(`*, curse:curses(*), kid:kids(${kidCols})`).eq('status', 'active').order('cast_at', { ascending: false }),
     ])
@@ -101,7 +102,7 @@ export default function ParentDashboard() {
     if (questsRes.data) setQuests(questsRes.data)
     if (completionsRes.data) setCompletions(completionsRes.data)
     if (rewardsRes.data) setRewards(rewardsRes.data)
-    if (redemptionsRes.data) setRedemptions(redemptionsRes.data)
+    setRedemptions([...(pendingRedemptionsRes.data ?? []), ...(approvedRedemptionsRes.data ?? [])])
     if (cursesRes.data) setCurses(cursesRes.data)
     if (curseInstancesRes.data) setActiveCurseInstances(curseInstancesRes.data as CurseInstance[])
     setLoading(false)
@@ -514,6 +515,7 @@ export default function ParentDashboard() {
 
   const pendingCompletions = completions.filter((c) => c.status === 'pending')
   const pendingRedemptions = redemptions.filter((r) => r.status === 'pending')
+  const approvedRedemptions = redemptions.filter((r) => r.status === 'approved')
 
   if (loading) {
     return (
@@ -761,7 +763,7 @@ export default function ParentDashboard() {
                 })
               )}
 
-              {completions.filter((c) => c.status !== 'pending').length > 0 && (
+              {(completions.filter((c) => c.status !== 'pending').length > 0 || approvedRedemptions.length > 0) && (
                 <div>
                   <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Reviewed today</p>
                   {completions
@@ -790,6 +792,21 @@ export default function ParentDashboard() {
                         </div>
                       )
                     })}
+                  {approvedRedemptions.map((r) => {
+                    const kid = r.kid as Kid | undefined
+                    const reward = r.reward as Reward | undefined
+                    if (!kid || !reward) return null
+                    return (
+                      <div key={r.id} className="flex items-center gap-3 py-2">
+                        <span className="text-lg">{kid.avatar}</span>
+                        <span className="text-white/50 text-sm">{kid.name}</span>
+                        <span className="text-white/35 text-sm flex-1 truncate">{reward.icon} {reward.title}</span>
+                        <span className="text-xs font-semibold flex-shrink-0 text-cq-gold">
+                          🎁 -{reward.cost}🪙
+                        </span>
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </motion.div>
