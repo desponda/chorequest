@@ -30,6 +30,8 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   )
   const [pinInput, setPinInput] = useState('')
   const [pinError, setPinError] = useState(false)
+  const [pinAttempts, setPinAttempts] = useState(0)
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'quests' | 'rewards'>('quests')
   const [supabase] = useState(createClient)
@@ -37,7 +39,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
 
   const fetchData = useCallback(async () => {
     const [kidRes, questsRes, completionsRes, rewardsRes] = await Promise.all([
-      supabase.from('kids').select('*').eq('id', id).single(),
+      supabase.from('kids').select('id, name, avatar, color, coins, streak, last_completed_date, family_id, created_at').eq('id', id).single(),
       supabase.from('quests').select('*').eq('active', true).order('created_at'),
       supabase.from('completions').select('*').eq('kid_id', id),
       supabase.from('rewards').select('*').eq('available', true),
@@ -77,14 +79,29 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   }, [fetchData, id, supabase])
 
   const handlePinDigit = async (digit: string) => {
+    if (lockedUntil && Date.now() < lockedUntil) return
     const next = pinInput + digit
     setPinInput(next)
     if (next.length === 4) {
-      if (kid && next === kid.pin) {
+      const res = await fetch(`/api/kid/${id}/verify-pin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: next }),
+      })
+      const { success } = await res.json()
+      if (success) {
         sessionStorage.setItem(PIN_SESSION_KEY + id, 'verified')
         setPinVerified(true)
         setPinError(false)
+        setPinAttempts(0)
+        setLockedUntil(null)
       } else {
+        const attempts = pinAttempts + 1
+        setPinAttempts(attempts)
+        if (attempts >= 5) {
+          const lockMs = attempts >= 8 ? 5 * 60_000 : 30_000
+          setLockedUntil(Date.now() + lockMs)
+        }
         setPinError(true)
         setTimeout(() => {
           setPinInput('')
@@ -178,9 +195,16 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
             {kid.avatar}
           </motion.span>
           <h2 className="font-heading text-3xl font-bold text-white mb-1">{kid.name}</h2>
-          <p className="text-white/40 text-sm mb-8" style={{ color: colors.primary }}>
-            Enter your secret PIN
-          </p>
+          {lockedUntil && Date.now() < lockedUntil ? (
+            <p className="text-red-400 text-sm mb-8">
+              🔒 Too many attempts — try again in{' '}
+              {Math.ceil((lockedUntil - Date.now()) / 1000)}s
+            </p>
+          ) : (
+            <p className="text-white/40 text-sm mb-8" style={{ color: colors.primary }}>
+              Enter your secret PIN
+            </p>
+          )}
 
           {/* PIN dots */}
           <div className="flex justify-center gap-4 mb-8">

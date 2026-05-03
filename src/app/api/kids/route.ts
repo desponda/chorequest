@@ -13,7 +13,7 @@ export async function GET(req: Request) {
   const today = new Date().toISOString().split('T')[0]
 
   const [kidsRes, completionsRes] = await Promise.all([
-    supabase.from('kids').select('*').eq('family_id', auth.familyId).order('created_at'),
+    supabase.from('kids').select('id, name, avatar, color, coins, streak, last_completed_date, created_at').eq('family_id', auth.familyId).order('created_at'),
     supabase.from('completions')
       .select('kid_id, status, coins_awarded, quest:quests(title, coins)')
       .eq('date', today)

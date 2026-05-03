@@ -55,6 +55,8 @@ export default function ParentDashboard() {
   const [editingCoinsKidId, setEditingCoinsKidId] = useState<string | null>(null)
   const [editCoinsValue, setEditCoinsValue] = useState('')
   const [revealPinKidId, setRevealPinKidId] = useState<string | null>(null)
+  const [parentPinAttempts, setParentPinAttempts] = useState(0)
+  const [parentLockedUntil, setParentLockedUntil] = useState<number | null>(null)
 
   const [supabase] = useState(createClient)
   const router = useRouter()
@@ -67,7 +69,7 @@ export default function ParentDashboard() {
     const today = new Date().toISOString().split('T')[0]
 
     const [familyRes, kidsRes, questsRes, completionsRes, rewardsRes] = await Promise.all([
-      supabase.from('families').select('*').eq('id', profile.family_id).single(),
+      supabase.from('families').select('id, name, invite_token, created_at, parent_pin').eq('id', profile.family_id).single(),
       supabase.from('kids').select('*').eq('family_id', profile.family_id).order('created_at'),
       supabase.from('quests').select('*').eq('family_id', profile.family_id).order('created_at'),
       supabase.from('completions').select('*, quest:quests(*), kid:kids(*)').eq('date', today).order('completed_at', { ascending: false }),
@@ -75,7 +77,8 @@ export default function ParentDashboard() {
     ])
 
     if (familyRes.data) {
-      setFamily(familyRes.data)
+      const { parent_pin, ...rest } = familyRes.data
+      setFamily({ ...rest, has_parent_pin: parent_pin !== null })
       setFamilyName(familyRes.data.name)
     }
     if (kidsRes.data) setKids(kidsRes.data)
@@ -90,7 +93,7 @@ export default function ParentDashboard() {
   useEffect(() => {
     if (!family || hasCheckedParentPin.current) return
     hasCheckedParentPin.current = true
-    if (family.parent_pin) {
+    if (family.has_parent_pin) {
       const unlocked = sessionStorage.getItem(PARENT_PIN_SESSION_KEY) === '1'
       if (!unlocked) setParentLocked(true)
     }
@@ -287,16 +290,32 @@ export default function ParentDashboard() {
     await fetchData()
   }
 
-  const handleParentPinDigit = (digit: string) => {
+  const handleParentPinDigit = async (digit: string) => {
+    if (parentLockedUntil && Date.now() < parentLockedUntil) return
     const next = lockPinInput + digit
     setLockPinInput(next)
     if (next.length === 4) {
-      if (family?.parent_pin && next === family.parent_pin) {
+      const res = await fetch('/api/parent/verify-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: next }),
+      })
+      const { success } = await res.json()
+      if (success) {
         sessionStorage.setItem(PARENT_PIN_SESSION_KEY, '1')
         setParentLocked(false)
         setLockPinError(false)
         setLockPinInput('')
+        setParentPinAttempts(0)
+        setParentLockedUntil(null)
       } else {
+        const attempts = parentPinAttempts + 1
+        setParentPinAttempts(attempts)
+        if (attempts >= 5) {
+          const lockMs = attempts >= 8 ? 5 * 60_000 : 30_000
+          setParentLockedUntil(Date.now() + lockMs)
+          toast.error(`Too many attempts — locked for ${attempts >= 8 ? '5 minutes' : '30 seconds'}`)
+        }
         setLockPinError(true)
         setTimeout(() => {
           setLockPinInput('')
@@ -378,7 +397,14 @@ export default function ParentDashboard() {
             🔒
           </motion.span>
           <h2 className="font-heading text-3xl font-bold text-white mb-1">Parent Command</h2>
-          <p className="text-white/40 text-sm mb-8">Enter your parent PIN</p>
+          {parentLockedUntil && Date.now() < parentLockedUntil ? (
+            <p className="text-red-400 text-sm mb-8">
+              🔒 Too many attempts — try again in{' '}
+              {Math.ceil((parentLockedUntil - Date.now()) / 1000)}s
+            </p>
+          ) : (
+            <p className="text-white/40 text-sm mb-8">Enter your parent PIN</p>
+          )}
 
           <div className="flex justify-center gap-4 mb-8">
             {Array.from({ length: 4 }, (_, i) => (
@@ -458,7 +484,7 @@ export default function ParentDashboard() {
           <span className="font-heading text-lg font-bold text-white/80">Parent Command</span>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
-          {family?.parent_pin && (
+          {family?.has_parent_pin && (
             <button
               onClick={handleLock}
               className="text-white/30 hover:text-cq-gold transition-all text-lg"
@@ -723,7 +749,7 @@ export default function ParentDashboard() {
 
               {/* Parent lock */}
               <Section title="Parent Lock">
-                {family?.parent_pin ? (
+                {family?.has_parent_pin ? (
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">🔒</span>
