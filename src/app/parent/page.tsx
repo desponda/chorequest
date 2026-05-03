@@ -90,6 +90,11 @@ export default function ParentDashboard() {
     }
   }, [family])
 
+  // Auto-lock when parent navigates away (back button, link, URL bar — all paths)
+  useEffect(() => {
+    return () => { sessionStorage.removeItem(PARENT_PIN_SESSION_KEY) }
+  }, [])
+
   useEffect(() => {
     fetchData()
     const channel = supabase
