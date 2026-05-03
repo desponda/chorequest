@@ -9,8 +9,10 @@ import { CoinBurst } from './coin-burst'
 interface QuestCardProps {
   quest: Quest
   completion?: Completion
-  weeklyCount?: number
-  isExclusiveLocked?: boolean
+  /** For shared quests, how many family-wide claims this period (across all kids). */
+  sharedClaimed?: number
+  /** Locked because the shared period is fully claimed and this kid hasn't claimed. */
+  isShareLocked?: boolean
   kidColor: KidColor
   onComplete?: () => Promise<void>
   isParent?: boolean
@@ -20,25 +22,23 @@ interface QuestCardProps {
 
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
-function frequencyLabel(quest: Quest): string | null {
-  if (quest.frequency === 'once') return 'one-time'
-  if (quest.weekly_target != null) {
-    const base = `${quest.weekly_target}× per week`
-    return quest.exclusive ? `${base} · 1st claim wins` : base
+function cadenceLabel(quest: Quest): string | null {
+  if (quest.kind === 'oneoff') return 'one-time'
+  if (quest.kind === 'shared') {
+    const period = quest.frequency === 'weekly' ? 'week' : 'day'
+    if (quest.slots > 1) return `${quest.slots}× per ${period} · first to claim`
+    return `${quest.frequency} · first to claim`
   }
-  if (quest.active_days && quest.active_days.length > 0 && quest.active_days.length < 7) {
-    return quest.exclusive ? '1st claim wins' : null // day pills render separately
-  }
-  if (quest.frequency === 'weekly') return quest.exclusive ? 'weekly · 1st claim wins' : 'weekly'
-  // daily
-  return quest.exclusive ? 'daily · 1st claim wins' : null
+  // personal
+  if (quest.frequency === 'weekly') return 'weekly'
+  return null
 }
 
 export function QuestCard({
   quest,
   completion,
-  weeklyCount = 0,
-  isExclusiveLocked = false,
+  sharedClaimed = 0,
+  isShareLocked = false,
   kidColor,
   onComplete,
   isParent,
@@ -49,16 +49,16 @@ export function QuestCard({
   const [bursting, setBursting] = useState(false)
   const colors = KID_COLORS[kidColor]
 
-  const isWeeklyFull = quest.weekly_target != null && weeklyCount >= quest.weekly_target
+  const isShared = quest.kind === 'shared' || quest.kind === 'oneoff'
   const status = completion?.status
-  const isTodo = !isExclusiveLocked && !isWeeklyFull && !status
-  const isPending = status === 'pending' && !isWeeklyFull
-  const isApproved = status === 'approved' || isWeeklyFull
-  const isRejected = status === 'rejected' && !isWeeklyFull
+  const isTodo = !isShareLocked && !status
+  const isPending = status === 'pending'
+  const isApproved = status === 'approved'
+  const isRejected = status === 'rejected'
 
   const tier = TIER_CONFIG[quest.tier ?? 'normal']
   const isNormal = (quest.tier ?? 'normal') === 'normal'
-  const hasCompletionState = isApproved || isPending || isRejected || isExclusiveLocked
+  const hasCompletionState = isApproved || isPending || isRejected || isShareLocked
 
   const cardBg = isApproved
     ? 'rgba(74, 222, 128, 0.06)'
@@ -66,7 +66,7 @@ export function QuestCard({
     ? 'rgba(251, 191, 36, 0.06)'
     : isRejected
     ? 'rgba(239, 68, 68, 0.05)'
-    : isExclusiveLocked
+    : isShareLocked
     ? 'rgba(255,255,255,0.02)'
     : tier.bg
 
@@ -76,7 +76,7 @@ export function QuestCard({
     ? 'rgba(251, 191, 36, 0.35)'
     : isRejected
     ? 'rgba(239, 68, 68, 0.2)'
-    : isExclusiveLocked
+    : isShareLocked
     ? 'rgba(255,255,255,0.06)'
     : tier.border
 
@@ -84,11 +84,11 @@ export function QuestCard({
     ? '0 0 20px rgba(251, 191, 36, 0.12)'
     : isApproved
     ? '0 0 16px rgba(74, 222, 128, 0.1)'
-    : isExclusiveLocked
+    : isShareLocked
     ? 'none'
     : tier.glow ?? 'none'
 
-  const freqLabel = frequencyLabel(quest)
+  const freqLabel = cadenceLabel(quest)
 
   const handleComplete = async () => {
     if (!onComplete || loading || !isTodo) return
@@ -107,7 +107,7 @@ export function QuestCard({
         border: `1px solid ${cardBorder}`,
         boxShadow: cardShadow,
         backdropFilter: 'blur(10px)',
-        opacity: isExclusiveLocked ? 0.45 : 1,
+        opacity: isShareLocked ? 0.45 : 1,
       }}
       whileHover={isTodo && onComplete ? { scale: 1.015 } : {}}
       whileTap={isTodo && onComplete ? { scale: 0.985 } : {}}
@@ -116,7 +116,6 @@ export function QuestCard({
     >
       <CoinBurst coins={quest.coins} active={bursting} />
 
-      {/* Tier accent bar — thin colored line at top */}
       {!isNormal && !hasCompletionState && (
         <div
           className="absolute top-0 left-0 right-0 h-px"
@@ -127,7 +126,6 @@ export function QuestCard({
         />
       )}
 
-      {/* Legendary shimmer sweep */}
       {quest.tier === 'legendary' && !hasCompletionState && (
         <motion.div
           className="absolute inset-0 pointer-events-none rounded-2xl overflow-hidden"
@@ -142,7 +140,6 @@ export function QuestCard({
         </motion.div>
       )}
 
-      {/* Epic shimmer — slower, purple */}
       {quest.tier === 'epic' && !hasCompletionState && (
         <motion.div
           className="absolute inset-0 pointer-events-none rounded-2xl overflow-hidden"
@@ -165,7 +162,7 @@ export function QuestCard({
             <div className="flex items-center gap-1.5 flex-wrap">
               <p
                 className={`font-semibold text-sm leading-snug ${
-                  isApproved ? 'line-through opacity-40' : isExclusiveLocked ? 'text-white/35' : 'text-white/90'
+                  isApproved ? 'line-through opacity-40' : isShareLocked ? 'text-white/35' : 'text-white/90'
                 }`}
               >
                 {quest.title}
@@ -184,7 +181,6 @@ export function QuestCard({
               <p className="text-white/40 text-xs mt-0.5 truncate">{quest.description}</p>
             )}
 
-            {/* Frequency / schedule info */}
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               {freqLabel && (
                 <span className="text-xs px-1.5 py-0.5 rounded-md"
@@ -193,7 +189,6 @@ export function QuestCard({
                 </span>
               )}
 
-              {/* Day-of-week pills inline with freq label */}
               {quest.active_days && quest.active_days.length > 0 && quest.active_days.length < 7 && (
                 <div className="flex gap-0.5">
                   {DAY_LABELS.map((label, i) => (
@@ -212,10 +207,9 @@ export function QuestCard({
               )}
             </div>
 
-            {/* Weekly target progress */}
-            {quest.weekly_target != null && (
-              <p className="text-xs mt-1" style={{ color: isWeeklyFull ? '#4ade80' : 'rgba(255,255,255,0.4)' }}>
-                {isWeeklyFull ? '✓ ' : ''}{weeklyCount}/{quest.weekly_target}× this week
+            {isShared && quest.kind === 'shared' && quest.slots > 0 && (
+              <p className="text-xs mt-1" style={{ color: sharedClaimed >= quest.slots ? '#4ade80' : 'rgba(255,255,255,0.4)' }}>
+                {sharedClaimed >= quest.slots ? '✓ ' : ''}{sharedClaimed}/{quest.slots} claimed
               </p>
             )}
           </div>
@@ -242,13 +236,12 @@ export function QuestCard({
             {isRejected && (
               <p className="text-xs text-red-400 mt-0.5">✗ retry</p>
             )}
-            {isExclusiveLocked && (
+            {isShareLocked && (
               <p className="text-xs text-white/30 mt-0.5">claimed</p>
             )}
           </div>
         </div>
 
-        {/* Complete button */}
         <AnimatePresence>
           {(isTodo || isRejected) && onComplete && (
             <motion.button
@@ -272,12 +265,11 @@ export function QuestCard({
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
             >
-              {loading ? '✨ Sending quest...' : isRejected ? '🔄 Try Again' : '⚔️ Complete Quest'}
+              {loading ? '✨ Sending quest...' : isRejected ? '🔄 Try Again' : isShared ? '⚡ Claim & Complete' : '⚔️ Complete Quest'}
             </motion.button>
           )}
         </AnimatePresence>
 
-        {/* Parent approval buttons */}
         {isParent && isPending && completion && (
           <div className="mt-3 flex gap-2">
             <button
@@ -306,7 +298,6 @@ export function QuestCard({
         )}
       </div>
 
-      {/* Approved shimmer overlay */}
       {isApproved && (
         <div
           className="absolute inset-0 pointer-events-none rounded-2xl"

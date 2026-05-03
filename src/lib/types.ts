@@ -1,5 +1,6 @@
 export type KidColor = 'azure' | 'mystic'
 export type QuestFrequency = 'daily' | 'weekly' | 'once'
+export type QuestKind = 'personal' | 'shared' | 'oneoff'
 export type QuestTier = 'normal' | 'heroic' | 'legendary' | 'epic'
 export type CompletionStatus = 'pending' | 'approved' | 'rejected'
 
@@ -40,12 +41,12 @@ export interface Quest {
   icon: string
   coins: number
   assigned_to: string | null
+  kind: QuestKind
   frequency: QuestFrequency
   tier: QuestTier
+  slots: number
   active: boolean
-  exclusive: boolean
   active_days: number[] | null
-  weekly_target: number | null
   created_at: string
 }
 

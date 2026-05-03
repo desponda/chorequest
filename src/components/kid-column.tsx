@@ -13,7 +13,8 @@ interface KidColumnProps {
   quests: Quest[]
   completions: Completion[]
   today: string
-  claimedExclusiveIds?: Set<string>
+  /** Family-wide completions for shared quests, used to count remaining slots and lock when full. */
+  familySharedCompletions?: Array<{ quest_id: string; kid_id: string; status: string }>
   activeCurseCount?: number
   onComplete?: (questId: string) => Promise<void>
   isParent?: boolean
@@ -27,7 +28,7 @@ export function KidColumn({
   quests,
   completions,
   today,
-  claimedExclusiveIds,
+  familySharedCompletions = [],
   activeCurseCount = 0,
   onComplete,
   isParent,
@@ -44,15 +45,13 @@ export function KidColumn({
     return completions.find(c => c.quest_id === quest.id && c.kid_id === kid.id && c.date === today)
   }
 
-  const getWeeklyCount = (quest: Quest): number =>
-    completions.filter(c =>
-      c.quest_id === quest.id &&
-      c.kid_id === kid.id &&
-      (c.status === 'approved' || c.status === 'pending')
+  const sharedClaimCount = (quest: Quest): number =>
+    familySharedCompletions.filter(c =>
+      c.quest_id === quest.id && (c.status === 'approved' || c.status === 'pending'),
     ).length
 
   const completedCount = quests.filter(quest => {
-    if (quest.weekly_target != null) return getWeeklyCount(quest) >= quest.weekly_target
+    if (quest.kind === 'shared') return sharedClaimCount(quest) >= quest.slots
     return getCompletion(quest)?.status === 'approved'
   }).length
   const totalCount = quests.length
@@ -151,10 +150,8 @@ export function KidColumn({
 
       {/* Quest list */}
       {(() => {
-        // Family bounties (weekly_target + exclusive) live on the bounty board, not here
-        const personalQuests = quests.filter(q => !(q.weekly_target != null && q.exclusive))
-        const bountyQuests = [] as Quest[]
-        void bountyQuests
+        // Personal-kind quests live in the per-kid column. Shared/oneoff are surfaced on the bounty board.
+        const personalQuests = quests.filter(q => q.kind === 'personal')
         let cardIndex = 0
 
         const renderCard = (quest: Quest) => {
@@ -169,8 +166,6 @@ export function KidColumn({
               <QuestCard
                 quest={quest}
                 completion={getCompletion(quest)}
-                weeklyCount={quest.weekly_target != null ? getWeeklyCount(quest) : undefined}
-                isExclusiveLocked={quest.exclusive && !getCompletion(quest) && (claimedExclusiveIds?.has(quest.id) ?? false)}
                 kidColor={kid.color}
                 onComplete={onComplete ? () => onComplete(quest.id) : undefined}
                 isParent={isParent}
@@ -181,7 +176,7 @@ export function KidColumn({
           )
         }
 
-        if (quests.length === 0) {
+        if (personalQuests.length === 0) {
           return (
             <div className="flex flex-col gap-2.5 flex-1 overflow-y-auto scrollbar-thin-glass min-h-0 pb-1">
               <div className="flex flex-col items-center justify-center h-32 text-white/25">

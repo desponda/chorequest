@@ -96,13 +96,13 @@ export default function WallDisplay() {
 
       const today = questDateString(family?.daily_reset_hour ?? 0)
 
-      if (quest.weekly_target != null) {
+      if (quest.kind === 'shared') {
         const familyCount = completions.filter(c =>
           c.quest_id === questId &&
           (c.status === 'approved' || c.status === 'pending')
         ).length
-        if (familyCount >= quest.weekly_target) {
-          toast.error('Weekly target already reached!')
+        if (familyCount >= quest.slots) {
+          toast.error('All slots claimed!')
           return
         }
       }
@@ -139,19 +139,16 @@ export default function WallDisplay() {
   const today = questDateString(family?.daily_reset_hour ?? 0)
   const dayOfWeek = new Date().getDay()
 
-  // Family bounties: weekly_target + exclusive = shared pool
-  const isFamilyBounty = (q: Quest) => q.weekly_target != null && q.exclusive
-
   const getKidPersonalQuests = (kid: Kid) =>
     quests.filter(q => {
-      if (isFamilyBounty(q)) return false
+      if (q.kind !== 'personal') return false
       if (q.assigned_to && q.assigned_to !== kid.id) return false
       if (q.active_days?.length && !q.active_days.includes(dayOfWeek)) return false
       return true
     })
 
   const bountyQuests = quests.filter(q => {
-    if (!isFamilyBounty(q)) return false
+    if (q.kind !== 'shared' && q.kind !== 'oneoff') return false
     if (q.active_days?.length && !q.active_days.includes(dayOfWeek)) return false
     return true
   })
@@ -165,12 +162,10 @@ export default function WallDisplay() {
   const getKidCompletions = (kid: Kid) =>
     completions.filter((c) => c.kid_id === kid.id)
 
-  const todayCompletions = completions.filter(c => c.date === today)
-  const claimedExclusiveIds = new Set(
-    todayCompletions
-      .filter(c => quests.find(q => q.id === c.quest_id)?.exclusive && !isFamilyBounty(quests.find(q => q.id === c.quest_id)!))
-      .map(c => c.quest_id)
-  )
+  const familySharedCompletions = completions.filter(c => {
+    const q = quests.find(qq => qq.id === c.quest_id)
+    return q?.kind === 'shared' || q?.kind === 'oneoff'
+  })
 
   if (loading) {
     return (
@@ -302,7 +297,7 @@ export default function WallDisplay() {
               quests={getKidPersonalQuests(kid)}
               completions={getKidCompletions(kid)}
               today={today}
-              claimedExclusiveIds={claimedExclusiveIds}
+              familySharedCompletions={familySharedCompletions}
               activeCurseCount={activeCurseCounts[kid.id] ?? 0}
               onComplete={(questId) => handleComplete(questId, kid.id)}
               linkToKidView
@@ -340,7 +335,7 @@ export default function WallDisplay() {
           >
             {bountyQuests.map((quest, i) => {
               const count = getFamilyCount(quest.id)
-              const isFull = quest.weekly_target != null && count >= quest.weekly_target
+              const isFull = count >= quest.slots
               const tier = TIER_CONFIG[quest.tier ?? 'normal']
               return (
                 <motion.button
@@ -388,7 +383,7 @@ export default function WallDisplay() {
                       {tier.label}
                     </span>
                     <span className="text-xs" style={{ color: isFull ? 'rgba(74,222,128,0.7)' : 'rgba(255,255,255,0.4)' }}>
-                      {isFull ? '✓ all claimed' : `${count}/${quest.weekly_target} taken`}
+                      {isFull ? '✓ all claimed' : `${count}/${quest.slots} taken`}
                     </span>
                   </div>
                 </motion.button>

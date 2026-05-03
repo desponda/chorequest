@@ -41,8 +41,11 @@ create table quests (
   icon text not null default '⚔️',
   coins integer not null default 10,
   assigned_to uuid references kids(id) on delete set null,
-  frequency text not null default 'daily',
+  kind text not null default 'personal' check (kind in ('personal', 'shared', 'oneoff')),
+  frequency text not null default 'daily' check (frequency in ('daily', 'weekly', 'once')),
   tier text not null default 'normal' check (tier in ('normal', 'heroic', 'legendary', 'epic')),
+  slots integer not null default 1 check (slots >= 1),
+  active_days integer[],
   active boolean not null default true,
   created_at timestamptz default now()
 );
@@ -137,6 +140,7 @@ create policy "Family redemptions" on redemptions
 create index kids_family_id_idx on kids(family_id);
 create index quests_family_id_idx on quests(family_id);
 create index quests_active_idx on quests(active);
+create index quests_kind_idx on quests(kind);
 create index completions_kid_id_idx on completions(kid_id);
 create index completions_date_idx on completions(date);
 create index completions_status_idx on completions(status);

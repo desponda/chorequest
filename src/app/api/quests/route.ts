@@ -46,11 +46,11 @@ export async function POST(req: Request) {
       icon: body.icon ?? '⚔️',
       coins: Number(body.coins ?? 10),
       assigned_to: body.assigned_to ?? null,
+      kind: body.kind ?? 'personal',
       frequency: body.frequency ?? 'daily',
       tier: body.tier ?? 'normal',
-      exclusive: body.exclusive ?? false,
+      slots: Number(body.slots ?? 1),
       active_days: body.active_days ?? null,
-      weekly_target: body.weekly_target ?? null,
       active: true,
     })
     .select()
