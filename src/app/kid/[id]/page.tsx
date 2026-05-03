@@ -11,7 +11,7 @@ import { QuestCard } from '@/components/quest-card'
 import { CoinCounter } from '@/components/coin-counter'
 import { StreakBadge } from '@/components/streak-badge'
 import type { Kid, Quest, Completion, Reward, CurseInstance } from '@/lib/types'
-import { KID_COLORS, getLockDurationMs } from '@/lib/constants'
+import { KID_COLORS, TIER_CONFIG, getLockDurationMs } from '@/lib/constants'
 import { questDateString, questWeekKey } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -26,6 +26,8 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   const [rewards, setRewards] = useState<Reward[]>([])
   const [activeCurses, setActiveCurses] = useState<CurseInstance[]>([])
   const [claimedExclusiveIds, setClaimedExclusiveIds] = useState<Set<string>>(new Set())
+  const [familyBountyCompletions, setFamilyBountyCompletions] = useState<Array<{quest_id: string, kid_id: string, status: string}>>([])
+  const [tab, setTab] = useState<'quests' | 'bounties' | 'rewards'>('quests')
   const [pinVerified, setPinVerified] = useState(() =>
     typeof window !== 'undefined'
       ? sessionStorage.getItem(PIN_SESSION_KEY + id) === 'verified'
@@ -37,7 +39,6 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   const [lockedUntil, setLockedUntil] = useState<number | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'quests' | 'rewards'>('quests')
   const [supabase] = useState(createClient)
   const [resetHour, setResetHour] = useState(0)
 
@@ -60,15 +61,25 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
     const today = questDateString(fetchedResetHour)
     const weekStart = questWeekKey(fetchedResetHour)
 
-    const [completionsRes, cursesRes, exclusiveRes] = await Promise.all([
+    const bountyQuestIds = (questsRes.data ?? [])
+      .filter((q: Quest) => q.weekly_target != null && q.exclusive)
+      .map((q: Quest) => q.id)
+
+    const [completionsRes, cursesRes, exclusiveRes, familyBountyRes] = await Promise.all([
       supabase.from('completions').select('*').eq('kid_id', id).gte('date', weekStart),
       supabase.from('curse_instances').select('*, curse:curses(*)').eq('kid_id', id).eq('status', 'active'),
-      // Check exclusive quests claimed by other kids today
+      // Check exclusive (non-bounty) quests claimed by other kids today
       (async () => {
-        const exclusiveIds = (questsRes.data ?? []).filter(q => q.exclusive).map(q => q.id)
+        const exclusiveIds = (questsRes.data ?? [])
+          .filter((q: Quest) => q.exclusive && !(q.weekly_target != null && q.exclusive))
+          .map((q: Quest) => q.id)
         if (exclusiveIds.length === 0) return { data: [] }
         return supabase.from('completions').select('quest_id').in('quest_id', exclusiveIds).eq('date', today).neq('kid_id', id)
       })(),
+      // Family-wide completions for bounty quests (shared pool)
+      bountyQuestIds.length > 0
+        ? supabase.from('completions').select('quest_id, kid_id, status').in('quest_id', bountyQuestIds).gte('date', weekStart)
+        : Promise.resolve({ data: [] }),
     ])
 
     if (kidRes.data) setKid(kidRes.data)
@@ -92,6 +103,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
     if (completionsRes.data) setCompletions(completionsRes.data)
     if (cursesRes.data) setActiveCurses(cursesRes.data as CurseInstance[])
     setClaimedExclusiveIds(new Set((exclusiveRes.data ?? []).map(c => c.quest_id)))
+    setFamilyBountyCompletions((familyBountyRes.data ?? []) as Array<{quest_id: string, kid_id: string, status: string}>)
     if (rewardsRes.data) setRewards(rewardsRes.data)
     setLoading(false)
   }, [id, supabase, resetHour])
@@ -155,11 +167,14 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
       const today = questDateString(resetHour)
 
       if (quest.weekly_target != null) {
-        const weekCount = completions.filter(c =>
+        // Bounties use family-wide count; personal recurring use per-kid count
+        const isBounty = quest.weekly_target != null && quest.exclusive
+        const pool = isBounty ? familyBountyCompletions : completions
+        const weekCount = pool.filter(c =>
           c.quest_id === questId && (c.status === 'approved' || c.status === 'pending')
         ).length
         if (weekCount >= quest.weekly_target) {
-          toast.error('Weekly target already reached!')
+          toast.error(isBounty ? 'Bounty fully claimed this week!' : 'Weekly target already reached!')
           return
         }
       }
@@ -179,7 +194,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
       toast.success(`Quest submitted! ✨`, { description: `+${quest.coins} coins once approved` })
       await fetchData()
     },
-    [quests, id, supabase, fetchData, resetHour, completions]
+    [quests, id, supabase, fetchData, resetHour, completions, familyBountyCompletions]
   )
 
   const handleRedeem = useCallback(
@@ -342,24 +357,35 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
 
       {/* Tab bar */}
       <div className="flex px-6 gap-2 mb-4 flex-shrink-0">
-        {(['quests', 'rewards'] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className="px-5 py-2 rounded-xl text-sm font-semibold capitalize transition-all"
-            style={{
-              background: tab === t ? colors.bg : 'rgba(255,255,255,0.04)',
-              border: `1px solid ${tab === t ? colors.border : 'rgba(255,255,255,0.07)'}`,
-              color: tab === t ? colors.primary : 'rgba(255,255,255,0.45)',
-            }}
-          >
-            {t === 'quests' ? '⚔️ Quests' : '🎁 Rewards'}
-          </button>
-        ))}
+        {(['quests', 'bounties', 'rewards'] as const).map((t) => {
+          const labels = { quests: '⚔️ Quests', bounties: '⚡ Bounties', rewards: '🎁 Rewards' }
+          return (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className="flex-1 py-2 rounded-xl text-sm font-semibold transition-all"
+              style={{
+                background: tab === t ? colors.bg : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${tab === t ? colors.border : 'rgba(255,255,255,0.07)'}`,
+                color: tab === t ? colors.primary : 'rgba(255,255,255,0.45)',
+              }}
+            >
+              {labels[t]}
+            </button>
+          )
+        })}
       </div>
 
       {/* Content */}
       <main className="flex-1 px-6 pb-8 overflow-y-auto scrollbar-thin-glass">
+        {(() => {
+          const isFamilyBounty = (q: Quest) => q.weekly_target != null && q.exclusive
+          const personalQuests = quests.filter(q => !isFamilyBounty(q))
+          const bountyQuestList = quests.filter(q => isFamilyBounty(q))
+
+          return null
+        })()}
+
         <AnimatePresence mode="wait">
           {tab === 'quests' ? (
             <motion.div
@@ -394,16 +420,14 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                 </motion.div>
               )}
 
-              {quests.length === 0 ? (
+              {quests.filter(q => !(q.weekly_target != null && q.exclusive)).length === 0 ? (
                 <div className="text-center py-16 text-white/30">
                   <p className="text-4xl mb-3">🧙</p>
                   <p>No quests yet — ask a parent to add some!</p>
                 </div>
               ) : (
-                quests.map((quest, i) => {
-                  const completion = quest.frequency === 'weekly'
-                    ? completions.find(c => c.quest_id === quest.id)
-                    : quest.frequency === 'once'
+                quests.filter(q => !(q.weekly_target != null && q.exclusive)).map((quest, i) => {
+                  const completion = quest.frequency === 'once'
                     ? completions.find(c => c.quest_id === quest.id)
                     : completions.find(c => c.quest_id === quest.id && c.date === today)
 
@@ -431,6 +455,101 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                         kidColor={kid.color}
                         onComplete={() => handleComplete(quest.id)}
                       />
+                    </motion.div>
+                  )
+                })
+              )}
+            </motion.div>
+          ) : tab === 'bounties' ? (
+            <motion.div
+              key="bounties"
+              className="flex flex-col gap-3"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <p className="text-xs text-white/30 text-center pb-1">
+                Shared tasks — first to claim each slot earns the coins
+              </p>
+              {quests.filter(q => q.weekly_target != null && q.exclusive).length === 0 ? (
+                <div className="text-center py-16 text-white/30">
+                  <p className="text-4xl mb-3">⚡</p>
+                  <p>No bounties available today</p>
+                </div>
+              ) : (
+                quests.filter(q => q.weekly_target != null && q.exclusive).map((quest, i) => {
+                  const familyCount = familyBountyCompletions.filter(c =>
+                    c.quest_id === quest.id && (c.status === 'approved' || c.status === 'pending')
+                  ).length
+                  const isFull = quest.weekly_target != null && familyCount >= quest.weekly_target
+                  const myCompletion = completions.find(c => c.quest_id === quest.id && (c.date === today || quest.frequency === 'weekly'))
+                  const tier = TIER_CONFIG[quest.tier ?? 'normal']
+
+                  return (
+                    <motion.div
+                      key={quest.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.06 }}
+                      className="rounded-2xl p-4"
+                      style={{
+                        background: isFull && !myCompletion ? 'rgba(255,255,255,0.02)' : tier.bg,
+                        border: `1px solid ${isFull && !myCompletion ? 'rgba(255,255,255,0.06)' : tier.border}`,
+                        boxShadow: isFull && !myCompletion ? 'none' : (tier.glow ?? 'none'),
+                        opacity: isFull && !myCompletion ? 0.5 : 1,
+                      }}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl leading-none mt-0.5">{quest.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className={`font-semibold text-sm ${myCompletion?.status === 'approved' ? 'line-through opacity-40' : 'text-white/90'}`}>
+                              {quest.title}
+                            </p>
+                            <span
+                              className="text-xs px-1.5 py-0.5 rounded-md font-bold flex-shrink-0"
+                              style={{ background: `${tier.color}18`, color: tier.color, border: `1px solid ${tier.color}40` }}
+                            >
+                              {tier.label}
+                            </span>
+                          </div>
+                          <p className="text-xs mt-1" style={{ color: isFull ? 'rgba(74,222,128,0.7)' : 'rgba(255,255,255,0.35)' }}>
+                            {isFull ? '✓ fully claimed this week' : `${familyCount}/${quest.weekly_target} claimed this week`}
+                          </p>
+                        </div>
+                        <div className="flex-shrink-0 text-right">
+                          <div className="flex items-center gap-1 justify-end">
+                            <span className="text-sm">🪙</span>
+                            <span className="font-bold text-sm" style={{ color: tier.color }}>{quest.coins}</span>
+                          </div>
+                          {myCompletion?.status === 'pending' && (
+                            <p className="text-xs text-amber-400 mt-0.5">awaiting...</p>
+                          )}
+                          {myCompletion?.status === 'approved' && (
+                            <p className="text-xs text-green-400 mt-0.5">✓ done!</p>
+                          )}
+                          {isFull && !myCompletion && (
+                            <p className="text-xs text-white/30 mt-0.5">all taken</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {!isFull && !myCompletion && (
+                        <motion.button
+                          onClick={() => handleComplete(quest.id)}
+                          className="mt-3 w-full py-2.5 rounded-xl text-sm font-bold tracking-wide"
+                          style={{
+                            background: `linear-gradient(135deg, ${colors.bg}, transparent)`,
+                            border: `1px solid ${colors.border}`,
+                            color: colors.primary,
+                          }}
+                          whileHover={{ scale: 1.01 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          ⚡ Claim Bounty
+                        </motion.button>
+                      )}
                     </motion.div>
                   )
                 })

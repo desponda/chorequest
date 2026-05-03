@@ -3,12 +3,13 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState, useCallback } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { StarField } from '@/components/star-field'
 import { KidColumn } from '@/components/kid-column'
 import type { Kid, Quest, Completion, Family } from '@/lib/types'
+import { KID_COLORS, TIER_CONFIG } from '@/lib/constants'
 import { questDateString, questWeekKey } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -20,6 +21,7 @@ export default function WallDisplay() {
   const [activeCurseCounts, setActiveCurseCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [pendingCount, setPendingCount] = useState(0)
+  const [claimingBounty, setClaimingBounty] = useState<Quest | null>(null)
   const [supabase] = useState(createClient)
 
   const fetchData = useCallback(async () => {
@@ -82,13 +84,12 @@ export default function WallDisplay() {
 
       const today = questDateString(family?.daily_reset_hour ?? 0)
 
-      // Weekly_target guard: prevent over-submission
       if (quest.weekly_target != null) {
-        const weekCount = completions.filter(c =>
-          c.quest_id === questId && c.kid_id === kidId &&
+        const familyCount = completions.filter(c =>
+          c.quest_id === questId &&
           (c.status === 'approved' || c.status === 'pending')
         ).length
-        if (weekCount >= quest.weekly_target) {
+        if (familyCount >= quest.weekly_target) {
           toast.error('Weekly target already reached!')
           return
         }
@@ -115,15 +116,39 @@ export default function WallDisplay() {
     [quests, supabase, fetchData, family?.daily_reset_hour, completions]
   )
 
+  const handleClaimBounty = useCallback(
+    async (questId: string, kidId: string) => {
+      await handleComplete(questId, kidId)
+      setClaimingBounty(null)
+    },
+    [handleComplete]
+  )
+
   const today = questDateString(family?.daily_reset_hour ?? 0)
   const dayOfWeek = new Date().getDay()
 
-  const getKidQuests = (kid: Kid) =>
+  // Family bounties: weekly_target + exclusive = shared pool
+  const isFamilyBounty = (q: Quest) => q.weekly_target != null && q.exclusive
+
+  const getKidPersonalQuests = (kid: Kid) =>
     quests.filter(q => {
+      if (isFamilyBounty(q)) return false
       if (q.assigned_to && q.assigned_to !== kid.id) return false
       if (q.active_days?.length && !q.active_days.includes(dayOfWeek)) return false
       return true
     })
+
+  const bountyQuests = quests.filter(q => {
+    if (!isFamilyBounty(q)) return false
+    if (q.active_days?.length && !q.active_days.includes(dayOfWeek)) return false
+    return true
+  })
+
+  const getFamilyCount = (questId: string) =>
+    completions.filter(c =>
+      c.quest_id === questId &&
+      (c.status === 'approved' || c.status === 'pending')
+    ).length
 
   const getKidCompletions = (kid: Kid) =>
     completions.filter((c) => c.kid_id === kid.id)
@@ -131,7 +156,7 @@ export default function WallDisplay() {
   const todayCompletions = completions.filter(c => c.date === today)
   const claimedExclusiveIds = new Set(
     todayCompletions
-      .filter(c => quests.find(q => q.id === c.quest_id)?.exclusive)
+      .filter(c => quests.find(q => q.id === c.quest_id)?.exclusive && !isFamilyBounty(quests.find(q => q.id === c.quest_id)!))
       .map(c => c.quest_id)
   )
 
@@ -238,7 +263,7 @@ export default function WallDisplay() {
 
       {/* Kid columns */}
       <main
-        className="relative z-10 flex-1 grid gap-6 px-8 pb-8 min-h-0"
+        className="relative z-10 flex-1 grid gap-6 px-8 pb-4 min-h-0"
         style={{ gridTemplateColumns: `repeat(${kids.length}, 1fr)` }}
       >
         {kids.map((kid, i) => (
@@ -251,7 +276,7 @@ export default function WallDisplay() {
           >
             <KidColumn
               kid={kid}
-              quests={getKidQuests(kid)}
+              quests={getKidPersonalQuests(kid)}
               completions={getKidCompletions(kid)}
               today={today}
               claimedExclusiveIds={claimedExclusiveIds}
@@ -263,6 +288,93 @@ export default function WallDisplay() {
         ))}
       </main>
 
+      {/* Bounty Board */}
+      {bountyQuests.length > 0 && (
+        <motion.section
+          className="relative z-10 px-8 pb-6 flex-shrink-0"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex-1 h-px" style={{ background: 'rgba(251,191,36,0.18)' }} />
+            <span
+              className="text-xs font-bold tracking-[0.2em] uppercase px-3 py-1 rounded-full flex-shrink-0"
+              style={{
+                background: 'rgba(251,191,36,0.1)',
+                border: '1px solid rgba(251,191,36,0.25)',
+                color: 'rgba(251,191,36,0.8)',
+              }}
+            >
+              ⚡ Bounty Board
+            </span>
+            <div className="flex-1 h-px" style={{ background: 'rgba(251,191,36,0.18)' }} />
+          </div>
+
+          <div
+            className="grid gap-3"
+            style={{ gridTemplateColumns: `repeat(${Math.min(bountyQuests.length, 4)}, 1fr)` }}
+          >
+            {bountyQuests.map((quest, i) => {
+              const count = getFamilyCount(quest.id)
+              const isFull = quest.weekly_target != null && count >= quest.weekly_target
+              const tier = TIER_CONFIG[quest.tier ?? 'normal']
+              return (
+                <motion.button
+                  key={quest.id}
+                  onClick={() => !isFull && setClaimingBounty(quest)}
+                  disabled={isFull}
+                  className="rounded-2xl p-4 text-left relative overflow-hidden"
+                  style={{
+                    background: isFull ? 'rgba(255,255,255,0.02)' : tier.bg,
+                    border: `1px solid ${isFull ? 'rgba(255,255,255,0.06)' : tier.border}`,
+                    boxShadow: isFull ? 'none' : (tier.glow ?? 'none'),
+                    opacity: isFull ? 0.5 : 1,
+                  }}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: isFull ? 0.5 : 1, y: 0 }}
+                  transition={{ delay: 0.55 + i * 0.06 }}
+                  whileHover={!isFull ? { scale: 1.02 } : {}}
+                  whileTap={!isFull ? { scale: 0.97 } : {}}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <span className="text-2xl">{quest.icon}</span>
+                    <div className="text-right">
+                      <div className="flex items-center gap-1 justify-end">
+                        <span className="text-sm">🪙</span>
+                        <span className="font-bold text-sm" style={{ color: isFull ? 'rgba(255,255,255,0.3)' : tier.color }}>
+                          {quest.coins}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className={`text-sm font-semibold leading-snug mb-2 ${isFull ? 'text-white/30' : 'text-white/90'}`}>
+                    {quest.title}
+                  </p>
+
+                  <div className="flex items-center justify-between">
+                    <span
+                      className="text-xs px-1.5 py-0.5 rounded-md font-semibold"
+                      style={{
+                        background: `${tier.color}18`,
+                        color: isFull ? 'rgba(255,255,255,0.25)' : tier.color,
+                        border: `1px solid ${tier.color}30`,
+                      }}
+                    >
+                      {tier.label}
+                    </span>
+                    <span className="text-xs" style={{ color: isFull ? 'rgba(74,222,128,0.7)' : 'rgba(255,255,255,0.4)' }}>
+                      {isFull ? '✓ all claimed' : `${count}/${quest.weekly_target} taken`}
+                    </span>
+                  </div>
+                </motion.button>
+              )
+            })}
+          </div>
+        </motion.section>
+      )}
+
       <motion.footer
         className="relative z-10 text-center pb-4 text-white/20 text-xs tracking-[0.25em] uppercase flex-shrink-0"
         initial={{ opacity: 0 }}
@@ -271,6 +383,66 @@ export default function WallDisplay() {
       >
         ✦ tap a quest to complete it ✦
       </motion.footer>
+
+      {/* Kid picker modal for bounty claims */}
+      <AnimatePresence>
+        {claimingBounty && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setClaimingBounty(null)}
+          >
+            <motion.div
+              className="rounded-3xl p-7 mx-4 max-w-sm w-full"
+              style={{
+                background: 'rgba(12,8,32,0.97)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                boxShadow: '0 0 60px rgba(0,0,0,0.6)',
+              }}
+              initial={{ scale: 0.88, opacity: 0, y: 16 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.88, opacity: 0, y: 16 }}
+              transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 justify-center mb-2">
+                <span className="text-3xl">{claimingBounty.icon}</span>
+                <p className="font-heading font-bold text-lg text-white/90">{claimingBounty.title}</p>
+              </div>
+              <p className="text-center text-white/40 text-sm mb-6">Who&apos;s doing this bounty?</p>
+
+              <div className="flex gap-4 justify-center">
+                {kids.map(kid => {
+                  const colors = KID_COLORS[kid.color]
+                  return (
+                    <motion.button
+                      key={kid.id}
+                      onClick={() => handleClaimBounty(claimingBounty.id, kid.id)}
+                      className="flex flex-col items-center gap-2 px-6 py-4 rounded-2xl"
+                      style={{ background: colors.bg, border: `1px solid ${colors.border}` }}
+                      whileHover={{ scale: 1.06, boxShadow: `0 0 20px ${colors.glow}` }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <span className="text-4xl">{kid.avatar}</span>
+                      <span className="text-sm font-bold" style={{ color: colors.primary }}>{kid.name}</span>
+                    </motion.button>
+                  )
+                })}
+              </div>
+
+              <button
+                onClick={() => setClaimingBounty(null)}
+                className="mt-5 w-full text-center text-white/25 text-sm hover:text-white/50 transition-all"
+              >
+                Cancel
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
