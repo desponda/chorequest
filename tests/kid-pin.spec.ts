@@ -15,8 +15,6 @@ test.describe('Kid PIN screen', () => {
 
   test('loading state shows realm animation text', async ({ page }) => {
     await page.goto('/kid/00000000-0000-0000-0000-000000000000')
-    // Either the loading text or a graceful empty state
-    const loadingText = page.getByText(/Loading/i)
     // Wait briefly to see loading state
     await page.waitForTimeout(500)
     // Page should not error
@@ -35,10 +33,7 @@ test.describe('Wall display', () => {
 
   test('shows ChoreQuest branding in loading state', async ({ page }) => {
     await page.goto('/')
-    // The loading state shows "Loading the realm"
-    const brandingVisible = await page.getByText(/Loading the realm|ChoreQuest/i).isVisible()
-      .catch(() => false)
-    // Just verify no crash
+    // Just verify no crash regardless of auth state
     await expect(page.locator('body')).toBeVisible()
   })
 })

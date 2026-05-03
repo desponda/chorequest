@@ -105,7 +105,7 @@ test.describe('Login — layout by viewport', () => {
     expect(box!.width).toBeGreaterThan(viewport.width * 0.7)
   })
 
-  test('no horizontal scrollbar on any viewport', async ({ page, viewport }) => {
+  test('no horizontal scrollbar on any viewport', async ({ page }) => {
     const { scroll, vp } = await page.evaluate(() => ({
       scroll: document.documentElement.scrollWidth,
       vp: document.documentElement.clientWidth,

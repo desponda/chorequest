@@ -12,7 +12,7 @@ import { CoinCounter } from '@/components/coin-counter'
 import { StreakBadge } from '@/components/streak-badge'
 import type { Kid, Quest, Completion, Reward, CurseInstance } from '@/lib/types'
 import { KID_COLORS, TIER_CONFIG, getLockDurationMs } from '@/lib/constants'
-import { questDateString, questWeekKey } from '@/lib/utils'
+import { questDateString } from '@/lib/utils'
 import { toast } from 'sonner'
 
 const PIN_SESSION_KEY = 'cq_kid_pin_'
@@ -43,70 +43,37 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   const [resetHour, setResetHour] = useState(0)
 
   const fetchData = useCallback(async () => {
-    const [kidRes, questsRes, rewardsRes] = await Promise.all([
-      supabase.from('kids').select('id, name, avatar, color, coins, streak, last_completed_date, family_id, created_at').eq('id', id).single(),
-      supabase.from('quests').select('*').eq('active', true).order('created_at'),
-      supabase.from('rewards').select('*').eq('available', true),
-    ])
-
-    let fetchedResetHour = resetHour
-    if (kidRes.data?.family_id) {
-      const { data: fam } = await supabase.from('families').select('daily_reset_hour').eq('id', kidRes.data.family_id).single()
-      if (fam) {
-        fetchedResetHour = fam.daily_reset_hour ?? 0
-        setResetHour(fetchedResetHour)
-      }
+    const res = await fetch(`/api/kid/${id}/data`)
+    if (!res.ok) {
+      setLoading(false)
+      return
     }
+    const data = await res.json()
 
-    const today = questDateString(fetchedResetHour)
-    const weekStart = questWeekKey(fetchedResetHour)
+    setKid(data.kid)
+    setResetHour(data.resetHour)
 
-    const bountyQuestIds = (questsRes.data ?? [])
-      .filter((q: Quest) => q.weekly_target != null && q.exclusive)
-      .map((q: Quest) => q.id)
+    const allCompletions: Completion[] = data.completions
+    const approvedOnceIds = new Set(
+      allCompletions.filter((c: Completion) => c.status === 'approved').map((c: Completion) => c.quest_id)
+    )
+    const dayOfWeek = new Date().getDay()
+    setQuests(
+      (data.quests as Quest[]).filter((q) => {
+        if (q.assigned_to && q.assigned_to !== id) return false
+        if (q.frequency === 'once' && approvedOnceIds.has(q.id)) return false
+        if (q.active_days?.length && !q.active_days.includes(dayOfWeek)) return false
+        return true
+      })
+    )
 
-    const [completionsRes, cursesRes, exclusiveRes, familyBountyRes] = await Promise.all([
-      supabase.from('completions').select('*').eq('kid_id', id).gte('date', weekStart),
-      supabase.from('curse_instances').select('*, curse:curses(*)').eq('kid_id', id).eq('status', 'active'),
-      // Check exclusive (non-bounty) quests claimed by other kids today
-      (async () => {
-        const exclusiveIds = (questsRes.data ?? [])
-          .filter((q: Quest) => q.exclusive && !(q.weekly_target != null && q.exclusive))
-          .map((q: Quest) => q.id)
-        if (exclusiveIds.length === 0) return { data: [] }
-        return supabase.from('completions').select('quest_id').in('quest_id', exclusiveIds).eq('date', today).neq('kid_id', id)
-      })(),
-      // Family-wide completions for bounty quests (shared pool)
-      bountyQuestIds.length > 0
-        ? supabase.from('completions').select('quest_id, kid_id, status').in('quest_id', bountyQuestIds).gte('date', weekStart)
-        : Promise.resolve({ data: [] }),
-    ])
-
-    if (kidRes.data) setKid(kidRes.data)
-
-    if (questsRes.data) {
-      const allCompletions: Completion[] = completionsRes.data ?? []
-      const approvedOnceIds = new Set(
-        allCompletions.filter(c => c.status === 'approved').map(c => c.quest_id)
-      )
-      const dayOfWeek = new Date().getDay()
-      setQuests(
-        questsRes.data.filter((q: Quest) => {
-          if (q.assigned_to && q.assigned_to !== id) return false
-          if (q.frequency === 'once' && approvedOnceIds.has(q.id)) return false
-          if (q.active_days?.length && !q.active_days.includes(dayOfWeek)) return false
-          return true
-        })
-      )
-    }
-
-    if (completionsRes.data) setCompletions(completionsRes.data)
-    if (cursesRes.data) setActiveCurses(cursesRes.data as CurseInstance[])
-    setClaimedExclusiveIds(new Set((exclusiveRes.data ?? []).map(c => c.quest_id)))
-    setFamilyBountyCompletions((familyBountyRes.data ?? []) as Array<{quest_id: string, kid_id: string, status: string}>)
-    if (rewardsRes.data) setRewards(rewardsRes.data)
+    setCompletions(data.completions)
+    setActiveCurses(data.activeCurses as CurseInstance[])
+    setClaimedExclusiveIds(new Set(data.claimedExclusiveIds as string[]))
+    setFamilyBountyCompletions(data.familyBountyCompletions as Array<{quest_id: string, kid_id: string, status: string}>)
+    setRewards(data.rewards)
     setLoading(false)
-  }, [id, supabase, resetHour])
+  }, [id])
 
   useEffect(() => {
     fetchData()
@@ -179,22 +146,22 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
         }
       }
 
-      const { error } = await supabase.from('completions').insert({
-        quest_id: questId,
-        kid_id: id,
-        status: 'pending',
-        date: today,
+      const res = await fetch(`/api/kid/${id}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quest_id: questId, date: today }),
       })
 
-      if (error) {
-        toast.error(error.code === '23505' ? 'Already done today!' : 'Something went wrong')
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({}))
+        toast.error(error === '23505' ? 'Already done today!' : 'Something went wrong')
         return
       }
 
       toast.success(`Quest submitted! ✨`, { description: `+${quest.coins} coins once approved` })
       await fetchData()
     },
-    [quests, id, supabase, fetchData, resetHour, completions, familyBountyCompletions]
+    [quests, id, fetchData, resetHour, completions, familyBountyCompletions]
   )
 
   const handleRedeem = useCallback(
@@ -207,20 +174,20 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
         return
       }
 
-      const { error } = await supabase.from('redemptions').insert({
-        reward_id: rewardId,
-        kid_id: id,
-        status: 'pending',
+      const res = await fetch(`/api/kid/${id}/redeem`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reward_id: rewardId }),
       })
 
-      if (error) {
+      if (!res.ok) {
         toast.error('Could not redeem reward')
         return
       }
 
       toast.success(`Reward requested! 🎁`, { description: 'Ask a parent to approve it' })
     },
-    [rewards, kid, id, supabase]
+    [rewards, kid, id]
   )
 
   if (loading || !kid) {
@@ -378,14 +345,6 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
 
       {/* Content */}
       <main className="flex-1 px-6 pb-8 overflow-y-auto scrollbar-thin-glass">
-        {(() => {
-          const isFamilyBounty = (q: Quest) => q.weekly_target != null && q.exclusive
-          const personalQuests = quests.filter(q => !isFamilyBounty(q))
-          const bountyQuestList = quests.filter(q => isFamilyBounty(q))
-
-          return null
-        })()}
-
         <AnimatePresence mode="wait">
           {tab === 'quests' ? (
             <motion.div
