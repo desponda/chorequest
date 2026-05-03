@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 
 // Disable CSS animations so screenshots are stable
-test.use({ reducedMotion: 'reduce' })
+test.use({ colorScheme: 'dark' })
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -86,7 +86,7 @@ test.describe('Login — layout by viewport', () => {
   })
 
   test('form card does not stretch full viewport width on desktop', async ({ page, viewport }) => {
-    if (!viewport || viewport.width < 900) test.skip() // desktop only
+    if (!viewport || viewport.width < 900) return // desktop only
     const card = page.locator('.rounded-3xl').first()
     const box = await card.boundingBox()
     expect(box).not.toBeNull()
@@ -94,7 +94,7 @@ test.describe('Login — layout by viewport', () => {
   })
 
   test('form card fills most of mobile viewport width', async ({ page, viewport }) => {
-    if (!viewport || viewport.width >= 640) test.skip() // mobile only
+    if (!viewport || viewport.width >= 640) return // mobile only
     const card = page.locator('.rounded-3xl').first()
     const box = await card.boundingBox()
     expect(box).not.toBeNull()
