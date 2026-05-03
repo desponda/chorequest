@@ -11,7 +11,7 @@ import { QuestCard } from '@/components/quest-card'
 import { CoinCounter } from '@/components/coin-counter'
 import { StreakBadge } from '@/components/streak-badge'
 import type { Kid, Quest, Completion, Reward } from '@/lib/types'
-import { KID_COLORS } from '@/lib/constants'
+import { KID_COLORS, getLockDurationMs } from '@/lib/constants'
 import { toast } from 'sonner'
 
 const PIN_SESSION_KEY = 'cq_kid_pin_'
@@ -106,8 +106,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
         const attempts = pinAttempts + 1
         setPinAttempts(attempts)
         if (attempts >= 5) {
-          const lockMs = attempts >= 8 ? 5 * 60_000 : 30_000
-          setLockedUntil(now + lockMs)
+          setLockedUntil(now + getLockDurationMs(attempts))
         }
         setPinError(true)
         setTimeout(() => {

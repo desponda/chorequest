@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { isValidPin } from '@/lib/utils'
 
 export async function POST(req: NextRequest) {
   // Require an active Supabase session (parent must be logged in)
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => null)
-  if (!body?.pin || typeof body.pin !== 'string' || !/^\d{4}$/.test(body.pin)) {
+  if (!isValidPin(body?.pin)) {
     return Response.json({ error: 'Invalid request' }, { status: 400 })
   }
 
