@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { use, useState, useEffect, useCallback } from 'react'
+import { use, useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -10,7 +10,7 @@ import { StarField } from '@/components/star-field'
 import { QuestCard } from '@/components/quest-card'
 import { CoinCounter } from '@/components/coin-counter'
 import { StreakBadge } from '@/components/streak-badge'
-import type { Kid, Quest, Completion, Reward, CurseInstance } from '@/lib/types'
+import type { Kid, Quest, Completion, Reward, CurseInstance, Redemption } from '@/lib/types'
 import { KID_COLORS, TIER_CONFIG, getLockDurationMs } from '@/lib/constants'
 import { questDateString } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -27,6 +27,9 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   const [activeCurses, setActiveCurses] = useState<CurseInstance[]>([])
   const [claimedExclusiveIds, setClaimedExclusiveIds] = useState<Set<string>>(new Set())
   const [familyBountyCompletions, setFamilyBountyCompletions] = useState<Array<{quest_id: string, kid_id: string, status: string}>>([])
+  const [pendingRedemptions, setPendingRedemptions] = useState<Redemption[]>([])
+  const prevPendingIdsRef = useRef<string[]>([])
+  const isFirstFetchRef = useRef(true)
   const [tab, setTab] = useState<'quests' | 'bounties' | 'rewards'>('quests')
   const [pinVerified, setPinVerified] = useState(() =>
     typeof window !== 'undefined'
@@ -72,6 +75,19 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
     setClaimedExclusiveIds(new Set(data.claimedExclusiveIds as string[]))
     setFamilyBountyCompletions(data.familyBountyCompletions as Array<{quest_id: string, kid_id: string, status: string}>)
     setRewards(data.rewards)
+
+    const incoming = (data.pendingRedemptions ?? []) as Redemption[]
+    if (!isFirstFetchRef.current) {
+      const newIds = new Set(incoming.map((r) => r.id))
+      const resolved = prevPendingIdsRef.current.filter((rid) => !newIds.has(rid))
+      if (resolved.length > 0) {
+        toast.success('🎉 Reward approved!', { description: 'Your balance has been updated' })
+      }
+    }
+    isFirstFetchRef.current = false
+    prevPendingIdsRef.current = incoming.map((r) => r.id)
+    setPendingRedemptions(incoming)
+
     setLoading(false)
   }, [id])
 
@@ -83,6 +99,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'completions', filter: `kid_id=eq.${id}` }, fetchData)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'kids', filter: `id=eq.${id}` }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'curse_instances', filter: `kid_id=eq.${id}` }, fetchData)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'redemptions', filter: `kid_id=eq.${id}` }, fetchData)
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
@@ -169,8 +186,11 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
       const reward = rewards.find((r) => r.id === rewardId)
       if (!reward || !kid) return
 
-      if (kid.coins < reward.cost) {
-        toast.error(`Need ${reward.cost - kid.coins} more coins!`)
+      const pendingTotal = pendingRedemptions.reduce((sum, r) => sum + (r.reward?.cost ?? 0), 0)
+      const available = Math.max(0, kid.coins - pendingTotal)
+
+      if (available < reward.cost) {
+        toast.error(`Need ${reward.cost - available} more coins!`)
         return
       }
 
@@ -181,13 +201,15 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
       })
 
       if (!res.ok) {
-        toast.error('Could not redeem reward')
+        const { error } = await res.json().catch(() => ({}))
+        toast.error(error === 'Insufficient coins' ? 'Not enough coins!' : 'Could not redeem reward')
         return
       }
 
       toast.success(`Reward requested! 🎁`, { description: 'Ask a parent to approve it' })
+      await fetchData()
     },
-    [rewards, kid, id]
+    [rewards, kid, id, pendingRedemptions, fetchData]
   )
 
   if (loading || !kid) {
@@ -207,6 +229,8 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
 
   const today = questDateString(resetHour)
   const colors = KID_COLORS[kid.color]
+  const pendingTotal = pendingRedemptions.reduce((sum, r) => sum + (r.reward?.cost ?? 0), 0)
+  const availableCoins = Math.max(0, kid.coins - pendingTotal)
 
   // PIN screen
   if (!pinVerified) {
@@ -531,11 +555,33 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                 }}
               >
                 <span className="text-2xl">🪙</span>
-                <div>
-                  <p className="text-white/70 text-sm">Your coin balance</p>
-                  <p className="font-heading text-2xl font-bold text-cq-gold">{kid.coins.toLocaleString()}</p>
+                <div className="flex-1">
+                  <p className="text-white/70 text-sm">{pendingTotal > 0 ? 'Available coins' : 'Your coin balance'}</p>
+                  <p className="font-heading text-2xl font-bold text-cq-gold">{availableCoins.toLocaleString()}</p>
+                  {pendingTotal > 0 && (
+                    <p className="text-xs text-amber-400/55 mt-0.5">
+                      {kid.coins.toLocaleString()} total · {pendingTotal.toLocaleString()} pending approval
+                    </p>
+                  )}
                 </div>
               </div>
+
+              {pendingRedemptions.length > 0 && (
+                <div
+                  className="rounded-2xl p-4 mb-2 flex flex-col gap-2"
+                  style={{ background: 'rgba(251, 191, 36, 0.04)', border: '1px solid rgba(251, 191, 36, 0.15)' }}
+                >
+                  <p className="text-xs font-bold uppercase tracking-widest text-amber-400/55">⏳ Awaiting Approval</p>
+                  {pendingRedemptions.map((r) => (
+                    <div key={r.id} className="flex items-center gap-3">
+                      <span className="text-lg">{r.reward?.icon ?? '🎁'}</span>
+                      <p className="flex-1 text-sm text-white/70">{r.reward?.title ?? 'Reward'}</p>
+                      <span className="text-xs text-white/35">🪙 {r.reward?.cost ?? '?'}</span>
+                      <span className="text-xs text-amber-400/50">waiting...</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {rewards.length === 0 ? (
                 <div className="text-center py-16 text-white/30">
@@ -564,14 +610,14 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                     </div>
                     <button
                       onClick={() => handleRedeem(reward.id)}
-                      disabled={kid.coins < reward.cost}
+                      disabled={availableCoins < reward.cost}
                       className="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
                       style={{
-                        background: kid.coins >= reward.cost
+                        background: availableCoins >= reward.cost
                           ? 'rgba(251, 191, 36, 0.18)'
                           : 'rgba(255,255,255,0.05)',
-                        border: `1px solid ${kid.coins >= reward.cost ? 'rgba(251, 191, 36, 0.4)' : 'rgba(255,255,255,0.08)'}`,
-                        color: kid.coins >= reward.cost ? '#fbbf24' : 'rgba(255,255,255,0.4)',
+                        border: `1px solid ${availableCoins >= reward.cost ? 'rgba(251, 191, 36, 0.4)' : 'rgba(255,255,255,0.08)'}`,
+                        color: availableCoins >= reward.cost ? '#fbbf24' : 'rgba(255,255,255,0.4)',
                       }}
                     >
                       🪙 {reward.cost}
