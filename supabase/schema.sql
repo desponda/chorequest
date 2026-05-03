@@ -6,6 +6,7 @@
 create table families (
   id uuid primary key default gen_random_uuid(),
   name text not null default 'My Family',
+  parent_pin text check (parent_pin ~ '^[0-9]{4}$'), -- optional 4-digit lock PIN
   created_at timestamptz default now()
 );
 
