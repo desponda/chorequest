@@ -57,6 +57,7 @@ export default function ParentDashboard() {
   const [revealPinKidId, setRevealPinKidId] = useState<string | null>(null)
   const [parentPinAttempts, setParentPinAttempts] = useState(0)
   const [parentLockedUntil, setParentLockedUntil] = useState<number | null>(null)
+  const [now, setNow] = useState(() => Date.now())
 
   const [supabase] = useState(createClient)
   const router = useRouter()
@@ -103,6 +104,12 @@ export default function ParentDashboard() {
   useEffect(() => {
     return () => { sessionStorage.removeItem(PARENT_PIN_SESSION_KEY) }
   }, [])
+
+  useEffect(() => {
+    if (!parentLockedUntil) return
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [parentLockedUntil])
 
   useEffect(() => {
     fetchData()
@@ -291,7 +298,7 @@ export default function ParentDashboard() {
   }
 
   const handleParentPinDigit = async (digit: string) => {
-    if (parentLockedUntil && Date.now() < parentLockedUntil) return
+    if (parentLockedUntil && now < parentLockedUntil) return
     const next = lockPinInput + digit
     setLockPinInput(next)
     if (next.length === 4) {
@@ -313,7 +320,7 @@ export default function ParentDashboard() {
         setParentPinAttempts(attempts)
         if (attempts >= 5) {
           const lockMs = attempts >= 8 ? 5 * 60_000 : 30_000
-          setParentLockedUntil(Date.now() + lockMs)
+          setParentLockedUntil(now + lockMs)
           toast.error(`Too many attempts — locked for ${attempts >= 8 ? '5 minutes' : '30 seconds'}`)
         }
         setLockPinError(true)
@@ -397,10 +404,10 @@ export default function ParentDashboard() {
             🔒
           </motion.span>
           <h2 className="font-heading text-3xl font-bold text-white mb-1">Parent Command</h2>
-          {parentLockedUntil && Date.now() < parentLockedUntil ? (
+          {parentLockedUntil && now < parentLockedUntil ? (
             <p className="text-red-400 text-sm mb-8">
               🔒 Too many attempts — try again in{' '}
-              {Math.ceil((parentLockedUntil - Date.now()) / 1000)}s
+              {Math.ceil((parentLockedUntil - now) / 1000)}s
             </p>
           ) : (
             <p className="text-white/40 text-sm mb-8">Enter your parent PIN</p>

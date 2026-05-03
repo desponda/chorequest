@@ -32,6 +32,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   const [pinError, setPinError] = useState(false)
   const [pinAttempts, setPinAttempts] = useState(0)
   const [lockedUntil, setLockedUntil] = useState<number | null>(null)
+  const [now, setNow] = useState(() => Date.now())
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'quests' | 'rewards'>('quests')
   const [supabase] = useState(createClient)
@@ -78,8 +79,14 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
     return () => { supabase.removeChannel(channel) }
   }, [fetchData, id, supabase])
 
+  useEffect(() => {
+    if (!lockedUntil) return
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [lockedUntil])
+
   const handlePinDigit = async (digit: string) => {
-    if (lockedUntil && Date.now() < lockedUntil) return
+    if (lockedUntil && now < lockedUntil) return
     const next = pinInput + digit
     setPinInput(next)
     if (next.length === 4) {
@@ -100,7 +107,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
         setPinAttempts(attempts)
         if (attempts >= 5) {
           const lockMs = attempts >= 8 ? 5 * 60_000 : 30_000
-          setLockedUntil(Date.now() + lockMs)
+          setLockedUntil(now + lockMs)
         }
         setPinError(true)
         setTimeout(() => {
@@ -195,10 +202,10 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
             {kid.avatar}
           </motion.span>
           <h2 className="font-heading text-3xl font-bold text-white mb-1">{kid.name}</h2>
-          {lockedUntil && Date.now() < lockedUntil ? (
+          {lockedUntil && now < lockedUntil ? (
             <p className="text-red-400 text-sm mb-8">
               🔒 Too many attempts — try again in{' '}
-              {Math.ceil((lockedUntil - Date.now()) / 1000)}s
+              {Math.ceil((lockedUntil - now) / 1000)}s
             </p>
           ) : (
             <p className="text-white/40 text-sm mb-8" style={{ color: colors.primary }}>
