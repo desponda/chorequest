@@ -1,0 +1,163 @@
+-- ChoreQuest Database Schema
+-- Run this in your Supabase SQL editor
+
+-- ─── Tables ──────────────────────────────────────────────────────────────────
+
+create table families (
+  id uuid primary key default gen_random_uuid(),
+  name text not null default 'My Family',
+  created_at timestamptz default now()
+);
+
+-- Extends auth.users (auto-created on signup via trigger)
+create table profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  family_id uuid references families(id) on delete cascade,
+  created_at timestamptz default now()
+);
+
+create table kids (
+  id uuid primary key default gen_random_uuid(),
+  family_id uuid not null references families(id) on delete cascade,
+  name text not null,
+  avatar text not null default '🧙',
+  color text not null default 'azure', -- 'azure' | 'mystic'
+  coins integer not null default 0,
+  streak integer not null default 0,
+  last_completed_date date,
+  pin text not null, -- 4-digit PIN (stored plaintext, protected by RLS)
+  created_at timestamptz default now()
+);
+
+create table quests (
+  id uuid primary key default gen_random_uuid(),
+  family_id uuid not null references families(id) on delete cascade,
+  title text not null,
+  description text,
+  icon text not null default '⚔️',
+  coins integer not null default 10,
+  assigned_to uuid references kids(id) on delete set null,
+  frequency text not null default 'daily',
+  active boolean not null default true,
+  created_at timestamptz default now()
+);
+
+create table completions (
+  id uuid primary key default gen_random_uuid(),
+  quest_id uuid not null references quests(id) on delete cascade,
+  kid_id uuid not null references kids(id) on delete cascade,
+  status text not null default 'pending', -- 'pending' | 'approved' | 'rejected'
+  completed_at timestamptz default now(),
+  approved_at timestamptz,
+  coins_awarded integer,
+  date date not null default current_date,
+  constraint completions_status_check check (status in ('pending', 'approved', 'rejected')),
+  unique(quest_id, kid_id, date)
+);
+
+create table rewards (
+  id uuid primary key default gen_random_uuid(),
+  family_id uuid not null references families(id) on delete cascade,
+  title text not null,
+  description text,
+  icon text not null default '🎁',
+  cost integer not null default 50,
+  available boolean not null default true,
+  created_at timestamptz default now()
+);
+
+create table redemptions (
+  id uuid primary key default gen_random_uuid(),
+  reward_id uuid not null references rewards(id) on delete cascade,
+  kid_id uuid not null references kids(id) on delete cascade,
+  status text not null default 'pending',
+  redeemed_at timestamptz default now(),
+  constraint redemptions_status_check check (status in ('pending', 'approved'))
+);
+
+-- ─── Row Level Security ───────────────────────────────────────────────────────
+
+alter table families enable row level security;
+alter table profiles enable row level security;
+alter table kids enable row level security;
+alter table quests enable row level security;
+alter table completions enable row level security;
+alter table rewards enable row level security;
+alter table redemptions enable row level security;
+
+-- Helper: get the family_id for the current authenticated user
+create or replace function get_user_family_id()
+returns uuid
+language sql
+security definer
+stable
+as $$
+  select family_id from profiles where id = auth.uid()
+$$;
+
+-- Profiles
+create policy "Own profile" on profiles
+  for all using (auth.uid() = id) with check (auth.uid() = id);
+
+-- Families
+create policy "Own family" on families
+  for all using (id = get_user_family_id()) with check (id = get_user_family_id());
+
+-- Kids
+create policy "Family kids" on kids
+  for all using (family_id = get_user_family_id()) with check (family_id = get_user_family_id());
+
+-- Quests
+create policy "Family quests" on quests
+  for all using (family_id = get_user_family_id()) with check (family_id = get_user_family_id());
+
+-- Completions
+create policy "Family completions" on completions
+  for all
+  using (kid_id in (select id from kids where family_id = get_user_family_id()))
+  with check (kid_id in (select id from kids where family_id = get_user_family_id()));
+
+-- Rewards
+create policy "Family rewards" on rewards
+  for all using (family_id = get_user_family_id()) with check (family_id = get_user_family_id());
+
+-- Redemptions
+create policy "Family redemptions" on redemptions
+  for all
+  using (kid_id in (select id from kids where family_id = get_user_family_id()))
+  with check (kid_id in (select id from kids where family_id = get_user_family_id()));
+
+-- ─── Indexes ─────────────────────────────────────────────────────────────────
+
+create index kids_family_id_idx on kids(family_id);
+create index quests_family_id_idx on quests(family_id);
+create index quests_active_idx on quests(active);
+create index completions_kid_id_idx on completions(kid_id);
+create index completions_date_idx on completions(date);
+create index completions_status_idx on completions(status);
+
+-- ─── Realtime ────────────────────────────────────────────────────────────────
+
+alter publication supabase_realtime add table completions;
+alter publication supabase_realtime add table kids;
+
+-- ─── Auto-create profile + family on signup ───────────────────────────────────
+
+create or replace function handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  new_family_id uuid;
+begin
+  insert into families (name) values ('My Family') returning id into new_family_id;
+  insert into profiles (id, family_id) values (new.id, new_family_id);
+  return new;
+end;
+$$;
+
+create or replace trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function handle_new_user();

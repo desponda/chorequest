@@ -1,26 +1,150 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans: var(--font-nunito), 'Nunito', ui-rounded, system-ui, sans-serif;
+  --font-heading: var(--font-cinzel), 'Cinzel', Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+
+  /* ChoreQuest palette */
+  --color-cq-azure: #38bdf8;
+  --color-cq-mystic: #a78bfa;
+  --color-cq-gold: #fbbf24;
+  --color-cq-ember: #fb923c;
+  --color-cq-forest: #4ade80;
+  --color-cq-void: #050310;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Always dark — ChoreQuest is a night-sky realm */
+:root {
+  --background: oklch(0.08 0.035 278);
+  --foreground: oklch(0.97 0 0);
+  --card: oklch(0.12 0.03 278);
+  --card-foreground: oklch(0.97 0 0);
+  --popover: oklch(0.12 0.03 278);
+  --popover-foreground: oklch(0.97 0 0);
+  --primary: oklch(0.82 0.14 75);
+  --primary-foreground: oklch(0.12 0 0);
+  --secondary: oklch(0.18 0.03 278);
+  --secondary-foreground: oklch(0.85 0 0);
+  --muted: oklch(0.18 0.03 278);
+  --muted-foreground: oklch(0.62 0 0);
+  --accent: oklch(0.20 0.05 278);
+  --accent-foreground: oklch(0.97 0 0);
+  --destructive: oklch(0.65 0.22 25);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 11%);
+  --ring: oklch(0.82 0.14 75);
+  --radius: 0.75rem;
+  --sidebar: oklch(0.10 0.03 278);
+  --sidebar-foreground: oklch(0.97 0 0);
+  --sidebar-primary: oklch(0.82 0.14 75);
+  --sidebar-primary-foreground: oklch(0.12 0 0);
+  --sidebar-accent: oklch(0.18 0.03 278);
+  --sidebar-accent-foreground: oklch(0.97 0 0);
+  --sidebar-border: oklch(1 0 0 / 9%);
+  --sidebar-ring: oklch(0.82 0.14 75);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply antialiased;
+    color-scheme: dark;
+  }
+  body {
+    background-color: #050310;
+    @apply text-foreground min-h-screen overflow-x-hidden;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  .font-heading {
+    font-family: var(--font-cinzel), 'Cinzel', serif;
+  }
+
+  .glass {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .border-glass {
+    border: 1px solid rgba(255, 255, 255, 0.09);
+  }
+
+  .scrollbar-thin-glass {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+  }
+  .scrollbar-thin-glass::-webkit-scrollbar { width: 3px; }
+  .scrollbar-thin-glass::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
+  }
+
+  .text-gradient-gold {
+    background: linear-gradient(135deg, #f59e0b, #fde68a 50%, #fbbf24);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .bg-quest-void {
+    background-color: #050310;
+    background-image:
+      radial-gradient(ellipse 70% 50% at 20% 15%, rgba(56, 189, 248, 0.07) 0%, transparent 100%),
+      radial-gradient(ellipse 70% 50% at 80% 85%, rgba(167, 139, 250, 0.07) 0%, transparent 100%),
+      radial-gradient(ellipse 50% 40% at 50% 50%, rgba(251, 191, 36, 0.025) 0%, transparent 100%);
+  }
+
+  .quest-card-glow-azure {
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.22), 0 4px 24px rgba(56, 189, 248, 0.08);
+  }
+  .quest-card-glow-azure:hover {
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35), 0 4px 32px rgba(56, 189, 248, 0.18);
+  }
+
+  .quest-card-glow-mystic {
+    box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.22), 0 4px 24px rgba(167, 139, 250, 0.08);
+  }
+  .quest-card-glow-mystic:hover {
+    box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.35), 0 4px 32px rgba(167, 139, 250, 0.18);
+  }
 }
