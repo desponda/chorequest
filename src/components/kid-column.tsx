@@ -12,6 +12,9 @@ interface KidColumnProps {
   kid: Kid
   quests: Quest[]
   completions: Completion[]
+  today: string
+  claimedExclusiveIds?: Set<string>
+  activeCurseCount?: number
   onComplete?: (questId: string) => Promise<void>
   isParent?: boolean
   onApprove?: (completionId: string) => Promise<void>
@@ -23,6 +26,9 @@ export function KidColumn({
   kid,
   quests,
   completions,
+  today,
+  claimedExclusiveIds,
+  activeCurseCount = 0,
   onComplete,
   isParent,
   onApprove,
@@ -30,10 +36,25 @@ export function KidColumn({
   linkToKidView = true,
 }: KidColumnProps) {
   const colors = KID_COLORS[kid.color]
-  const getCompletion = (questId: string) =>
-    completions.find((c) => c.quest_id === questId && c.kid_id === kid.id)
 
-  const completedCount = completions.filter((c) => c.kid_id === kid.id && c.status === 'approved').length
+  const getCompletion = (quest: Quest): Completion | undefined => {
+    if (quest.frequency === 'weekly') {
+      return completions.find(c => c.quest_id === quest.id && c.kid_id === kid.id)
+    }
+    return completions.find(c => c.quest_id === quest.id && c.kid_id === kid.id && c.date === today)
+  }
+
+  const getWeeklyCount = (quest: Quest): number =>
+    completions.filter(c =>
+      c.quest_id === quest.id &&
+      c.kid_id === kid.id &&
+      (c.status === 'approved' || c.status === 'pending')
+    ).length
+
+  const completedCount = quests.filter(quest => {
+    if (quest.weekly_target != null) return getWeeklyCount(quest) >= quest.weekly_target
+    return getCompletion(quest)?.status === 'approved'
+  }).length
   const totalCount = quests.length
   const progress = totalCount > 0 ? completedCount / totalCount : 0
 
@@ -94,7 +115,19 @@ export function KidColumn({
 
         <CoinCounter value={kid.coins} size="md" />
 
-        {kid.streak > 1 && <StreakBadge streak={kid.streak} />}
+        <div className="flex items-center gap-2">
+          {kid.streak > 1 && <StreakBadge streak={kid.streak} />}
+          {activeCurseCount > 0 && (
+            <motion.span
+              className="text-xs px-2 py-0.5 rounded-full font-bold"
+              style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171' }}
+              animate={{ scale: [1, 1.06, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              ☠️ {activeCurseCount} curse{activeCurseCount > 1 ? 's' : ''}
+            </motion.span>
+          )}
+        </div>
 
         {/* Progress bar */}
         {totalCount > 0 && (
@@ -133,7 +166,9 @@ export function KidColumn({
             >
               <QuestCard
                 quest={quest}
-                completion={getCompletion(quest.id)}
+                completion={getCompletion(quest)}
+                weeklyCount={quest.weekly_target != null ? getWeeklyCount(quest) : undefined}
+                isExclusiveLocked={quest.exclusive && !getCompletion(quest) && (claimedExclusiveIds?.has(quest.id) ?? false)}
                 kidColor={kid.color}
                 onComplete={onComplete ? () => onComplete(quest.id) : undefined}
                 isParent={isParent}

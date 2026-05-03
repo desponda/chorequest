@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { StarField } from '@/components/star-field'
 import { KidColumn } from '@/components/kid-column'
 import type { Kid, Quest, Completion, Family } from '@/lib/types'
-import { questDateString } from '@/lib/utils'
+import { questDateString, questWeekKey } from '@/lib/utils'
 import { toast } from 'sonner'
 
 export default function WallDisplay() {
@@ -17,6 +17,7 @@ export default function WallDisplay() {
   const [kids, setKids] = useState<Kid[]>([])
   const [quests, setQuests] = useState<Quest[]>([])
   const [completions, setCompletions] = useState<Completion[]>([])
+  const [activeCurseCounts, setActiveCurseCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [pendingCount, setPendingCount] = useState(0)
   const [supabase] = useState(createClient)
@@ -35,19 +36,28 @@ export default function WallDisplay() {
       supabase.from('quests').select('*').eq('family_id', profile.family_id).eq('active', true).order('created_at'),
     ])
 
-    const today = questDateString(familyRes.data?.daily_reset_hour ?? 0)
-    const { data: completionsData } = await supabase
-      .from('completions')
-      .select('*')
-      .eq('date', today)
+    const resetHour = familyRes.data?.daily_reset_hour ?? 0
+    const today = questDateString(resetHour)
+    const weekStart = questWeekKey(resetHour)
+
+    const [completionsRes, cursesRes] = await Promise.all([
+      supabase.from('completions').select('*').gte('date', weekStart).lte('date', today),
+      supabase.from('curse_instances').select('kid_id').eq('status', 'active'),
+    ])
 
     if (familyRes.data) setFamily({ ...familyRes.data, has_parent_pin: false })
     if (kidsRes.data) setKids(kidsRes.data)
     if (questsRes.data) setQuests(questsRes.data)
-    if (completionsData) {
-      setCompletions(completionsData)
-      setPendingCount(completionsData.filter((c) => c.status === 'pending').length)
+
+    const allCompletions = completionsRes.data ?? []
+    setCompletions(allCompletions)
+    setPendingCount(allCompletions.filter(c => c.status === 'pending' && c.date === today).length)
+
+    const counts: Record<string, number> = {}
+    for (const ci of cursesRes.data ?? []) {
+      counts[ci.kid_id] = (counts[ci.kid_id] ?? 0) + 1
     }
+    setActiveCurseCounts(counts)
 
     setLoading(false)
   }, [supabase])
@@ -59,6 +69,7 @@ export default function WallDisplay() {
       .channel('wall-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'completions' }, fetchData)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'kids' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'curse_instances' }, fetchData)
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
@@ -69,11 +80,25 @@ export default function WallDisplay() {
       const quest = quests.find((q) => q.id === questId)
       if (!quest) return
 
+      const today = questDateString(family?.daily_reset_hour ?? 0)
+
+      // Weekly_target guard: prevent over-submission
+      if (quest.weekly_target != null) {
+        const weekCount = completions.filter(c =>
+          c.quest_id === questId && c.kid_id === kidId &&
+          (c.status === 'approved' || c.status === 'pending')
+        ).length
+        if (weekCount >= quest.weekly_target) {
+          toast.error('Weekly target already reached!')
+          return
+        }
+      }
+
       const { error } = await supabase.from('completions').insert({
         quest_id: questId,
         kid_id: kidId,
         status: 'pending',
-        date: questDateString(family?.daily_reset_hour ?? 0),
+        date: today,
       })
 
       if (error) {
@@ -87,14 +112,28 @@ export default function WallDisplay() {
 
       await fetchData()
     },
-    [quests, supabase, fetchData, family?.daily_reset_hour]
+    [quests, supabase, fetchData, family?.daily_reset_hour, completions]
   )
 
+  const today = questDateString(family?.daily_reset_hour ?? 0)
+  const dayOfWeek = new Date().getDay()
+
   const getKidQuests = (kid: Kid) =>
-    quests.filter((q) => !q.assigned_to || q.assigned_to === kid.id)
+    quests.filter(q => {
+      if (q.assigned_to && q.assigned_to !== kid.id) return false
+      if (q.active_days?.length && !q.active_days.includes(dayOfWeek)) return false
+      return true
+    })
 
   const getKidCompletions = (kid: Kid) =>
     completions.filter((c) => c.kid_id === kid.id)
+
+  const todayCompletions = completions.filter(c => c.date === today)
+  const claimedExclusiveIds = new Set(
+    todayCompletions
+      .filter(c => quests.find(q => q.id === c.quest_id)?.exclusive)
+      .map(c => c.quest_id)
+  )
 
   if (loading) {
     return (
@@ -214,6 +253,9 @@ export default function WallDisplay() {
               kid={kid}
               quests={getKidQuests(kid)}
               completions={getKidCompletions(kid)}
+              today={today}
+              claimedExclusiveIds={claimedExclusiveIds}
+              activeCurseCount={activeCurseCounts[kid.id] ?? 0}
               onComplete={(questId) => handleComplete(questId, kid.id)}
               linkToKidView
             />

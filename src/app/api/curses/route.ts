@@ -9,22 +9,15 @@ export async function GET(req: Request) {
   const auth = await authenticate(req)
   if (isAuthError(auth)) return auth
 
-  const { searchParams } = new URL(req.url)
-  const activeOnly = searchParams.get('active') !== 'false'
-
   const supabase = createServiceClient()
-  let query = supabase
-    .from('quests')
+  const { data, error } = await supabase
+    .from('curses')
     .select('*')
     .eq('family_id', auth.familyId)
     .order('created_at')
 
-  if (activeOnly) query = query.eq('active', true)
-
-  const { data, error } = await query
   if (error) return Response.json({ error: error.message }, { status: 500, headers: cors() })
-
-  return Response.json({ quests: data }, { headers: cors() })
+  return Response.json({ curses: data }, { headers: cors() })
 }
 
 export async function POST(req: Request) {
@@ -38,25 +31,16 @@ export async function POST(req: Request) {
 
   const supabase = createServiceClient()
   const { data, error } = await supabase
-    .from('quests')
+    .from('curses')
     .insert({
       family_id: auth.familyId,
       title: body.title,
-      description: body.description ?? null,
-      icon: body.icon ?? '⚔️',
-      coins: Number(body.coins ?? 10),
-      assigned_to: body.assigned_to ?? null,
-      frequency: body.frequency ?? 'daily',
-      tier: body.tier ?? 'normal',
-      exclusive: body.exclusive ?? false,
-      active_days: body.active_days ?? null,
-      weekly_target: body.weekly_target ?? null,
-      active: true,
+      icon: body.icon ?? '☠️',
+      penalty: Number(body.penalty ?? 10),
     })
     .select()
     .single()
 
   if (error) return Response.json({ error: error.message }, { status: 500, headers: cors() })
-
-  return Response.json({ quest: data }, { status: 201, headers: cors() })
+  return Response.json({ curse: data }, { status: 201, headers: cors() })
 }

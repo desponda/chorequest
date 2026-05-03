@@ -9,6 +9,8 @@ import { CoinBurst } from './coin-burst'
 interface QuestCardProps {
   quest: Quest
   completion?: Completion
+  weeklyCount?: number
+  isExclusiveLocked?: boolean
   kidColor: KidColor
   onComplete?: () => Promise<void>
   isParent?: boolean
@@ -16,9 +18,13 @@ interface QuestCardProps {
   onReject?: (completionId: string) => Promise<void>
 }
 
+const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+
 export function QuestCard({
   quest,
   completion,
+  weeklyCount = 0,
+  isExclusiveLocked = false,
   kidColor,
   onComplete,
   isParent,
@@ -29,11 +35,12 @@ export function QuestCard({
   const [bursting, setBursting] = useState(false)
   const colors = KID_COLORS[kidColor]
 
+  const isWeeklyFull = quest.weekly_target != null && weeklyCount >= quest.weekly_target
   const status = completion?.status
-  const isTodo = !status
+  const isTodo = !isExclusiveLocked && !isWeeklyFull && !status
   const isPending = status === 'pending'
-  const isApproved = status === 'approved'
-  const isRejected = status === 'rejected'
+  const isApproved = status === 'approved' || isWeeklyFull
+  const isRejected = status === 'rejected' && !isWeeklyFull
 
   const tier = TIER_CONFIG[quest.tier ?? 'normal']
 
@@ -43,6 +50,8 @@ export function QuestCard({
     ? 'rgba(251, 191, 36, 0.06)'
     : isRejected
     ? 'rgba(239, 68, 68, 0.05)'
+    : isExclusiveLocked
+    ? 'rgba(255,255,255,0.02)'
     : tier.bg
 
   const cardBorder = isApproved
@@ -51,6 +60,8 @@ export function QuestCard({
     ? 'rgba(251, 191, 36, 0.35)'
     : isRejected
     ? 'rgba(239, 68, 68, 0.2)'
+    : isExclusiveLocked
+    ? 'rgba(255,255,255,0.06)'
     : tier.border
 
   const cardShadow = isPending
@@ -68,6 +79,8 @@ export function QuestCard({
     setTimeout(() => setBursting(false), 1000)
   }
 
+  const showDays = quest.active_days && quest.active_days.length > 0 && quest.active_days.length < 7
+
   return (
     <motion.div
       className="relative rounded-2xl overflow-hidden"
@@ -76,6 +89,7 @@ export function QuestCard({
         border: `1px solid ${cardBorder}`,
         boxShadow: cardShadow,
         backdropFilter: 'blur(10px)',
+        opacity: isExclusiveLocked ? 0.45 : 1,
       }}
       whileHover={isTodo && onComplete ? { scale: 1.015 } : {}}
       whileTap={isTodo && onComplete ? { scale: 0.985 } : {}}
@@ -92,7 +106,7 @@ export function QuestCard({
             <div className="flex items-center gap-1.5 flex-wrap">
               <p
                 className={`font-semibold text-sm leading-snug ${
-                  isApproved ? 'line-through opacity-40' : 'text-white/90'
+                  isApproved ? 'line-through opacity-40' : isExclusiveLocked ? 'text-white/35' : 'text-white/90'
                 }`}
               >
                 {quest.title}
@@ -105,9 +119,41 @@ export function QuestCard({
                   {tier.label}
                 </span>
               )}
+              {quest.exclusive && (
+                <span className="text-xs px-1.5 py-0.5 rounded-md font-semibold flex-shrink-0"
+                  style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)' }}>
+                  1st only
+                </span>
+              )}
             </div>
+
             {quest.description && (
               <p className="text-white/40 text-xs mt-0.5 truncate">{quest.description}</p>
+            )}
+
+            {/* Day-of-week schedule */}
+            {showDays && (
+              <div className="flex gap-0.5 mt-1.5">
+                {DAY_LABELS.map((label, i) => (
+                  <span
+                    key={i}
+                    className="text-xs w-4 h-4 flex items-center justify-center rounded font-mono"
+                    style={{
+                      background: quest.active_days!.includes(i) ? 'rgba(255,255,255,0.12)' : 'transparent',
+                      color: quest.active_days!.includes(i) ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.18)',
+                    }}
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Weekly target progress */}
+            {quest.weekly_target != null && (
+              <p className="text-xs mt-1" style={{ color: isWeeklyFull ? '#4ade80' : 'rgba(255,255,255,0.4)' }}>
+                {isWeeklyFull ? '✓ ' : ''}{weeklyCount}/{quest.weekly_target}× this week
+              </p>
             )}
           </div>
 
@@ -116,7 +162,7 @@ export function QuestCard({
               <span className="text-sm">🪙</span>
               <span className="font-heading font-bold text-cq-gold text-sm">{quest.coins}</span>
             </div>
-            {isPending && (
+            {isPending && !isWeeklyFull && (
               <motion.p
                 className="text-xs text-amber-400 mt-0.5"
                 animate={{ opacity: [0.5, 1, 0.5] }}
@@ -125,11 +171,14 @@ export function QuestCard({
                 awaiting...
               </motion.p>
             )}
-            {isApproved && (
+            {isApproved && !isPending && (
               <p className="text-xs text-cq-forest mt-0.5">✓ done!</p>
             )}
             {isRejected && (
               <p className="text-xs text-red-400 mt-0.5">✗ retry</p>
+            )}
+            {isExclusiveLocked && (
+              <p className="text-xs text-white/30 mt-0.5">claimed</p>
             )}
           </div>
         </div>
