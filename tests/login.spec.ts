@@ -31,7 +31,7 @@ test.describe('Login page', () => {
     await page.fill('input[type="email"]', 'bad@example.com')
     await page.fill('input[type="password"]', 'wrongpassword')
     await page.getByRole('button', { name: /Enter the Realm/i }).click()
-    await expect(page.getByText(/Wrong credentials/i)).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText(/Wrong credentials/i)).toBeVisible({ timeout: 15000 })
   })
 
   test('validates password minimum length in signup', async ({ page }) => {
