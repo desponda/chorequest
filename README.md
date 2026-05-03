@@ -15,7 +15,7 @@ npm run dev
 ## Docs
 
 - **[CLAUDE.md](./CLAUDE.md)** — architecture, conventions, environment variables, CI/CD
-- **[DESIGN.md](./DESIGN.md)** — design system, color palette, motion principles
+- **[docs/DESIGN.md](./docs/DESIGN.md)** — design system, color palette, motion principles
 
 ## Commands
 
