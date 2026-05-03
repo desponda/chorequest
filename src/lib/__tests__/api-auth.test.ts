@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { isAuthError, cors } from '../api-auth'
 
 describe('isAuthError', () => {
@@ -16,25 +16,26 @@ describe('isAuthError', () => {
   })
 
   it('returns false for non-Response values', () => {
-    expect(isAuthError(null)).toBe(false)
-    expect(isAuthError(undefined)).toBe(false)
-    expect(isAuthError('error')).toBe(false)
-    expect(isAuthError(401)).toBe(false)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const check = (v: any) => isAuthError(v)
+    expect(check(null)).toBe(false)
+    expect(check(undefined)).toBe(false)
+    expect(check('error')).toBe(false)
+    expect(check(401)).toBe(false)
   })
 })
 
 describe('cors', () => {
-  let originalCorsOrigin: string | undefined
-  let originalNodeEnv: string | undefined
+  let savedCorsOrigin: string | undefined
 
   beforeEach(() => {
-    originalCorsOrigin = process.env.CORS_ORIGIN
-    originalNodeEnv = process.env.NODE_ENV
+    savedCorsOrigin = process.env.CORS_ORIGIN
+    vi.unstubAllEnvs()
   })
 
   afterEach(() => {
-    process.env.CORS_ORIGIN = originalCorsOrigin
-    process.env.NODE_ENV = originalNodeEnv
+    process.env.CORS_ORIGIN = savedCorsOrigin
+    vi.unstubAllEnvs()
   })
 
   it('returns required CORS headers', () => {
@@ -54,13 +55,13 @@ describe('cors', () => {
 
   it('returns * in non-production when CORS_ORIGIN is unset', () => {
     delete process.env.CORS_ORIGIN
-    process.env.NODE_ENV = 'test'
+    vi.stubEnv('NODE_ENV', 'test')
     expect(cors()['Access-Control-Allow-Origin']).toBe('*')
   })
 
   it('returns production URL in production when CORS_ORIGIN is unset', () => {
     delete process.env.CORS_ORIGIN
-    process.env.NODE_ENV = 'production'
+    vi.stubEnv('NODE_ENV', 'production')
     expect(cors()['Access-Control-Allow-Origin']).toBe('https://chorequest.dresponda.com')
   })
 })
