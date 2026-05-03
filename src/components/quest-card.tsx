@@ -20,6 +20,18 @@ interface QuestCardProps {
 
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
+function frequencyLabel(quest: Quest): string | null {
+  if (quest.frequency === 'once') return 'one-time'
+  if (quest.exclusive) return '1st claim wins'
+  if (quest.weekly_target != null) return `${quest.weekly_target}× per week`
+  if (quest.active_days && quest.active_days.length > 0 && quest.active_days.length < 7) {
+    const abbreviated = quest.active_days.map(d => DAY_LABELS[d]).join(' ')
+    return abbreviated
+  }
+  if (quest.frequency === 'weekly') return 'weekly'
+  return null // daily — obvious, no label needed
+}
+
 export function QuestCard({
   quest,
   completion,
@@ -38,11 +50,13 @@ export function QuestCard({
   const isWeeklyFull = quest.weekly_target != null && weeklyCount >= quest.weekly_target
   const status = completion?.status
   const isTodo = !isExclusiveLocked && !isWeeklyFull && !status
-  const isPending = status === 'pending'
+  const isPending = status === 'pending' && !isWeeklyFull
   const isApproved = status === 'approved' || isWeeklyFull
   const isRejected = status === 'rejected' && !isWeeklyFull
 
   const tier = TIER_CONFIG[quest.tier ?? 'normal']
+  const isNormal = (quest.tier ?? 'normal') === 'normal'
+  const hasCompletionState = isApproved || isPending || isRejected || isExclusiveLocked
 
   const cardBg = isApproved
     ? 'rgba(74, 222, 128, 0.06)'
@@ -68,7 +82,11 @@ export function QuestCard({
     ? '0 0 20px rgba(251, 191, 36, 0.12)'
     : isApproved
     ? '0 0 16px rgba(74, 222, 128, 0.1)'
+    : isExclusiveLocked
+    ? 'none'
     : tier.glow ?? 'none'
+
+  const freqLabel = frequencyLabel(quest)
 
   const handleComplete = async () => {
     if (!onComplete || loading || !isTodo) return
@@ -78,8 +96,6 @@ export function QuestCard({
     setLoading(false)
     setTimeout(() => setBursting(false), 1000)
   }
-
-  const showDays = quest.active_days && quest.active_days.length > 0 && quest.active_days.length < 7
 
   return (
     <motion.div
@@ -98,6 +114,47 @@ export function QuestCard({
     >
       <CoinBurst coins={quest.coins} active={bursting} />
 
+      {/* Tier accent bar — thin colored line at top */}
+      {!isNormal && !hasCompletionState && (
+        <div
+          className="absolute top-0 left-0 right-0 h-px"
+          style={{
+            background: `linear-gradient(90deg, transparent 0%, ${tier.color} 40%, ${tier.color} 60%, transparent 100%)`,
+            opacity: 0.8,
+          }}
+        />
+      )}
+
+      {/* Legendary shimmer sweep */}
+      {quest.tier === 'legendary' && !hasCompletionState && (
+        <motion.div
+          className="absolute inset-0 pointer-events-none rounded-2xl overflow-hidden"
+          initial={{ x: '-120%' }}
+          animate={{ x: '220%' }}
+          transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 5, ease: 'easeInOut' }}
+        >
+          <div
+            className="absolute inset-y-0 w-1/3 -skew-x-12"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(251,191,36,0.1), transparent)' }}
+          />
+        </motion.div>
+      )}
+
+      {/* Epic shimmer — slower, purple */}
+      {quest.tier === 'epic' && !hasCompletionState && (
+        <motion.div
+          className="absolute inset-0 pointer-events-none rounded-2xl overflow-hidden"
+          initial={{ x: '-120%' }}
+          animate={{ x: '220%' }}
+          transition={{ duration: 3, repeat: Infinity, repeatDelay: 7, ease: 'easeInOut' }}
+        >
+          <div
+            className="absolute inset-y-0 w-1/3 -skew-x-12"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(167,139,250,0.12), transparent)' }}
+          />
+        </motion.div>
+      )}
+
       <div className="p-4">
         <div className="flex items-start gap-3">
           <span className="text-2xl leading-none mt-0.5 flex-shrink-0">{quest.icon}</span>
@@ -111,18 +168,12 @@ export function QuestCard({
               >
                 {quest.title}
               </p>
-              {(quest.tier ?? 'normal') !== 'normal' && (
+              {!isNormal && (
                 <span
-                  className="text-xs px-1.5 py-0.5 rounded-md font-semibold flex-shrink-0"
-                  style={{ background: tier.bg, color: tier.color, border: `1px solid ${tier.border}` }}
+                  className="text-xs px-1.5 py-0.5 rounded-md font-bold flex-shrink-0"
+                  style={{ background: `${tier.color}18`, color: tier.color, border: `1px solid ${tier.color}40` }}
                 >
                   {tier.label}
-                </span>
-              )}
-              {quest.exclusive && (
-                <span className="text-xs px-1.5 py-0.5 rounded-md font-semibold flex-shrink-0"
-                  style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)' }}>
-                  1st only
                 </span>
               )}
             </div>
@@ -131,23 +182,33 @@ export function QuestCard({
               <p className="text-white/40 text-xs mt-0.5 truncate">{quest.description}</p>
             )}
 
-            {/* Day-of-week schedule */}
-            {showDays && (
-              <div className="flex gap-0.5 mt-1.5">
-                {DAY_LABELS.map((label, i) => (
-                  <span
-                    key={i}
-                    className="text-xs w-4 h-4 flex items-center justify-center rounded font-mono"
-                    style={{
-                      background: quest.active_days!.includes(i) ? 'rgba(255,255,255,0.12)' : 'transparent',
-                      color: quest.active_days!.includes(i) ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.18)',
-                    }}
-                  >
-                    {label}
-                  </span>
-                ))}
-              </div>
-            )}
+            {/* Frequency / schedule info */}
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              {freqLabel && (
+                <span className="text-xs px-1.5 py-0.5 rounded-md"
+                  style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  {freqLabel}
+                </span>
+              )}
+
+              {/* Day-of-week pills inline with freq label */}
+              {quest.active_days && quest.active_days.length > 0 && quest.active_days.length < 7 && (
+                <div className="flex gap-0.5">
+                  {DAY_LABELS.map((label, i) => (
+                    <span
+                      key={i}
+                      className="text-xs w-4 h-4 flex items-center justify-center rounded font-mono"
+                      style={{
+                        background: quest.active_days!.includes(i) ? 'rgba(255,255,255,0.12)' : 'transparent',
+                        color: quest.active_days!.includes(i) ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.18)',
+                      }}
+                    >
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Weekly target progress */}
             {quest.weekly_target != null && (
@@ -160,9 +221,11 @@ export function QuestCard({
           <div className="flex-shrink-0 text-right">
             <div className="flex items-center gap-1 justify-end">
               <span className="text-sm">🪙</span>
-              <span className="font-heading font-bold text-cq-gold text-sm">{quest.coins}</span>
+              <span className="font-heading font-bold text-sm" style={{ color: isNormal ? '#fbbf24' : tier.color }}>
+                {quest.coins}
+              </span>
             </div>
-            {isPending && !isWeeklyFull && (
+            {isPending && (
               <motion.p
                 className="text-xs text-amber-400 mt-0.5"
                 animate={{ opacity: [0.5, 1, 0.5] }}

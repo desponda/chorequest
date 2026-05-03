@@ -150,14 +150,14 @@ export function KidColumn({
       </motion.div>
 
       {/* Quest list */}
-      <div className="flex flex-col gap-2.5 flex-1 overflow-y-auto scrollbar-thin-glass min-h-0 pb-1">
-        {quests.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-32 text-white/25">
-            <span className="text-3xl mb-2">🧙</span>
-            <p className="text-sm">No quests yet</p>
-          </div>
-        ) : (
-          quests.map((quest, i) => (
+      {(() => {
+        const personalQuests = quests.filter(q => q.weekly_target == null && !q.exclusive)
+        const bountyQuests = quests.filter(q => q.weekly_target != null || q.exclusive)
+        let cardIndex = 0
+
+        const renderCard = (quest: Quest) => {
+          const i = cardIndex++
+          return (
             <motion.div
               key={quest.id}
               initial={{ opacity: 0, x: -12 }}
@@ -176,9 +176,48 @@ export function KidColumn({
                 onReject={onReject}
               />
             </motion.div>
-          ))
-        )}
-      </div>
+          )
+        }
+
+        if (quests.length === 0) {
+          return (
+            <div className="flex flex-col gap-2.5 flex-1 overflow-y-auto scrollbar-thin-glass min-h-0 pb-1">
+              <div className="flex flex-col items-center justify-center h-32 text-white/25">
+                <span className="text-3xl mb-2">🧙</span>
+                <p className="text-sm">No quests yet</p>
+              </div>
+            </div>
+          )
+        }
+
+        return (
+          <div className="flex flex-col gap-2.5 flex-1 overflow-y-auto scrollbar-thin-glass min-h-0 pb-1">
+            {personalQuests.map(renderCard)}
+
+            {bountyQuests.length > 0 && (
+              <>
+                {/* Bounty section divider */}
+                <div className="flex items-center gap-2 py-1 mt-1">
+                  <div className="flex-1 h-px" style={{ background: 'rgba(251,191,36,0.2)' }} />
+                  <span
+                    className="text-xs font-bold tracking-widest uppercase px-2 py-0.5 rounded-full flex-shrink-0"
+                    style={{
+                      background: 'rgba(251,191,36,0.1)',
+                      border: '1px solid rgba(251,191,36,0.25)',
+                      color: 'rgba(251,191,36,0.75)',
+                    }}
+                  >
+                    ⚡ Bounties
+                  </span>
+                  <div className="flex-1 h-px" style={{ background: 'rgba(251,191,36,0.2)' }} />
+                </div>
+
+                {bountyQuests.map(renderCard)}
+              </>
+            )}
+          </div>
+        )
+      })()}
     </div>
   )
 }
