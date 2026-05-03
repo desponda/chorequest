@@ -22,14 +22,16 @@ const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 function frequencyLabel(quest: Quest): string | null {
   if (quest.frequency === 'once') return 'one-time'
-  if (quest.exclusive) return '1st claim wins'
-  if (quest.weekly_target != null) return `${quest.weekly_target}× per week`
-  if (quest.active_days && quest.active_days.length > 0 && quest.active_days.length < 7) {
-    const abbreviated = quest.active_days.map(d => DAY_LABELS[d]).join(' ')
-    return abbreviated
+  if (quest.weekly_target != null) {
+    const base = `${quest.weekly_target}× per week`
+    return quest.exclusive ? `${base} · 1st claim wins` : base
   }
-  if (quest.frequency === 'weekly') return 'weekly'
-  return null // daily — obvious, no label needed
+  if (quest.active_days && quest.active_days.length > 0 && quest.active_days.length < 7) {
+    return quest.exclusive ? '1st claim wins' : null // day pills render separately
+  }
+  if (quest.frequency === 'weekly') return quest.exclusive ? 'weekly · 1st claim wins' : 'weekly'
+  // daily
+  return quest.exclusive ? 'daily · 1st claim wins' : null
 }
 
 export function QuestCard({
