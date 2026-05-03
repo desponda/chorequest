@@ -47,6 +47,8 @@ export default function ParentDashboard() {
   const [lockPinError, setLockPinError] = useState(false)
   const [newParentPin, setNewParentPin] = useState('')
   const [savingParentPin, setSavingParentPin] = useState(false)
+  const [editingCoinsKidId, setEditingCoinsKidId] = useState<string | null>(null)
+  const [editCoinsValue, setEditCoinsValue] = useState('')
 
   const [supabase] = useState(createClient)
   const router = useRouter()
@@ -222,6 +224,46 @@ export default function ParentDashboard() {
       DEFAULT_QUESTS.map((q) => ({ ...q, family_id: family.id, frequency: 'daily' as const, active: true }))
     )
     toast.success('Default quests added! ✨')
+    await fetchData()
+  }
+
+  const handleUndoApproval = async (completionId: string) => {
+    const completion = completions.find((c) => c.id === completionId)
+    if (!completion) return
+    const kid = completion.kid as Kid | undefined
+    const coinsToRemove = completion.coins_awarded ?? 0
+
+    await supabase
+      .from('completions')
+      .update({ status: 'pending', approved_at: null, coins_awarded: null })
+      .eq('id', completionId)
+
+    if (kid && coinsToRemove > 0) {
+      await supabase
+        .from('kids')
+        .update({ coins: Math.max(0, (kid.coins ?? 0) - coinsToRemove) })
+        .eq('id', kid.id)
+    }
+
+    toast.success('Approval undone — back to pending')
+    await fetchData()
+  }
+
+  const handleUndoRejection = async (completionId: string) => {
+    await supabase
+      .from('completions')
+      .update({ status: 'pending' })
+      .eq('id', completionId)
+    toast.success('Rejection undone — back to pending')
+    await fetchData()
+  }
+
+  const handleSaveCoins = async (kidId: string) => {
+    const val = parseInt(editCoinsValue, 10)
+    if (isNaN(val) || val < 0) return
+    await supabase.from('kids').update({ coins: val }).eq('id', kidId)
+    toast.success('Coins updated! 🪙')
+    setEditingCoinsKidId(null)
     await fetchData()
   }
 
@@ -481,13 +523,23 @@ export default function ParentDashboard() {
                       const kid = c.kid as Kid | undefined
                       if (!kid) return null
                       return (
-                        <div key={c.id} className="flex items-center gap-3 py-2 opacity-50">
-                          <span>{kid.avatar}</span>
-                          <span className="text-white/60 text-sm">{kid.name}</span>
-                          <span className="text-white/40 text-sm flex-1">{(c.quest as Quest)?.title}</span>
-                          <span className={`text-xs font-semibold ${c.status === 'approved' ? 'text-cq-forest' : 'text-red-400'}`}>
+                        <div key={c.id} className="flex items-center gap-3 py-2">
+                          <span className="text-lg">{kid.avatar}</span>
+                          <span className="text-white/50 text-sm">{kid.name}</span>
+                          <span className="text-white/35 text-sm flex-1 truncate">{(c.quest as Quest)?.title}</span>
+                          <span className={`text-xs font-semibold flex-shrink-0 ${c.status === 'approved' ? 'text-cq-forest' : 'text-red-400'}`}>
                             {c.status === 'approved' ? `✓ +${c.coins_awarded}🪙` : '✗'}
                           </span>
+                          <button
+                            onClick={() => c.status === 'approved'
+                              ? handleUndoApproval(c.id)
+                              : handleUndoRejection(c.id)
+                            }
+                            className="text-xs text-white/20 hover:text-cq-gold transition-all flex-shrink-0 ml-1"
+                            title="Undo"
+                          >
+                            ↩
+                          </button>
                         </div>
                       )
                     })}
@@ -751,9 +803,46 @@ export default function ParentDashboard() {
                           <span className="text-3xl">{kid.avatar}</span>
                           <div className="flex-1">
                             <p className="font-semibold text-white/90">{kid.name}</p>
-                            <p className="text-xs mt-0.5" style={{ color: colors.primary }}>
-                              🪙 {kid.coins} coins · 🔥 {kid.streak} streak · Lv {Math.floor(kid.coins / 50) + 1}
-                            </p>
+                            {editingCoinsKidId === kid.id ? (
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={editCoinsValue}
+                                  onChange={(e) => setEditCoinsValue(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleSaveCoins(kid.id)
+                                    if (e.key === 'Escape') setEditingCoinsKidId(null)
+                                  }}
+                                  autoFocus
+                                  className="w-20 px-2 py-0.5 rounded-lg text-xs text-white/90 outline-none"
+                                  style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(251,191,36,0.4)' }}
+                                />
+                                <button
+                                  onClick={() => handleSaveCoins(kid.id)}
+                                  className="text-xs text-cq-gold hover:opacity-80 transition-all font-bold"
+                                >
+                                  ✓
+                                </button>
+                                <button
+                                  onClick={() => setEditingCoinsKidId(null)}
+                                  className="text-xs text-white/30 hover:text-white/60 transition-all"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setEditingCoinsKidId(kid.id)
+                                  setEditCoinsValue(String(kid.coins))
+                                }}
+                                className="text-xs mt-0.5 text-left hover:opacity-80 transition-all"
+                                style={{ color: colors.primary }}
+                              >
+                                🪙 {kid.coins} coins · 🔥 {kid.streak} streak · Lv {Math.floor(kid.coins / 50) + 1}
+                              </button>
+                            )}
                           </div>
                           <span className="text-xs text-white/30 font-mono">PIN: {kid.pin}</span>
                         </div>
