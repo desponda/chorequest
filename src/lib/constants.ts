@@ -16,8 +16,8 @@ export const TIER_CONFIG: Record<QuestTier, {
     border: 'rgba(255,255,255,0.1)',
     glow: null,
   },
-  heroic: {
-    label: 'Heroic',
+  rare: {
+    label: 'Rare',
     icon: '🔵',
     color: '#38bdf8',
     bg: 'linear-gradient(135deg, rgba(56,189,248,0.14) 0%, rgba(56,189,248,0.05) 100%)',

@@ -52,7 +52,7 @@ describe('getStreakLabel', () => {
 })
 
 describe('TIER_CONFIG', () => {
-  const tiers = ['normal', 'heroic', 'legendary', 'epic'] as const
+  const tiers = ['normal', 'rare', 'epic', 'legendary'] as const
 
   it('has all four tiers', () => {
     tiers.forEach((tier) => {
@@ -72,7 +72,7 @@ describe('TIER_CONFIG', () => {
 
   it('non-normal tiers have glows; normal does not', () => {
     expect(TIER_CONFIG.normal.glow).toBeNull()
-    expect(TIER_CONFIG.heroic.glow).toBeTruthy()
+    expect(TIER_CONFIG.rare.glow).toBeTruthy()
     expect(TIER_CONFIG.legendary.glow).toBeTruthy()
     expect(TIER_CONFIG.epic.glow).toBeTruthy()
   })

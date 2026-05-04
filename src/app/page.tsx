@@ -55,7 +55,7 @@ function AppMockup() {
           coins={340} streak={7}
           quests={[
             { title: 'Make your bed', icon: '🛏️', coins: 15, status: 'approved' },
-            { title: 'Feed the cat', icon: '🐱', coins: 20, status: 'pending', tier: 'heroic' },
+            { title: 'Feed the cat', icon: '🐱', coins: 20, status: 'pending', tier: 'rare' },
             { title: 'Clean desk', icon: '📚', coins: 25, status: 'todo' },
           ]}
         />
@@ -64,7 +64,7 @@ function AppMockup() {
           name="Liam" avatar="🧝‍♂️" color="mystic"
           coins={210} streak={3}
           quests={[
-            { title: 'Take out trash', icon: '🗑️', coins: 30, status: 'approved', tier: 'heroic' },
+            { title: 'Take out trash', icon: '🗑️', coins: 30, status: 'approved', tier: 'rare' },
             { title: 'Unload dishwasher', icon: '🍽️', coins: 20, status: 'todo' },
             { title: 'Vacuum living room', icon: '🧹', coins: 50, status: 'todo', tier: 'legendary' },
           ]}
@@ -91,13 +91,13 @@ function AppMockup() {
 }
 
 type QuestStatus = 'todo' | 'pending' | 'approved'
-type QuestTier = 'normal' | 'heroic' | 'legendary' | 'epic'
+type QuestTier = 'normal' | 'rare' | 'epic' | 'legendary'
 
 const TIER_COLORS: Record<QuestTier, string> = {
   normal: '#fbbf24',
-  heroic: '#38bdf8',
-  legendary: '#fbbf24',
+  rare: '#38bdf8',
   epic: '#a78bfa',
+  legendary: '#fbbf24',
 }
 
 function MockKidColumn({ name, avatar, color, coins, streak, quests }: {

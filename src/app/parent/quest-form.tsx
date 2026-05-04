@@ -4,7 +4,7 @@ import type { Kid, QuestKind, QuestTier } from '@/lib/types'
 import { QUEST_ICONS, TIER_CONFIG } from '@/lib/constants'
 
 const DAY_LABELS = ['Su','Mo','Tu','We','Th','Fr','Sa']
-const TIERS: QuestTier[] = ['normal', 'heroic', 'legendary', 'epic']
+const TIERS: QuestTier[] = ['normal', 'rare', 'epic', 'legendary']
 
 const KIND_LABELS: Record<QuestKind, { title: string; subtitle: string; emoji: string }> = {
   personal: {
