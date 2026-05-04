@@ -43,7 +43,7 @@ create table quests (
   assigned_to uuid references kids(id) on delete set null,
   kind text not null default 'personal' check (kind in ('personal', 'shared', 'oneoff')),
   frequency text not null default 'daily' check (frequency in ('daily', 'weekly', 'once')),
-  tier text not null default 'normal' check (tier in ('normal', 'heroic', 'legendary', 'epic')),
+  tier text not null default 'normal' check (tier in ('normal', 'rare', 'epic', 'legendary')),
   slots integer not null default 1 check (slots >= 1),
   active_days integer[],
   active boolean not null default true,

@@ -1,7 +1,7 @@
 export type KidColor = 'azure' | 'mystic'
 export type QuestFrequency = 'daily' | 'weekly' | 'once'
 export type QuestKind = 'personal' | 'shared' | 'oneoff'
-export type QuestTier = 'normal' | 'heroic' | 'legendary' | 'epic'
+export type QuestTier = 'normal' | 'rare' | 'epic' | 'legendary'
 export type CompletionStatus = 'pending' | 'approved' | 'rejected'
 
 export interface Family {
