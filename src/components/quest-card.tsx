@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import type { Quest, Completion, KidColor } from '@/lib/types'
 import { KID_COLORS, TIER_CONFIG } from '@/lib/constants'
 import { CoinBurst } from './coin-burst'
+import { AppIcon } from './app-icon'
 
 interface QuestCardProps {
   quest: Quest
@@ -158,7 +159,7 @@ export function QuestCard({
 
       <div className="p-4">
         <div className="flex items-start gap-3">
-          <span className="text-2xl leading-none mt-0.5 flex-shrink-0">{quest.icon}</span>
+          <AppIcon icon={quest.icon} size={24} style={{ marginTop: 2 }} />
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">

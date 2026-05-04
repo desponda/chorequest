@@ -42,18 +42,7 @@ export const TIER_CONFIG: Record<QuestTier, {
   },
 }
 
-export const QUEST_ICONS = [
-  '⚔️', '🛡️', '🧹', '🍳', '📚', '🌿', '🐾',
-  '🧺', '🪣', '🚿', '🛏️', '🥗', '🗑️', '💧',
-  '✨', '🧙', '⭐', '🔮', '🌙', '🦋', '🌸',
-  '🎯', '📖', '🎨', '🧩', '🎵', '🌟', '💫',
-]
-
-export const KID_AVATARS = [
-  '🧙', '🧝', '🧚', '🦊', '🐉', '🦄',
-  '🧜', '🦸', '⚡', '🌟', '🔮', '🌙',
-  '🦋', '🐺', '🦅', '🧸',
-]
+export { QUEST_ICON_KEYS as QUEST_ICONS, KID_AVATAR_KEYS as KID_AVATARS } from './icons'
 
 export const KID_COLORS: Record<KidColor, {
   primary: string
@@ -104,11 +93,11 @@ export function getLockDurationMs(attempts: number): number {
 }
 
 export const DEFAULT_QUESTS = [
-  { title: 'Make Your Bed', icon: '🛏️', coins: 10, description: 'Straighten covers and fluff pillows' },
-  { title: 'Brush Teeth', icon: '✨', coins: 5, description: 'Morning and evening' },
-  { title: 'Tidy Your Room', icon: '🧹', coins: 15, description: 'Put everything in its place' },
-  { title: 'Help with Dinner', icon: '🍳', coins: 20, description: 'Set the table or help prepare' },
-  { title: 'Do Homework', icon: '📚', coins: 15, description: 'Complete all assignments' },
-  { title: 'Feed the Pets', icon: '🐾', coins: 10, description: 'Fill food and water bowls' },
-  { title: 'Take Out Trash', icon: '🗑️', coins: 15, description: 'Empty bins and take bags out' },
+  { title: 'Make Your Bed', icon: 'GiBed', coins: 10, description: 'Straighten covers and fluff pillows' },
+  { title: 'Brush Teeth', icon: 'GiToothbrush', coins: 5, description: 'Morning and evening' },
+  { title: 'Tidy Your Room', icon: 'GiBroom', coins: 15, description: 'Put everything in its place' },
+  { title: 'Help with Dinner', icon: 'GiCookingPot', coins: 20, description: 'Set the table or help prepare' },
+  { title: 'Do Homework', icon: 'GiWhiteBook', coins: 15, description: 'Complete all assignments' },
+  { title: 'Feed the Pets', icon: 'GiFlowerPot', coins: 10, description: 'Fill food and water bowls' },
+  { title: 'Take Out Trash', icon: 'GiTrashCan', coins: 15, description: 'Empty bins and take bags out' },
 ]
