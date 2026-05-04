@@ -79,7 +79,7 @@ export function PinLockScreen({ lockPinInput, lockPinError, parentLockedUntil, n
           ))}
         </div>
 
-        <Link href="/" className="block mt-8 text-white/25 text-sm hover:text-white/50 transition-all">
+        <Link href="/display" className="block mt-8 text-white/25 text-sm hover:text-white/50 transition-all">
           ← Back to Realm
         </Link>
       </motion.div>

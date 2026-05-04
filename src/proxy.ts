@@ -30,6 +30,7 @@ export async function proxy(request: NextRequest) {
 
   const path = request.nextUrl.pathname
   const isPublic =
+    path === '/' ||
     path === '/login' ||
     path.startsWith('/api/') ||
     path.startsWith('/join/') ||
@@ -41,9 +42,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (user && path === '/login') {
+  // Authenticated users: skip the marketing page and login, go straight to the display
+  if (user && (path === '/' || path === '/login')) {
     const url = request.nextUrl.clone()
-    url.pathname = '/'
+    url.pathname = '/display'
     return NextResponse.redirect(url)
   }
 

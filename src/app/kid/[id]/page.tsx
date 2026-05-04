@@ -312,7 +312,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
           </div>
 
           <Link
-            href="/"
+            href="/display"
             className="mt-8 inline-block text-white/25 text-sm hover:text-white/50 transition-all"
           >
             ← Back to realm
@@ -353,7 +353,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Link href="/" className="text-white/40 hover:text-white/70 transition-all text-sm">
+          <Link href="/display" className="text-white/40 hover:text-white/70 transition-all text-sm">
             ← Realm
           </Link>
 
