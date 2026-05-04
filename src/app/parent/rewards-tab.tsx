@@ -74,7 +74,7 @@ export function RewardsTab({ rewards, actions }: Props) {
                 className="flex items-center gap-3 p-3 rounded-xl"
                 style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
               >
-                <AppIcon icon={r.icon} size={24} />
+                <AppIcon icon={r.icon} size={24} color="#fbbf24" />
                 <div className="flex-1">
                   <p className="text-white/90 text-sm font-semibold">{r.title}</p>
                   {r.description && <p className="text-white/40 text-xs">{r.description}</p>}

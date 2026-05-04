@@ -254,7 +254,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
             animate={{ y: [0, -6, 0] }}
             transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
           >
-            <AppIcon icon={kid.avatar} size={56} />
+            <AppIcon icon={kid.avatar} size={56} color={colors.primary} />
           </motion.span>
           <h2 className="font-heading text-3xl font-bold text-white mb-1">{kid.name}</h2>
           {lockedUntil && now < lockedUntil ? (
@@ -359,7 +359,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
           </Link>
 
           <div className="flex-1 flex items-center gap-3 justify-center">
-            <AppIcon icon={kid.avatar} size={32} />
+            <AppIcon icon={kid.avatar} size={32} color={colors.primary} />
             <div>
               <h1 className="font-heading text-2xl font-bold text-white/95">{kid.name}</h1>
               <p className="text-xs" style={{ color: colors.primary }}>Level {Math.floor(kid.coins / 50) + 1} Adventurer</p>
@@ -623,7 +623,7 @@ function RewardsTab({
           <p className="text-xs font-bold uppercase tracking-widest text-amber-400/55">⏳ Awaiting Approval</p>
           {pendingRedemptions.map((r) => (
             <div key={r.id} className="flex items-center gap-3">
-              <AppIcon icon={r.reward?.icon ?? 'GiPresent'} size={18} />
+              <AppIcon icon={r.reward?.icon ?? 'GiPresent'} size={18} color="#fbbf24" />
               <p className="flex-1 text-sm text-white/70">{r.reward?.title ?? 'Reward'}</p>
               <span className="text-xs text-white/35">🪙 {r.reward?.cost ?? '?'}</span>
               <button
@@ -656,7 +656,7 @@ function RewardsTab({
               border: '1px solid rgba(255, 255, 255, 0.08)',
             }}
           >
-            <AppIcon icon={reward.icon} size={32} />
+            <AppIcon icon={reward.icon} size={32} color="#fbbf24" />
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-white/90">{reward.title}</p>
               {reward.description && (

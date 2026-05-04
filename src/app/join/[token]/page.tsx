@@ -106,7 +106,7 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <AppIcon icon={kid.avatar} size={32} />
+                  <AppIcon icon={kid.avatar} size={32} color={colors.primary} />
                   <span className="font-heading font-bold text-lg" style={{ color: colors.primary }}>
                     {kid.name}
                   </span>
