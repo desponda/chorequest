@@ -1,5 +1,7 @@
 import { authenticate, isAuthError, cors } from '@/lib/api-auth'
 import { createServiceClient } from '@/lib/supabase/service'
+import type { Plan } from '@/lib/types'
+import { PLAN_LIMITS, PLAN_LABELS } from '@/lib/plans'
 
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: cors() })
@@ -37,6 +39,24 @@ export async function POST(req: Request) {
   }
 
   const supabase = createServiceClient()
+
+  const [familyRes, countRes] = await Promise.all([
+    supabase.from('families').select('plan').eq('id', auth.familyId).single(),
+    supabase.from('quests').select('id', { count: 'exact', head: true }).eq('family_id', auth.familyId).eq('active', true),
+  ])
+  const plan = ((familyRes.data?.plan ?? 'free') as Plan)
+  const limits = PLAN_LIMITS[plan]
+
+  if (limits.maxQuests < Infinity && (countRes.count ?? 0) >= limits.maxQuests) {
+    return Response.json({ error: `Quest limit reached for ${PLAN_LABELS[plan]} plan (max ${limits.maxQuests})` }, { status: 402, headers: cors() })
+  }
+  if (body.tier && body.tier !== 'normal' && !limits.questTiers) {
+    return Response.json({ error: 'Quest tiers (Heroic/Epic/Legendary) require Legendary plan' }, { status: 402, headers: cors() })
+  }
+  if (body.active_days?.length && !limits.activeDays) {
+    return Response.json({ error: 'Active day scheduling requires Legendary plan' }, { status: 402, headers: cors() })
+  }
+
   const { data, error } = await supabase
     .from('quests')
     .insert({

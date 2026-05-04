@@ -49,7 +49,7 @@ export function useParentData(): ParentData {
       familyRes, kidsRes, questsRes, completionsRes, rewardsRes,
       pendingRedemptionsRes, approvedRedemptionsRes, cursesRes, curseInstancesRes,
     ] = await Promise.all([
-      supabase.from('families').select('id, name, invite_token, api_key, daily_reset_hour, created_at, parent_pin').eq('id', profile.family_id).single(),
+      supabase.from('families').select('id, name, invite_token, api_key, daily_reset_hour, created_at, parent_pin, plan').eq('id', profile.family_id).single(),
       supabase.from('kids').select(KID_COLS).eq('family_id', profile.family_id).order('created_at'),
       supabase.from('quests').select('*').eq('family_id', profile.family_id).order('created_at'),
       supabase.from('completions').select(`*, quest:quests(*), kid:kids(${KID_COLS})`).eq('date', today).order('completed_at', { ascending: false }),
@@ -67,6 +67,7 @@ export function useParentData(): ParentData {
         has_parent_pin: parent_pin !== null,
         api_key: rest.api_key ?? undefined,
         daily_reset_hour: rest.daily_reset_hour ?? 0,
+        plan: (rest.plan as import('@/lib/types').Plan) ?? 'free',
       })
     }
     if (kidsRes.data) setKids(kidsRes.data as Kid[])

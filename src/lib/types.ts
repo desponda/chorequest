@@ -1,4 +1,5 @@
 export type KidColor = 'azure' | 'mystic'
+export type Plan = 'free' | 'family' | 'legendary'
 export type QuestFrequency = 'daily' | 'weekly' | 'once'
 export type QuestKind = 'personal' | 'shared' | 'oneoff'
 export type QuestTier = 'normal' | 'rare' | 'epic' | 'legendary'
@@ -11,6 +12,7 @@ export interface Family {
   invite_token: string
   api_key?: string
   daily_reset_hour: number
+  plan: Plan
   created_at: string
 }
 

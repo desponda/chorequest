@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import type { Kid, Curse, CurseInstance } from '@/lib/types'
+import type { Kid, Plan, Curse, CurseInstance } from '@/lib/types'
+import { PLAN_LIMITS } from '@/lib/plans'
 import { Empty, FormInput, Section, fadeSlide } from './_ui'
 import type { ParentActions } from './use-parent-actions'
 
@@ -13,9 +14,26 @@ interface Props {
   curses: Curse[]
   activeCurseInstances: CurseInstance[]
   actions: ParentActions
+  plan: Plan
 }
 
-export function CursesTab({ kids, curses, activeCurseInstances, actions }: Props) {
+export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }: Props) {
+  if (!PLAN_LIMITS[plan].curses) {
+    return (
+      <motion.div key="curses" {...fadeSlide} className="flex flex-col gap-6">
+        <div
+          className="rounded-2xl p-10 text-center flex flex-col items-center gap-3"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          <p className="text-5xl">🔒</p>
+          <p className="font-heading text-white/60 font-bold text-lg">Curses · Family Plan</p>
+          <p className="text-white/35 text-sm max-w-xs">
+            Curses let you instantly deduct coins for bad behavior. Available on Family and Legendary plans.
+          </p>
+        </div>
+      </motion.div>
+    )
+  }
   const [title, setTitle] = useState('')
   const [icon, setIcon] = useState('☠️')
   const [penalty, setPenalty] = useState(10)

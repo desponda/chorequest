@@ -10,6 +10,7 @@ create table families (
   invite_token uuid not null default gen_random_uuid() unique,
   api_key uuid not null default gen_random_uuid() unique,
   daily_reset_hour integer not null default 0 check (daily_reset_hour >= 0 and daily_reset_hour <= 23),
+  plan text not null default 'free' check (plan in ('free', 'family', 'legendary')),
   created_at timestamptz default now()
 );
 
