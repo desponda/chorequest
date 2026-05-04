@@ -5,8 +5,6 @@ import { motion } from 'framer-motion'
 import type { Reward } from '@/lib/types'
 import { ActionButton, Empty, FormInput, Section, fadeSlide } from './_ui'
 import type { ParentActions } from './use-parent-actions'
-import { REWARD_ICON_KEYS } from '@/lib/icons'
-import { AppIcon } from '@/components/app-icon'
 
 interface Props {
   rewards: Reward[]
@@ -16,7 +14,7 @@ interface Props {
 export function RewardsTab({ rewards, actions }: Props) {
   const [title, setTitle] = useState('')
   const [desc, setDesc] = useState('')
-  const [icon, setIcon] = useState('GiPresent')
+  const [icon, setIcon] = useState('🎁')
   const [cost, setCost] = useState(50)
 
   const handleAdd = async () => {
@@ -31,18 +29,17 @@ export function RewardsTab({ rewards, actions }: Props) {
       <Section title="Add Reward">
         <div className="flex flex-col gap-3">
           <div className="flex gap-2 flex-wrap">
-            {REWARD_ICON_KEYS.map((ic) => (
+            {['🎁', '🎮', '📱', '🍕', '🎬', '🎡', '🎪', '🛒', '💤', '🎯', '🎨', '🎵'].map((ic) => (
               <button
                 key={ic}
                 onClick={() => setIcon(ic)}
-                className="w-10 h-10 rounded-xl transition-all flex items-center justify-center"
+                className="text-xl w-10 h-10 rounded-xl transition-all"
                 style={{
                   background: icon === ic ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.05)',
                   border: `1px solid ${icon === ic ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.08)'}`,
-                  color: icon === ic ? '#fbbf24' : 'rgba(255,255,255,0.6)',
                 }}
               >
-                <AppIcon icon={ic} size={20} />
+                {ic}
               </button>
             ))}
           </div>
@@ -74,7 +71,7 @@ export function RewardsTab({ rewards, actions }: Props) {
                 className="flex items-center gap-3 p-3 rounded-xl"
                 style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
               >
-                <AppIcon icon={r.icon} size={24} color="#fbbf24" />
+                <span className="text-2xl">{r.icon}</span>
                 <div className="flex-1">
                   <p className="text-white/90 text-sm font-semibold">{r.title}</p>
                   {r.description && <p className="text-white/40 text-xs">{r.description}</p>}

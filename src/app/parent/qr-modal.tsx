@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import QRCode from 'react-qr-code'
 import { toast } from 'sonner'
 import type { Kid } from '@/lib/types'
-import { AppIcon } from '@/components/app-icon'
 
 interface Props {
   kid: Kid | null
@@ -41,7 +40,7 @@ export function QrModal({ kid, onClose }: Props) {
               >
                 ✕
               </button>
-              <span className="block mb-2"><AppIcon icon={kid.avatar} size={40} /></span>
+              <span className="text-4xl block mb-2">{kid.avatar}</span>
               <h3 className="font-heading font-bold text-white text-xl mb-4">{kid.name}</h3>
               <div className="bg-white p-4 rounded-2xl inline-block mb-4">
                 <QRCode value={kidUrl} size={160} />

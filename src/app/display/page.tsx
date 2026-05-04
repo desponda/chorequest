@@ -10,7 +10,6 @@ import { StarField } from '@/components/star-field'
 import { KidColumn } from '@/components/kid-column'
 import type { Kid, Quest, Completion, Family, Reward } from '@/lib/types'
 import { KID_COLORS, TIER_CONFIG } from '@/lib/constants'
-import { AppIcon } from '@/components/app-icon'
 import { questDateString, questWeekKey } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -357,7 +356,7 @@ export default function WallDisplay() {
                   whileTap={!isFull ? { scale: 0.97 } : {}}
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <AppIcon icon={quest.icon} size={22} color={isFull ? 'rgba(255,255,255,0.3)' : tier.color} />
+                    <span className="text-2xl">{quest.icon}</span>
                     <div className="text-right">
                       <div className="flex items-center gap-1 justify-end">
                         <span className="text-sm">🪙</span>
@@ -475,7 +474,7 @@ export default function WallDisplay() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.04 }}
                     >
-                      <AppIcon icon={reward.icon} size={30} color="#fbbf24" />
+                      <span className="text-3xl flex-shrink-0">{reward.icon}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-white/88 leading-snug">{reward.title}</p>
                         {reward.description && (
@@ -534,7 +533,7 @@ export default function WallDisplay() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-3 justify-center mb-2">
-                <AppIcon icon={claimingBounty.icon} size={32} color={TIER_CONFIG[claimingBounty.tier ?? 'normal'].color} />
+                <span className="text-3xl">{claimingBounty.icon}</span>
                 <p className="font-heading font-bold text-lg text-white/90">{claimingBounty.title}</p>
               </div>
               <p className="text-center text-white/40 text-sm mb-6">Who&apos;s doing this bounty?</p>
@@ -551,7 +550,7 @@ export default function WallDisplay() {
                       whileHover={{ scale: 1.06, boxShadow: `0 0 20px ${colors.glow}` }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      <AppIcon icon={kid.avatar} size={40} color={colors.primary} />
+                      <span className="text-4xl">{kid.avatar}</span>
                       <span className="text-sm font-bold" style={{ color: colors.primary }}>{kid.name}</span>
                     </motion.button>
                   )

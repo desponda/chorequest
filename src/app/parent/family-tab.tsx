@@ -4,9 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import type { Family, Kid, KidColor } from '@/lib/types'
-import { KID_COLORS } from '@/lib/constants'
-import { KID_AVATAR_KEYS } from '@/lib/icons'
-import { AppIcon } from '@/components/app-icon'
+import { KID_AVATARS, KID_COLORS } from '@/lib/constants'
 import { ActionButton, Empty, FormInput, Section, fadeSlide } from './_ui'
 import type { ParentActions } from './use-parent-actions'
 
@@ -189,7 +187,7 @@ function ParentLockSettings({ family, actions }: { family: Family | null; action
 
 function AddKidForm({ actions }: { actions: ParentActions }) {
   const [name, setName] = useState('')
-  const [avatar, setAvatar] = useState('GiWizardFace')
+  const [avatar, setAvatar] = useState('🧙')
   const [color, setColor] = useState<KidColor>('azure')
   const [pin, setPin] = useState('')
 
@@ -206,18 +204,17 @@ function AddKidForm({ actions }: { actions: ParentActions }) {
         <div>
           <label className="text-xs text-white/40 mb-1.5 block">Avatar</label>
           <div className="flex flex-wrap gap-2">
-            {KID_AVATAR_KEYS.map((av) => (
+            {KID_AVATARS.map((av) => (
               <button
                 key={av}
                 onClick={() => setAvatar(av)}
-                className="w-10 h-10 rounded-xl transition-all flex items-center justify-center"
+                className="text-2xl w-10 h-10 rounded-xl transition-all"
                 style={{
                   background: avatar === av ? 'rgba(251,191,36,0.18)' : 'rgba(255,255,255,0.05)',
                   border: `1px solid ${avatar === av ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.08)'}`,
-                  color: avatar === av ? '#fbbf24' : 'rgba(255,255,255,0.6)',
                 }}
               >
-                <AppIcon icon={av} size={20} />
+                {av}
               </button>
             ))}
           </div>
@@ -293,7 +290,7 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
                 className="flex items-center gap-4 p-4 rounded-2xl"
                 style={{ background: colors.bg, border: `1px solid ${colors.border}` }}
               >
-                <AppIcon icon={kid.avatar} size={32} color={colors.primary} />
+                <span className="text-3xl">{kid.avatar}</span>
                 <div className="flex-1">
                   <p className="font-semibold text-white/90">{kid.name}</p>
                   {editingCoinsKidId === kid.id ? (

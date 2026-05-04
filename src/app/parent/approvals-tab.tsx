@@ -3,9 +3,7 @@
 import { motion } from 'framer-motion'
 import { QuestCard } from '@/components/quest-card'
 import type { Kid, Quest, Completion, Reward, Redemption } from '@/lib/types'
-import { KID_COLORS } from '@/lib/constants'
 import { Empty, fadeSlide } from './_ui'
-import { AppIcon } from '@/components/app-icon'
 import type { ParentActions } from './use-parent-actions'
 
 interface Props {
@@ -48,11 +46,11 @@ export function ApprovalsTab({
                   className="flex items-center gap-3 p-3 rounded-2xl"
                   style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.18)' }}
                 >
-                  <AppIcon icon={reward.icon} size={24} color="#fbbf24" />
+                  <span className="text-2xl">{reward.icon}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-white/90 text-sm font-semibold truncate">{reward.title}</p>
                     <p className="text-white/45 text-xs">
-                      <AppIcon icon={kid.avatar} size={16} color={KID_COLORS[kid.color].primary} style={{ display: 'inline' }} /> {kid.name} · 🪙 {reward.cost} coins
+                      <span>{kid.avatar}</span> {kid.name} · 🪙 {reward.cost} coins
                     </p>
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
@@ -90,7 +88,7 @@ export function ApprovalsTab({
           return (
             <div key={c.id} className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <div className="flex items-center gap-3 px-4 pt-4 pb-2">
-                <AppIcon icon={kid.avatar} size={24} color={KID_COLORS[kid.color].primary} />
+                <span className="text-2xl">{kid.avatar}</span>
                 <div>
                   <p className="font-semibold text-white/90 text-sm">{kid.name}</p>
                   <p className="text-white/40 text-xs">completed a quest</p>
@@ -124,7 +122,7 @@ export function ApprovalsTab({
               if (!kid) return null
               return (
                 <div key={c.id} className="flex items-center gap-3 py-2">
-                  <AppIcon icon={kid.avatar} size={18} color={KID_COLORS[kid.color].primary} />
+                  <span className="text-lg">{kid.avatar}</span>
                   <span className="text-white/50 text-sm">{kid.name}</span>
                   <span className="text-white/35 text-sm flex-1 truncate">{(c.quest as Quest)?.title}</span>
                   <span className={`text-xs font-semibold flex-shrink-0 ${c.status === 'approved' ? 'text-cq-forest' : 'text-red-400'}`}>
@@ -148,7 +146,7 @@ export function ApprovalsTab({
               <div key={r.id} className="flex items-center gap-3 py-2">
                 <span className="text-lg">{kid.avatar}</span>
                 <span className="text-white/50 text-sm">{kid.name}</span>
-                <span className="text-white/35 text-sm flex-1 truncate flex items-center gap-1.5"><AppIcon icon={reward.icon} size={16} color="#fbbf24" /> {reward.title}</span>
+                <span className="text-white/35 text-sm flex-1 truncate flex items-center gap-1.5"><span>{reward.icon}</span> {reward.title}</span>
                 <span className="text-xs font-semibold flex-shrink-0 text-cq-gold">
                   🎁 -{reward.cost}🪙
                 </span>
