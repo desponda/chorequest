@@ -147,10 +147,10 @@ export default function ParentDashboard() {
               />
             )}
             {tab === 'quests' && (
-              <QuestsTab kids={data.kids} quests={data.quests} actions={actions} />
+              <QuestsTab kids={data.kids} quests={data.quests} actions={actions} plan={data.family?.plan ?? 'free'} />
             )}
             {tab === 'rewards' && (
-              <RewardsTab rewards={data.rewards} actions={actions} />
+              <RewardsTab rewards={data.rewards} actions={actions} plan={data.family?.plan ?? 'free'} />
             )}
             {tab === 'curses' && (
               <CursesTab
@@ -158,6 +158,7 @@ export default function ParentDashboard() {
                 curses={data.curses}
                 activeCurseInstances={data.activeCurseInstances}
                 actions={actions}
+                plan={data.family?.plan ?? 'free'}
               />
             )}
             {tab === 'family' && (

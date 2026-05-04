@@ -36,7 +36,7 @@ export default function WallDisplay() {
     if (!profile) return
 
     const [familyRes, kidsRes, questsRes, rewardsRes] = await Promise.all([
-      supabase.from('families').select('id, name, invite_token, daily_reset_hour, created_at').eq('id', profile.family_id).single(),
+      supabase.from('families').select('id, name, invite_token, daily_reset_hour, created_at, plan').eq('id', profile.family_id).single(),
       supabase.from('kids').select('id, name, avatar, color, coins, streak, last_completed_date, family_id, created_at').eq('family_id', profile.family_id).order('created_at'),
       supabase.from('quests').select('*').eq('family_id', profile.family_id).eq('active', true).order('created_at'),
       supabase.from('rewards').select('*').eq('available', true).order('cost'),
@@ -51,7 +51,7 @@ export default function WallDisplay() {
       supabase.from('curse_instances').select('kid_id').eq('status', 'active'),
     ])
 
-    if (familyRes.data) setFamily({ ...familyRes.data, has_parent_pin: false })
+    if (familyRes.data) setFamily({ ...familyRes.data, has_parent_pin: false, plan: (familyRes.data.plan as import('@/lib/types').Plan) ?? 'free' })
     if (kidsRes.data) setKids(kidsRes.data)
     if (questsRes.data) setQuests(questsRes.data)
     if (rewardsRes.data) setRewards(rewardsRes.data)

@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import type { Kid, Quest } from '@/lib/types'
+import type { Kid, Plan, Quest } from '@/lib/types'
+import { PLAN_LABELS, PLAN_LIMITS } from '@/lib/plans'
 import { ActionButton, Empty, Section, fadeSlide } from './_ui'
 import { QuestFormFields, initialQuestFormState, type QuestFormState } from './quest-form'
 import { QuestRow } from './quest-row'
@@ -12,10 +13,14 @@ interface Props {
   kids: Kid[]
   quests: Quest[]
   actions: ParentActions
+  plan: Plan
 }
 
-export function QuestsTab({ kids, quests, actions }: Props) {
+export function QuestsTab({ kids, quests, actions, plan }: Props) {
   const [state, setState] = useState<QuestFormState>(initialQuestFormState)
+  const limits = PLAN_LIMITS[plan]
+  const activeCount = quests.filter((q) => q.active).length
+  const atLimit = limits.maxQuests < Infinity && activeCount >= limits.maxQuests
 
   const update = (patch: Partial<QuestFormState>) => setState((s) => ({ ...s, ...patch }))
 
@@ -52,8 +57,13 @@ export function QuestsTab({ kids, quests, actions }: Props) {
     <motion.div key="quests" {...fadeSlide} className="flex flex-col gap-6">
       <Section title="Add New Quest">
         <div className="flex flex-col gap-3">
-          <QuestFormFields state={state} onChange={update} kids={kids} iconLimit={14} />
-          <ActionButton onClick={handleAdd} label="+ Add Quest" />
+          <QuestFormFields state={state} onChange={update} kids={kids} iconLimit={14} plan={plan} />
+          {limits.maxQuests < Infinity && (
+            <p className="text-xs text-center" style={{ color: atLimit ? '#fb923c' : 'rgba(255,255,255,0.3)' }}>
+              {activeCount} / {limits.maxQuests} active quests · {PLAN_LABELS[plan]} plan
+            </p>
+          )}
+          <ActionButton onClick={handleAdd} label={atLimit ? 'Quest limit reached' : '+ Add Quest'} disabled={atLimit} />
         </div>
       </Section>
 

@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import type { Family, Kid, KidColor } from '@/lib/types'
 import { KID_AVATARS, KID_COLORS } from '@/lib/constants'
+import { PLAN_LABELS, PLAN_LIMITS } from '@/lib/plans'
 import { ActionButton, Empty, FormInput, Section, fadeSlide } from './_ui'
 import type { ParentActions } from './use-parent-actions'
 
@@ -23,7 +24,7 @@ export function FamilyTab({ family, kids, onShowQr, actions }: Props) {
       <RealmName family={family} actions={actions} />
       <DailyResetSettings family={family} actions={actions} />
       <ParentLockSettings family={family} actions={actions} />
-      <AddKidForm actions={actions} />
+      <AddKidForm family={family} kidCount={kids.length} actions={actions} />
       <KidList kids={kids} onShowQr={onShowQr} actions={actions} />
       {family && <InviteLink family={family} actions={actions} />}
       {family?.api_key && <ApiKey family={family} actions={actions} />}
@@ -185,11 +186,14 @@ function ParentLockSettings({ family, actions }: { family: Family | null; action
   )
 }
 
-function AddKidForm({ actions }: { actions: ParentActions }) {
+function AddKidForm({ family, kidCount, actions }: { family: Family | null; kidCount: number; actions: ParentActions }) {
   const [name, setName] = useState('')
   const [avatar, setAvatar] = useState('🧙')
   const [color, setColor] = useState<KidColor>('azure')
   const [pin, setPin] = useState('')
+  const plan = family?.plan ?? 'free'
+  const limits = PLAN_LIMITS[plan]
+  const atLimit = limits.maxKids < Infinity && kidCount >= limits.maxKids
 
   const handleAdd = async () => {
     await actions.addKid({ name, avatar, color, pin })
@@ -255,10 +259,15 @@ function AddKidForm({ actions }: { actions: ParentActions }) {
           />
         </div>
 
+        {limits.maxKids < Infinity && (
+          <p className="text-xs text-center" style={{ color: atLimit ? '#fb923c' : 'rgba(255,255,255,0.3)' }}>
+            {kidCount} / {limits.maxKids} adventurers · {PLAN_LABELS[plan]} plan
+          </p>
+        )}
         <ActionButton
           onClick={handleAdd}
-          label="+ Add Adventurer"
-          disabled={!name.trim() || pin.length !== 4}
+          label={atLimit ? 'Adventurer limit reached' : '+ Add Adventurer'}
+          disabled={atLimit || !name.trim() || pin.length !== 4}
         />
       </div>
     </Section>

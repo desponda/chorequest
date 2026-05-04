@@ -2,20 +2,24 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import type { Reward } from '@/lib/types'
+import type { Plan, Reward } from '@/lib/types'
+import { PLAN_LABELS, PLAN_LIMITS } from '@/lib/plans'
 import { ActionButton, Empty, FormInput, Section, fadeSlide } from './_ui'
 import type { ParentActions } from './use-parent-actions'
 
 interface Props {
   rewards: Reward[]
   actions: ParentActions
+  plan: Plan
 }
 
-export function RewardsTab({ rewards, actions }: Props) {
+export function RewardsTab({ rewards, actions, plan }: Props) {
   const [title, setTitle] = useState('')
   const [desc, setDesc] = useState('')
   const [icon, setIcon] = useState('🎁')
   const [cost, setCost] = useState(50)
+  const limits = PLAN_LIMITS[plan]
+  const atLimit = limits.maxRewards < Infinity && rewards.length >= limits.maxRewards
 
   const handleAdd = async () => {
     if (!title.trim()) return
@@ -56,7 +60,12 @@ export function RewardsTab({ rewards, actions }: Props) {
               style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
             />
           </div>
-          <ActionButton onClick={handleAdd} label="+ Add Reward" />
+          {limits.maxRewards < Infinity && (
+            <p className="text-xs text-center" style={{ color: atLimit ? '#fb923c' : 'rgba(255,255,255,0.3)' }}>
+              {rewards.length} / {limits.maxRewards} rewards · {PLAN_LABELS[plan]} plan
+            </p>
+          )}
+          <ActionButton onClick={handleAdd} label={atLimit ? 'Reward limit reached' : '+ Add Reward'} disabled={atLimit} />
         </div>
       </Section>
 

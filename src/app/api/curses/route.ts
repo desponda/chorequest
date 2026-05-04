@@ -1,5 +1,7 @@
 import { authenticate, isAuthError, cors } from '@/lib/api-auth'
 import { createServiceClient } from '@/lib/supabase/service'
+import type { Plan } from '@/lib/types'
+import { PLAN_LIMITS } from '@/lib/plans'
 
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: cors() })
@@ -30,6 +32,13 @@ export async function POST(req: Request) {
   }
 
   const supabase = createServiceClient()
+
+  const { data: familyData } = await supabase.from('families').select('plan').eq('id', auth.familyId).single()
+  const plan = ((familyData?.plan ?? 'free') as Plan)
+  if (!PLAN_LIMITS[plan].curses) {
+    return Response.json({ error: 'Curses require Family plan or higher' }, { status: 402, headers: cors() })
+  }
+
   const { data, error } = await supabase
     .from('curses')
     .insert({

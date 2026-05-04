@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Family, Kid, Quest, QuestKind, QuestFrequency, QuestTier, Completion, Reward, Redemption, Curse, CurseInstance } from '@/lib/types'
 import { DEFAULT_QUESTS } from '@/lib/constants'
+import { PLAN_LIMITS, PLAN_LABELS, PLAN_UPGRADE_HINT } from '@/lib/plans'
 import { questDateString } from '@/lib/utils'
 import { getStreakBonus, yesterday } from './_streak'
 
@@ -15,6 +16,8 @@ interface Deps {
   completions: Completion[]
   redemptions: Redemption[]
   kids: Kid[]
+  quests: Quest[]
+  rewards: Reward[]
   curses: Curse[]
   activeCurseInstances: CurseInstance[]
   refetch: () => Promise<void>
@@ -63,7 +66,7 @@ export interface AddQuestInput {
 }
 
 export function useParentActions(deps: Deps): ParentActions {
-  const { supabase, family, completions, redemptions, kids, curses, activeCurseInstances, refetch } = deps
+  const { supabase, family, completions, redemptions, kids, quests, rewards, curses, activeCurseInstances, refetch } = deps
   const router = useRouter()
 
   const approve = useCallback(async (completionId: string) => {
@@ -169,6 +172,12 @@ export function useParentActions(deps: Deps): ParentActions {
 
   const addKid = useCallback(async (data: { name: string; avatar: string; color: 'azure' | 'mystic'; pin: string }) => {
     if (!data.name.trim() || data.pin.length !== 4 || !family) return
+    const plan = family.plan ?? 'free'
+    const limits = PLAN_LIMITS[plan]
+    if (limits.maxKids < Infinity && kids.length >= limits.maxKids) {
+      toast.error(`Kid limit reached (${limits.maxKids} max on ${PLAN_LABELS[plan]} plan). ${PLAN_UPGRADE_HINT[plan]}`)
+      return
+    }
     const { error } = await supabase.from('kids').insert({
       family_id: family.id,
       name: data.name.trim(),
@@ -182,10 +191,25 @@ export function useParentActions(deps: Deps): ParentActions {
     } else {
       toast.error('Failed to add adventurer')
     }
-  }, [family, refetch, supabase])
+  }, [family, kids, refetch, supabase])
 
   const addQuest = useCallback(async (data: AddQuestInput) => {
     if (!data.title.trim() || !family) return
+    const plan = family.plan ?? 'free'
+    const limits = PLAN_LIMITS[plan]
+    const activeQuestCount = quests.filter((q) => q.active).length
+    if (limits.maxQuests < Infinity && activeQuestCount >= limits.maxQuests) {
+      toast.error(`Quest limit reached (${limits.maxQuests} max on ${PLAN_LABELS[plan]} plan). ${PLAN_UPGRADE_HINT[plan]}`)
+      return
+    }
+    if (data.tier !== 'normal' && !limits.questTiers) {
+      toast.error(`Quest tiers require Legendary plan. ${PLAN_UPGRADE_HINT[plan]}`)
+      return
+    }
+    if (data.activeDays.length > 0 && !limits.activeDays) {
+      toast.error(`Active day scheduling requires Legendary plan. ${PLAN_UPGRADE_HINT[plan]}`)
+      return
+    }
     const { error } = await supabase.from('quests').insert({
       family_id: family.id,
       title: data.title.trim(),
@@ -211,7 +235,7 @@ export function useParentActions(deps: Deps): ParentActions {
     } else {
       toast.error('Failed to add quest')
     }
-  }, [family, refetch, supabase])
+  }, [family, quests, refetch, supabase])
 
   const toggleQuest = useCallback(async (id: string, active: boolean) => {
     await supabase.from('quests').update({ active: !active }).eq('id', id)
@@ -234,8 +258,17 @@ export function useParentActions(deps: Deps): ParentActions {
 
   const seedDefaultQuests = useCallback(async () => {
     if (!family) return
+    const plan = family.plan ?? 'free'
+    const limits = PLAN_LIMITS[plan]
+    const activeCount = quests.filter((q) => q.active).length
+    const slots = limits.maxQuests === Infinity ? DEFAULT_QUESTS.length : Math.max(0, limits.maxQuests - activeCount)
+    const toSeed = DEFAULT_QUESTS.slice(0, slots)
+    if (toSeed.length === 0) {
+      toast.error(`Quest limit reached (${limits.maxQuests} on ${PLAN_LABELS[plan]} plan). ${PLAN_UPGRADE_HINT[plan]}`)
+      return
+    }
     await supabase.from('quests').insert(
-      DEFAULT_QUESTS.map((q) => ({
+      toSeed.map((q) => ({
         ...q,
         family_id: family.id,
         kind: 'personal' as const,
@@ -244,12 +277,21 @@ export function useParentActions(deps: Deps): ParentActions {
         active: true,
       }))
     )
-    toast.success('Default quests added! ✨')
+    const msg = toSeed.length < DEFAULT_QUESTS.length
+      ? `Added ${toSeed.length}/${DEFAULT_QUESTS.length} starter quests (${PLAN_LABELS[plan]} plan limit) ✨`
+      : 'Default quests added! ✨'
+    toast.success(msg)
     await refetch()
-  }, [family, refetch, supabase])
+  }, [family, quests, refetch, supabase])
 
   const addReward = useCallback(async (data: { title: string; description: string; icon: string; cost: number }) => {
     if (!data.title.trim() || !family) return
+    const plan = family.plan ?? 'free'
+    const limits = PLAN_LIMITS[plan]
+    if (limits.maxRewards < Infinity && rewards.length >= limits.maxRewards) {
+      toast.error(`Reward limit reached (${limits.maxRewards} max on ${PLAN_LABELS[plan]} plan). ${PLAN_UPGRADE_HINT[plan]}`)
+      return
+    }
     const { error } = await supabase.from('rewards').insert({
       family_id: family.id,
       title: data.title.trim(),
@@ -262,7 +304,7 @@ export function useParentActions(deps: Deps): ParentActions {
       toast.success('Reward added to the store! 🎁')
       await refetch()
     }
-  }, [family, refetch, supabase])
+  }, [family, rewards, refetch, supabase])
 
   const deleteReward = useCallback(async (id: string) => {
     await supabase.from('rewards').delete().eq('id', id)
@@ -325,6 +367,11 @@ export function useParentActions(deps: Deps): ParentActions {
 
   const addCurse = useCallback(async (data: { title: string; icon: string; penalty: number }) => {
     if (!data.title.trim() || !family) return
+    const plan = family.plan ?? 'free'
+    if (!PLAN_LIMITS[plan].curses) {
+      toast.error(`Curses require Family plan or higher. ${PLAN_UPGRADE_HINT[plan]}`)
+      return
+    }
     const { error } = await supabase.from('curses').insert({
       family_id: family.id,
       title: data.title.trim(),
