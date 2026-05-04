@@ -293,7 +293,7 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
                 className="flex items-center gap-4 p-4 rounded-2xl"
                 style={{ background: colors.bg, border: `1px solid ${colors.border}` }}
               >
-                <AppIcon icon={kid.avatar} size={32} />
+                <AppIcon icon={kid.avatar} size={32} color={colors.primary} />
                 <div className="flex-1">
                   <p className="font-semibold text-white/90">{kid.name}</p>
                   {editingCoinsKidId === kid.id ? (

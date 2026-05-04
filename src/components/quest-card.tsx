@@ -159,7 +159,7 @@ export function QuestCard({
 
       <div className="p-4">
         <div className="flex items-start gap-3">
-          <AppIcon icon={quest.icon} size={24} style={{ marginTop: 2 }} />
+          <AppIcon icon={quest.icon} size={24} color={isNormal ? 'rgba(255,255,255,0.65)' : tier.color} style={{ marginTop: 2 }} />
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
