@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import type { Kid, Quest, QuestKind, QuestTier } from '@/lib/types'
 import { TIER_CONFIG } from '@/lib/constants'
 import { QuestFormFields, type QuestFormState } from './quest-form'
+import { AppIcon } from '@/components/app-icon'
 
 interface Props {
   quest: Quest
@@ -68,7 +69,7 @@ export function QuestRow({ quest, kids, onToggle, onDelete, onSave }: Props) {
       style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
     >
       <div className="flex items-center gap-3 p-3">
-        <span className="text-xl">{quest.icon}</span>
+        <AppIcon icon={quest.icon} size={20} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <p className={`text-sm font-semibold ${quest.active ? 'text-white/90' : 'text-white/40 line-through'}`}>

@@ -6,6 +6,7 @@ import { use, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { AppIcon } from '@/components/app-icon'
 import { createClient } from '@/lib/supabase/client'
 import { StarField } from '@/components/star-field'
 import { KID_COLORS } from '@/lib/constants'
@@ -105,7 +106,7 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <span className="text-3xl">{kid.avatar}</span>
+                  <AppIcon icon={kid.avatar} size={32} />
                   <span className="font-heading font-bold text-lg" style={{ color: colors.primary }}>
                     {kid.name}
                   </span>
