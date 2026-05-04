@@ -240,6 +240,7 @@ export default function MarketingPage() {
           <a href="#how-it-works" className="hover:text-white/80 transition-colors">How It Works</a>
           <a href="#features" className="hover:text-white/80 transition-colors">Features</a>
           <a href="#pricing" className="hover:text-white/80 transition-colors">Pricing</a>
+          <Link href="/blog" className="hover:text-white/80 transition-colors">Blog</Link>
         </nav>
         <Link
           href="/login"
@@ -611,6 +612,7 @@ export default function MarketingPage() {
             No ads. No tracking. Family-safe. Built with love for our own chaotic household.
           </p>
           <div className="flex items-center gap-5 text-white/30 text-sm">
+            <Link href="/blog" className="hover:text-white/60 transition-colors">Blog</Link>
             <Link href="/login" className="hover:text-white/60 transition-colors">Sign in</Link>
             <Link href="/login" className="hover:text-white/60 transition-colors">Sign up</Link>
           </div>
