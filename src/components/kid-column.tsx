@@ -3,7 +3,6 @@
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import type { Kid, Quest, Completion } from '@/lib/types'
-import { AppIcon } from './app-icon'
 import { KID_COLORS } from '@/lib/constants'
 import { CoinCounter } from './coin-counter'
 import { StreakBadge } from './streak-badge'
@@ -86,7 +85,7 @@ export function KidColumn({
                 animate={{ y: [0, -5, 0] }}
                 transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
               >
-                <AppIcon icon={kid.avatar} size={48} color={colors.primary} />
+                {kid.avatar}
               </motion.span>
               <div
                 className="absolute -inset-2 rounded-full -z-10 opacity-30 blur-md"

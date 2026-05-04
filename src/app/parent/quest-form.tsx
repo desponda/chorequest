@@ -1,9 +1,7 @@
 'use client'
 
 import type { Kid, QuestKind, QuestTier } from '@/lib/types'
-import { TIER_CONFIG } from '@/lib/constants'
-import { QUEST_ICON_KEYS } from '@/lib/icons'
-import { AppIcon } from '@/components/app-icon'
+import { QUEST_ICONS, TIER_CONFIG } from '@/lib/constants'
 
 const DAY_LABELS = ['Su','Mo','Tu','We','Th','Fr','Sa']
 const TIERS: QuestTier[] = ['normal', 'heroic', 'legendary', 'epic']
@@ -51,7 +49,7 @@ interface Props {
 export const initialQuestFormState: QuestFormState = {
   title: '',
   description: '',
-  icon: 'GiSwordman',
+  icon: '⚔️',
   coins: 10,
   forKid: 'all',
   kind: 'personal',
@@ -69,7 +67,7 @@ export function normalizeKindFrequency(kind: QuestKind, frequency: QuestFormStat
 }
 
 export function QuestFormFields({ state, onChange, kids, iconLimit, inputBg }: Props) {
-  const icons = iconLimit ? QUEST_ICON_KEYS.slice(0, iconLimit) : QUEST_ICON_KEYS
+  const icons = iconLimit ? QUEST_ICONS.slice(0, iconLimit) : QUEST_ICONS
   const inputStyle = inputBg ?? 'rgba(255,255,255,0.06)'
   const inputBorder = '1px solid rgba(255,255,255,0.1)'
 
@@ -89,14 +87,13 @@ export function QuestFormFields({ state, onChange, kids, iconLimit, inputBg }: P
           <button
             key={ic}
             onClick={() => onChange({ icon: ic })}
-            className="w-10 h-10 rounded-xl transition-all flex items-center justify-center"
+            className="text-xl w-10 h-10 rounded-xl transition-all"
             style={{
               background: state.icon === ic ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.05)',
               border: `1px solid ${state.icon === ic ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.08)'}`,
-              color: state.icon === ic ? '#fbbf24' : 'rgba(255,255,255,0.6)',
             }}
           >
-            <AppIcon icon={ic} size={20} />
+            {ic}
           </button>
         ))}
       </div>
