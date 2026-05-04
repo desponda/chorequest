@@ -18,6 +18,11 @@ interface Props {
 }
 
 export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }: Props) {
+  const [title, setTitle] = useState('')
+  const [icon, setIcon] = useState('☠️')
+  const [penalty, setPenalty] = useState(10)
+  const [castingCurseId, setCastingCurseId] = useState<string | null>(null)
+
   if (!PLAN_LIMITS[plan].curses) {
     return (
       <motion.div key="curses" {...fadeSlide} className="flex flex-col gap-6">
@@ -34,10 +39,6 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
       </motion.div>
     )
   }
-  const [title, setTitle] = useState('')
-  const [icon, setIcon] = useState('☠️')
-  const [penalty, setPenalty] = useState(10)
-  const [castingCurseId, setCastingCurseId] = useState<string | null>(null)
 
   const handleAdd = async () => {
     if (!title.trim()) return
