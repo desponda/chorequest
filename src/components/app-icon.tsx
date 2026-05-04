@@ -1,3 +1,4 @@
+import React from 'react'
 import { getIcon } from '@/lib/icons'
 
 interface AppIconProps {
@@ -16,14 +17,12 @@ export function AppIcon({ icon, size = 24, color, className, style }: AppIconPro
   const Icon = getIcon(icon)
 
   if (Icon) {
-    return (
-      <Icon
-        size={size}
-        color={color}
-        className={className}
-        style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0, ...style }}
-      />
-    )
+    return React.createElement(Icon, {
+      size,
+      color,
+      className,
+      style: { display: 'inline-block', verticalAlign: 'middle', flexShrink: 0, ...style },
+    })
   }
 
   // Emoji / legacy fallback
