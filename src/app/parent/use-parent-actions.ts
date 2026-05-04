@@ -139,17 +139,31 @@ export function useParentActions(deps: Deps): ParentActions {
     const reward = redemption.reward as Reward | undefined
     if (!kid || !reward) return
 
-    const { error } = await supabase.from('redemptions').update({ status: 'approved' }).eq('id', redemptionId)
-    if (!error) {
-      await supabase.from('kids').update({ coins: Math.max(0, kid.coins - reward.cost) }).eq('id', kid.id)
-      toast.success(`${kid.name} got ${reward.title}! 🎁 -${reward.cost} coins`)
+    const { data: updated, error } = await supabase
+      .from('redemptions')
+      .update({ status: 'approved' })
+      .eq('id', redemptionId)
+      .eq('status', 'pending')
+      .select('id')
+
+    if (error || !updated || updated.length === 0) {
+      toast.error('Request was already cancelled by the kid')
       await refetch()
+      return
     }
+
+    await supabase.from('kids').update({ coins: Math.max(0, kid.coins - reward.cost) }).eq('id', kid.id)
+    toast.success(`${kid.name} got ${reward.title}! 🎁 -${reward.cost} coins`)
+    await refetch()
   }, [redemptions, refetch, supabase])
 
   const denyRedemption = useCallback(async (redemptionId: string) => {
-    await supabase.from('redemptions').delete().eq('id', redemptionId)
-    toast.success('Reward request denied')
+    const { count } = await supabase.from('redemptions').delete({ count: 'exact' }).eq('id', redemptionId)
+    if (count === 0) {
+      toast.success('Already cancelled by the kid')
+    } else {
+      toast.success('Reward request denied')
+    }
     await refetch()
   }, [refetch, supabase])
 
