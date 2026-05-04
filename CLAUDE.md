@@ -27,6 +27,8 @@ src/
   app/
     page.tsx                        # Marketing landing page (public, unauthenticated visitors)
     display/page.tsx                # Wall display — real-time grid of kid columns (always fullscreen)
+    blog/page.tsx                   # Blog listing — published posts, SEO metadata (server component)
+    blog/[slug]/page.tsx            # Blog post — markdown body, sources, Open Graph (server component)
     login/page.tsx                  # Auth — email/password login and signup
     parent/page.tsx                 # Parent dashboard — 4 tabs: Approvals, Quests, Family, Rewards
     kid/[id]/page.tsx               # Kid view — PIN lock + quest board + rewards tab
@@ -83,6 +85,7 @@ src/
 | `completions` | Records of quests completed: pending → approved/rejected |
 | `rewards` | Prize catalog managed by parent |
 | `redemptions` | Kid reward redemption requests |
+| `posts` | Blog articles — `slug`, `body` (markdown), `sources` (jsonb), `published` flag; public SELECT on published=true |
 
 ## Security Model
 
