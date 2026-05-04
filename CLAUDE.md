@@ -25,7 +25,8 @@ ChoreQuest is a fantasy-themed family chore app. Parents manage quests and rewar
 ```
 src/
   app/
-    page.tsx                        # Wall display — real-time grid of kid columns (always fullscreen)
+    page.tsx                        # Marketing landing page (public, unauthenticated visitors)
+    display/page.tsx                # Wall display — real-time grid of kid columns (always fullscreen)
     login/page.tsx                  # Auth — email/password login and signup
     parent/page.tsx                 # Parent dashboard — 4 tabs: Approvals, Quests, Family, Rewards
     kid/[id]/page.tsx               # Kid view — PIN lock + quest board + rewards tab

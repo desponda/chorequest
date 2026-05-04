@@ -85,7 +85,7 @@ export default function ParentDashboard() {
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Link href="/" className="text-white/40 hover:text-white/70 transition-all text-sm flex-shrink-0">
+          <Link href="/display" className="text-white/40 hover:text-white/70 transition-all text-sm flex-shrink-0">
             ← Realm
           </Link>
           <div className="flex-1 text-center">
