@@ -10,6 +10,7 @@ import { PLAN_LIMITS, PLAN_LABELS, PLAN_UPGRADE_HINT } from '@/lib/plans'
 import { questDateString } from '@/lib/utils'
 import { yesterday } from './_streak'
 import { getLevelFromXP, getWeekMonday } from '@/lib/xp'
+import type { DungeonRun, RaidBoss } from '@/lib/types'
 
 interface Deps {
   supabase: SupabaseClient
@@ -21,6 +22,8 @@ interface Deps {
   rewards: Reward[]
   curses: Curse[]
   activeCurseInstances: CurseInstance[]
+  activeDungeon: DungeonRun | null
+  activeBoss: RaidBoss | null
   refetch: () => Promise<void>
 }
 
@@ -52,6 +55,10 @@ export interface ParentActions {
   castCurse: (curseId: string, kidId: string) => Promise<void>
   castAdHocCurse: (data: { title: string; icon: string; penalty: number; kidId: string }) => Promise<void>
   resolveCurse: (instanceId: string, refund: boolean) => Promise<void>
+  addDungeonRun: (data: { title: string; icon: string; hp: number; rewardCoins: number; rewardXp: number }) => Promise<void>
+  deleteDungeonRun: (id: string) => Promise<void>
+  addRaidBoss: (data: { title: string; icon: string; hpPerKid: number; bountyCoins: number }) => Promise<void>
+  deleteRaidBoss: (id: string) => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -69,7 +76,7 @@ export interface AddQuestInput {
 }
 
 export function useParentActions(deps: Deps): ParentActions {
-  const { supabase, family, completions, redemptions, kids, quests, rewards, curses, activeCurseInstances, refetch } = deps
+  const { supabase, family, completions, redemptions, kids, quests, rewards, curses, activeCurseInstances, activeDungeon, activeBoss, refetch } = deps
   const router = useRouter()
 
   const approve = useCallback(async (completionId: string) => {
@@ -91,9 +98,10 @@ export function useParentActions(deps: Deps): ParentActions {
       return
     }
 
+    // Award coins + XP to the completing kid
     const { data: freshKid } = await supabase
       .from('kids')
-      .select('coins, xp, level, streak, last_completed_date, weekly_goal, weekly_goal_paid_week')
+      .select('coins, xp, level, streak, last_completed_date')
       .eq('id', completion.kid_id)
       .single()
 
@@ -102,46 +110,85 @@ export function useParentActions(deps: Deps): ParentActions {
     const today = questDateString(family?.daily_reset_hour ?? 0)
     const newStreak = freshKid?.last_completed_date === yesterday() ? (freshKid?.streak ?? 0) + 1 : 1
 
-    // Check weekly goal payout
-    const monday = getWeekMonday()
-    const { data: weeklyData } = await supabase
-      .from('completions')
-      .select('coins_awarded')
-      .eq('kid_id', completion.kid_id)
-      .eq('status', 'approved')
-      .gte('date', monday)
-
-    const weeklyCount = weeklyData?.length ?? 0
-    const weeklyCoinsTotal = weeklyData?.reduce((s, c) => s + (c.coins_awarded ?? 0), 0) ?? 0
-    const goalHit = weeklyCount >= (freshKid?.weekly_goal ?? 5)
-    const alreadyPaid = freshKid?.weekly_goal_paid_week === monday
-    const bonusCoins = goalHit && !alreadyPaid ? Math.ceil(weeklyCoinsTotal * 0.2) : 0
-
     await supabase.from('kids').update({
-      coins: (freshKid?.coins ?? 0) + coinsAwarded + bonusCoins,
-      xp: newXP + bonusCoins,
-      level: getLevelFromXP(newXP + bonusCoins),
+      coins: (freshKid?.coins ?? 0) + coinsAwarded,
+      xp: newXP,
+      level: newLevel,
       streak: newStreak,
       last_completed_date: today,
-      ...(goalHit && !alreadyPaid ? { weekly_goal_paid_week: monday } : {}),
     }).eq('id', completion.kid_id)
 
     if (completion.quest?.kind === 'oneoff') {
       await supabase.from('quests').update({ active: false }).eq('id', completion.quest.id)
     }
 
-    if (bonusCoins > 0) {
-      toast.success(`🎯 Weekly goal hit! +${coinsAwarded} coins + ${bonusCoins} bonus for ${completion.kid?.name ?? 'adventurer'}!`)
-    } else {
-      toast.success(`Quest approved! +${coinsAwarded} coins awarded ✨`)
-    }
+    toast.success(`Quest approved! +${coinsAwarded} coins awarded ✨`)
 
     if (newLevel > (freshKid?.level ?? 1)) {
       setTimeout(() => toast.success(`⬆️ ${completion.kid?.name ?? 'Level up'}! Reached Level ${newLevel}!`), 600)
     }
 
+    // Deal damage to active dungeon run
+    if (activeDungeon && family) {
+      const newDamage = activeDungeon.current_damage + coinsAwarded
+      if (newDamage >= activeDungeon.hp) {
+        await supabase.from('dungeon_runs').update({
+          current_damage: newDamage,
+          status: 'cleared',
+          cleared_at: new Date().toISOString(),
+        }).eq('id', activeDungeon.id)
+
+        const { data: allKids } = await supabase.from('kids').select('id, coins, xp').eq('family_id', family.id)
+        await Promise.all((allKids ?? []).map(async (k) => {
+          const kNewXP = k.xp + activeDungeon.reward_xp
+          return supabase.from('kids').update({
+            coins: k.coins + activeDungeon.reward_coins,
+            xp: kNewXP,
+            level: getLevelFromXP(kNewXP),
+          }).eq('id', k.id)
+        }))
+        setTimeout(() => toast.success(`🏰 Dungeon cleared! +${activeDungeon.reward_coins} coins for everyone!`), 700)
+      } else {
+        await supabase.from('dungeon_runs').update({ current_damage: newDamage }).eq('id', activeDungeon.id)
+      }
+    }
+
+    // Deal damage to active raid boss
+    if (activeBoss && family) {
+      const newHP = Math.max(0, activeBoss.current_hp - coinsAwarded)
+
+      await supabase.from('raid_boss_hits').insert({
+        boss_id: activeBoss.id,
+        completion_id: completionId,
+        kid_id: completion.kid_id,
+        damage_dealt: coinsAwarded,
+      })
+
+      if (newHP === 0) {
+        await supabase.from('raid_bosses').update({
+          current_hp: 0,
+          status: 'defeated',
+          defeated_at: new Date().toISOString(),
+        }).eq('id', activeBoss.id)
+
+        const { data: allKids } = await supabase.from('kids').select('id, coins, xp').eq('family_id', family.id)
+        const perKid = Math.floor(activeBoss.bounty_coins / Math.max(1, allKids?.length ?? 1))
+        await Promise.all((allKids ?? []).map(async (k) => {
+          const kNewXP = k.xp + perKid
+          return supabase.from('kids').update({
+            coins: k.coins + perKid,
+            xp: kNewXP,
+            level: getLevelFromXP(kNewXP),
+          }).eq('id', k.id)
+        }))
+        setTimeout(() => toast.success(`⚔️ Raid boss defeated! ${perKid} coins each!`), 900)
+      } else {
+        await supabase.from('raid_bosses').update({ current_hp: newHP }).eq('id', activeBoss.id)
+      }
+    }
+
     await refetch()
-  }, [completions, family?.daily_reset_hour, refetch, supabase])
+  }, [activeBoss, activeDungeon, completions, family, refetch, supabase])
 
   const reject = useCallback(async (completionId: string) => {
     await supabase.from('completions').update({ status: 'rejected' }).eq('id', completionId)
@@ -530,6 +577,58 @@ export function useParentActions(deps: Deps): ParentActions {
     await refetch()
   }, [activeCurseInstances, refetch, supabase])
 
+  const addDungeonRun = useCallback(async (data: { title: string; icon: string; hp: number; rewardCoins: number; rewardXp: number }) => {
+    if (!family) return
+    const monday = getWeekMonday()
+    const { error } = await supabase.from('dungeon_runs').insert({
+      family_id: family.id,
+      title: data.title.trim() || 'Weekly Dungeon',
+      icon: data.icon,
+      hp: data.hp,
+      reward_coins: data.rewardCoins,
+      reward_xp: data.rewardXp,
+      week_start: monday,
+      status: 'active',
+    })
+    if (error) {
+      if (error.code === '23505') toast.error('A dungeon already exists for this week')
+      else toast.error('Failed to create dungeon')
+    } else {
+      toast.success(`🏰 ${data.title || 'Weekly Dungeon'} awakens!`)
+      await refetch()
+    }
+  }, [family, refetch, supabase])
+
+  const deleteDungeonRun = useCallback(async (id: string) => {
+    await supabase.from('dungeon_runs').delete().eq('id', id)
+    await refetch()
+  }, [refetch, supabase])
+
+  const addRaidBoss = useCallback(async (data: { title: string; icon: string; hpPerKid: number; bountyCoins: number }) => {
+    if (!family || !data.title.trim()) return
+    const totalHP = data.hpPerKid * Math.max(1, kids.length)
+    const { error } = await supabase.from('raid_bosses').insert({
+      family_id: family.id,
+      title: data.title.trim(),
+      icon: data.icon,
+      max_hp: totalHP,
+      current_hp: totalHP,
+      bounty_coins: data.bountyCoins,
+      status: 'active',
+    })
+    if (!error) {
+      toast.success(`🐉 ${data.title} has appeared! ${totalHP} HP · ${data.bountyCoins} coin bounty`)
+      await refetch()
+    } else {
+      toast.error('Failed to summon raid boss')
+    }
+  }, [family, kids, refetch, supabase])
+
+  const deleteRaidBoss = useCallback(async (id: string) => {
+    await supabase.from('raid_bosses').delete().eq('id', id)
+    await refetch()
+  }, [refetch, supabase])
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut()
     router.push('/login')
@@ -546,6 +645,7 @@ export function useParentActions(deps: Deps): ParentActions {
     setParentPin, removeParentPin,
     regenerateApiKey, regenerateInviteToken,
     addCurse, deleteCurse, castCurse, castAdHocCurse, resolveCurse,
+    addDungeonRun, deleteDungeonRun, addRaidBoss, deleteRaidBoss,
     signOut,
   }
 }

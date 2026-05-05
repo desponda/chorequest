@@ -33,8 +33,6 @@ export interface Kid {
   last_completed_date: string | null
   xp: number
   level: number
-  weekly_goal: number
-  weekly_goal_paid_week: string | null
   pin?: string
   created_at: string
 }
@@ -99,6 +97,43 @@ export interface Reward {
   cost: number
   available: boolean
   created_at: string
+}
+
+export interface DungeonRun {
+  id: string
+  family_id: string
+  title: string
+  icon: string
+  hp: number
+  current_damage: number
+  reward_coins: number
+  reward_xp: number
+  week_start: string
+  status: 'active' | 'cleared'
+  cleared_at: string | null
+  created_at: string
+}
+
+export interface RaidBoss {
+  id: string
+  family_id: string
+  title: string
+  icon: string
+  max_hp: number
+  current_hp: number
+  bounty_coins: number
+  status: 'active' | 'defeated'
+  defeated_at: string | null
+  created_at: string
+}
+
+export interface RaidBossHit {
+  id: string
+  boss_id: string
+  completion_id: string
+  kid_id: string
+  damage_dealt: number
+  hit_at: string
 }
 
 export interface Redemption {
