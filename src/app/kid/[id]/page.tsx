@@ -13,7 +13,7 @@ import { StreakBadge } from '@/components/streak-badge'
 import type { Kid, Quest, Completion, Reward, CurseInstance, Redemption } from '@/lib/types'
 import { KID_COLORS, getLockDurationMs } from '@/lib/constants'
 import { questDateString, questWeekKey } from '@/lib/utils'
-import { isQuestVisibleToKid, sharedSlotsLeft, kidHasActiveCompletion } from '@/lib/quest-rules'
+import { isQuestVisibleToKid, sharedSlotsLeft, kidHasActiveCompletion, sharedClaimedCount, kidCompletionForPeriod } from '@/lib/quest-rules'
 import { toast } from 'sonner'
 
 const PIN_SESSION_KEY = 'cq_kid_pin_'
@@ -456,15 +456,8 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                     )}
                     <Section title="⚡ Up for Grabs" accent="gold">
                       {upForGrabs.map((q, i) => {
-                        const periodFilter = q.frequency === 'weekly'
-                          ? (date: string) => date >= weekStart
-                          : (date: string) => date === today
-                        const claimed = familySharedCompletions.filter(
-                          (c) => c.quest_id === q.id && periodFilter(c.date) && (c.status === 'approved' || c.status === 'pending'),
-                        ).length
-                        const myCompletion = completions.find(
-                          (c) => c.quest_id === q.id && c.kid_id === kid.id && periodFilter(c.date),
-                        )
+                        const claimed = sharedClaimedCount(q, familySharedCompletions as Completion[], today, weekStart)
+                        const myCompletion = kidCompletionForPeriod(q, kid.id, completions, today, weekStart)
                         const isShareLocked = !myCompletion && claimed >= q.slots
                         return (
                           <QuestRowItem
