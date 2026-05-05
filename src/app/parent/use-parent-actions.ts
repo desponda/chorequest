@@ -49,6 +49,7 @@ export interface ParentActions {
   addCurse: (data: { title: string; icon: string; penalty: number }) => Promise<void>
   deleteCurse: (id: string) => Promise<void>
   castCurse: (curseId: string, kidId: string) => Promise<void>
+  castAdHocCurse: (data: { title: string; icon: string; penalty: number; kidId: string }) => Promise<void>
   resolveCurse: (instanceId: string, refund: boolean) => Promise<void>
   signOut: () => Promise<void>
 }
@@ -427,6 +428,41 @@ export function useParentActions(deps: Deps): ParentActions {
     await refetch()
   }, [curses, kids, refetch, supabase])
 
+  const castAdHocCurse = useCallback(async (data: { title: string; icon: string; penalty: number; kidId: string }) => {
+    if (!data.title.trim() || !family) return
+    const plan = family.plan ?? 'free'
+    if (!PLAN_LIMITS[plan].curses) {
+      toast.error(`Curses require Family plan or higher. ${PLAN_UPGRADE_HINT[plan]}`)
+      return
+    }
+    const kid = kids.find(k => k.id === data.kidId)
+    if (!kid) return
+
+    const { data: curse, error: curseError } = await supabase.from('curses').insert({
+      family_id: family.id,
+      title: data.title.trim(),
+      icon: data.icon,
+      penalty: data.penalty,
+    }).select('id').single()
+    if (curseError || !curse) { toast.error('Failed to cast curse'); return }
+
+    const { error: instanceError } = await supabase.from('curse_instances').insert({
+      curse_id: curse.id,
+      kid_id: data.kidId,
+      coins_deducted: data.penalty,
+      status: 'active',
+    })
+    if (instanceError) { toast.error('Curse created but failed to cast'); return }
+
+    const { data: freshKid } = await supabase.from('kids').select('coins').eq('id', data.kidId).single()
+    await supabase.from('kids')
+      .update({ coins: Math.max(0, (freshKid?.coins ?? kid.coins) - data.penalty) })
+      .eq('id', data.kidId)
+
+    toast.success(`${data.icon} ${data.title.trim()} cast on ${kid.name}! −${data.penalty} coins`)
+    await refetch()
+  }, [family, kids, refetch, supabase])
+
   const resolveCurse = useCallback(async (instanceId: string, refund: boolean) => {
     const instance = activeCurseInstances.find(ci => ci.id === instanceId)
     const kid = instance?.kid as Kid | undefined
@@ -467,7 +503,7 @@ export function useParentActions(deps: Deps): ParentActions {
     saveResetHour, saveFamilyName, saveCoins,
     setParentPin, removeParentPin,
     regenerateApiKey, regenerateInviteToken,
-    addCurse, deleteCurse, castCurse, resolveCurse,
+    addCurse, deleteCurse, castCurse, castAdHocCurse, resolveCurse,
     signOut,
   }
 }
