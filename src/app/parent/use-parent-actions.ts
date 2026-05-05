@@ -38,6 +38,7 @@ export interface ParentActions {
   seedDefaultQuests: () => Promise<void>
   addReward: (data: { title: string; description: string; icon: string; cost: number }) => Promise<void>
   deleteReward: (id: string) => Promise<void>
+  saveReward: (id: string, updates: { title: string; description: string; icon: string; cost: number }) => Promise<void>
   saveResetHour: (hour: number) => Promise<void>
   saveFamilyName: (name: string) => Promise<void>
   saveCoins: (kidId: string, value: number) => Promise<void>
@@ -311,6 +312,20 @@ export function useParentActions(deps: Deps): ParentActions {
     await refetch()
   }, [refetch, supabase])
 
+  const saveReward = useCallback(async (id: string, updates: { title: string; description: string; icon: string; cost: number }) => {
+    if (!updates.title.trim()) return
+    const { error } = await supabase.from('rewards').update({
+      title: updates.title.trim(),
+      description: updates.description.trim() || null,
+      icon: updates.icon,
+      cost: updates.cost,
+    }).eq('id', id)
+    if (!error) {
+      toast.success('Reward updated!')
+      await refetch()
+    }
+  }, [refetch, supabase])
+
   const saveResetHour = useCallback(async (hour: number) => {
     if (!family) return
     await supabase.from('families').update({ daily_reset_hour: hour }).eq('id', family.id)
@@ -448,7 +463,7 @@ export function useParentActions(deps: Deps): ParentActions {
     fulfillRedemption, denyRedemption,
     addKid,
     addQuest, toggleQuest, deleteQuest, saveQuest, seedDefaultQuests,
-    addReward, deleteReward,
+    addReward, deleteReward, saveReward,
     saveResetHour, saveFamilyName, saveCoins,
     setParentPin, removeParentPin,
     regenerateApiKey, regenerateInviteToken,
