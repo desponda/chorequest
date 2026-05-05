@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import type { Kid, Quest, Completion } from '@/lib/types'
 import { KID_COLORS } from '@/lib/constants'
+import { getXPProgress, getLevelTitle } from '@/lib/xp'
 import { CoinCounter } from './coin-counter'
 import { StreakBadge } from './streak-badge'
 import { QuestCard } from './quest-card'
@@ -37,6 +38,7 @@ export function KidColumn({
   linkToKidView = true,
 }: KidColumnProps) {
   const colors = KID_COLORS[kid.color]
+  const xpInfo = getXPProgress(kid.xp ?? 0)
 
   const getCompletion = (quest: Quest): Completion | undefined => {
     if (quest.frequency === 'weekly') {
@@ -108,11 +110,28 @@ export function KidColumn({
             {kid.name}
           </h2>
           <p className="text-xs mt-0.5 font-medium" style={{ color: colors.primary }}>
-            Adventurer · Level {Math.floor(kid.coins / 50) + 1}
+            {getLevelTitle(kid.level ?? 1)} · Lv {kid.level ?? 1}
           </p>
         </div>
 
         <CoinCounter value={kid.coins} size="md" />
+
+        {/* XP bar */}
+        <div className="w-full">
+          <div className="flex justify-between text-xs text-white/25 mb-1">
+            <span>XP</span>
+            <span>{xpInfo.currentXP}/{xpInfo.neededXP}</span>
+          </div>
+          <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <motion.div
+              className="h-full rounded-full"
+              style={{ background: `linear-gradient(90deg, ${colors.primary}, #fbbf24)` }}
+              initial={{ width: 0 }}
+              animate={{ width: `${xpInfo.pct}%` }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+            />
+          </div>
+        </div>
 
         <div className="flex items-center gap-2">
           {kid.streak > 1 && <StreakBadge streak={kid.streak} />}

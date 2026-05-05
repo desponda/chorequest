@@ -20,7 +20,7 @@ export interface ParentData {
   refetch: () => Promise<void>
 }
 
-const KID_COLS = 'id, name, avatar, color, coins, streak, last_completed_date, family_id, created_at'
+const KID_COLS = 'id, name, avatar, color, coins, streak, last_completed_date, xp, level, weekly_goal, weekly_goal_paid_week, family_id, created_at'
 
 export function useParentData(): ParentData {
   const [supabase] = useState(createClient)
