@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
-import type { Family, Kid, Quest, Completion, Reward, Redemption, Curse, CurseInstance } from '@/lib/types'
+import type { Family, Kid, Quest, Completion, Reward, Redemption, Curse, CurseInstance, DungeonRun, RaidBoss } from '@/lib/types'
 import { questDateString } from '@/lib/utils'
+import { getWeekMonday } from '@/lib/xp'
 
 export interface ParentData {
   family: Family | null
@@ -15,12 +16,16 @@ export interface ParentData {
   redemptions: Redemption[]
   curses: Curse[]
   activeCurseInstances: CurseInstance[]
+  activeDungeon: DungeonRun | null
+  activeBoss: RaidBoss | null
+  pastDungeons: DungeonRun[]
+  defeatedBosses: RaidBoss[]
   loading: boolean
   supabase: SupabaseClient
   refetch: () => Promise<void>
 }
 
-const KID_COLS = 'id, name, avatar, color, coins, streak, last_completed_date, xp, level, weekly_goal, weekly_goal_paid_week, family_id, created_at'
+const KID_COLS = 'id, name, avatar, color, coins, streak, last_completed_date, xp, level, family_id, created_at'
 
 export function useParentData(): ParentData {
   const [supabase] = useState(createClient)
@@ -32,6 +37,10 @@ export function useParentData(): ParentData {
   const [redemptions, setRedemptions] = useState<Redemption[]>([])
   const [curses, setCurses] = useState<Curse[]>([])
   const [activeCurseInstances, setActiveCurseInstances] = useState<CurseInstance[]>([])
+  const [activeDungeon, setActiveDungeon] = useState<DungeonRun | null>(null)
+  const [activeBoss, setActiveBoss] = useState<RaidBoss | null>(null)
+  const [pastDungeons, setPastDungeons] = useState<DungeonRun[]>([])
+  const [defeatedBosses, setDefeatedBosses] = useState<RaidBoss[]>([])
   const [loading, setLoading] = useState(true)
 
   const refetch = useCallback(async () => {
@@ -44,10 +53,12 @@ export function useParentData(): ParentData {
       .eq('id', profile.family_id)
       .single()
     const today = questDateString(resetData?.daily_reset_hour ?? 0)
+    const monday = getWeekMonday()
 
     const [
       familyRes, kidsRes, questsRes, completionsRes, rewardsRes,
       pendingRedemptionsRes, approvedRedemptionsRes, cursesRes, curseInstancesRes,
+      activeDungeonRes, activeBossRes, pastDungeonsRes, defeatedBossesRes,
     ] = await Promise.all([
       supabase.from('families').select('id, name, invite_token, api_key, daily_reset_hour, created_at, parent_pin, plan').eq('id', profile.family_id).single(),
       supabase.from('kids').select(KID_COLS).eq('family_id', profile.family_id).order('created_at'),
@@ -58,6 +69,10 @@ export function useParentData(): ParentData {
       supabase.from('redemptions').select(`*, reward:rewards(*), kid:kids(${KID_COLS})`).eq('status', 'approved').gte('redeemed_at', today).order('redeemed_at', { ascending: false }),
       supabase.from('curses').select('*').eq('family_id', profile.family_id).order('created_at'),
       supabase.from('curse_instances').select(`*, curse:curses(*), kid:kids(${KID_COLS})`).eq('status', 'active').order('cast_at', { ascending: false }),
+      supabase.from('dungeon_runs').select('*').eq('family_id', profile.family_id).eq('week_start', monday).eq('status', 'active').maybeSingle(),
+      supabase.from('raid_bosses').select('*').eq('family_id', profile.family_id).eq('status', 'active').maybeSingle(),
+      supabase.from('dungeon_runs').select('*').eq('family_id', profile.family_id).eq('status', 'cleared').order('cleared_at', { ascending: false }).limit(5),
+      supabase.from('raid_bosses').select('*').eq('family_id', profile.family_id).eq('status', 'defeated').order('defeated_at', { ascending: false }).limit(5),
     ])
 
     if (familyRes.data) {
@@ -80,6 +95,10 @@ export function useParentData(): ParentData {
     ])
     if (cursesRes.data) setCurses(cursesRes.data as Curse[])
     if (curseInstancesRes.data) setActiveCurseInstances(curseInstancesRes.data as CurseInstance[])
+    setActiveDungeon((activeDungeonRes.data as DungeonRun) ?? null)
+    setActiveBoss((activeBossRes.data as RaidBoss) ?? null)
+    setPastDungeons((pastDungeonsRes.data ?? []) as DungeonRun[])
+    setDefeatedBosses((defeatedBossesRes.data ?? []) as RaidBoss[])
     setLoading(false)
   }, [supabase])
 
@@ -90,9 +109,15 @@ export function useParentData(): ParentData {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'completions' }, refetch)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'redemptions' }, refetch)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'curse_instances' }, refetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'dungeon_runs' }, refetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'raid_bosses' }, refetch)
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [refetch, supabase])
 
-  return { family, kids, quests, completions, rewards, redemptions, curses, activeCurseInstances, loading, supabase, refetch }
+  return {
+    family, kids, quests, completions, rewards, redemptions, curses, activeCurseInstances,
+    activeDungeon, activeBoss, pastDungeons, defeatedBosses,
+    loading, supabase, refetch,
+  }
 }

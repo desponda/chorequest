@@ -37,7 +37,7 @@ export default function WallDisplay() {
 
     const [familyRes, kidsRes, questsRes, rewardsRes] = await Promise.all([
       supabase.from('families').select('id, name, invite_token, daily_reset_hour, created_at, plan').eq('id', profile.family_id).single(),
-      supabase.from('kids').select('id, name, avatar, color, coins, streak, last_completed_date, xp, level, weekly_goal, weekly_goal_paid_week, family_id, created_at').eq('family_id', profile.family_id).order('created_at'),
+      supabase.from('kids').select('id, name, avatar, color, coins, streak, last_completed_date, xp, level, family_id, created_at').eq('family_id', profile.family_id).order('created_at'),
       supabase.from('quests').select('*').eq('family_id', profile.family_id).eq('active', true).order('created_at'),
       supabase.from('rewards').select('*').eq('available', true).order('cost'),
     ])

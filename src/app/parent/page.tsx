@@ -17,12 +17,13 @@ import { QuestsTab } from './quests-tab'
 import { RewardsTab } from './rewards-tab'
 import { CursesTab } from './curses-tab'
 import { FamilyTab } from './family-tab'
+import { DungeonsTab } from './dungeons-tab'
 
-type Tab = 'approvals' | 'quests' | 'family' | 'rewards' | 'curses'
+type Tab = 'approvals' | 'quests' | 'family' | 'rewards' | 'curses' | 'dungeons'
 
 export default function ParentDashboard() {
   const data = useParentData()
-  const actions = useParentActions(data)
+  const actions = useParentActions({ ...data, activeDungeon: data.activeDungeon, activeBoss: data.activeBoss })
   const lock = useParentPinLock(data.family)
 
   const [tab, setTab] = useState<Tab>('approvals')
@@ -69,6 +70,7 @@ export default function ParentDashboard() {
     { id: 'quests', label: '⚔️ Quests' },
     { id: 'rewards', label: '🎁 Rewards' },
     { id: 'curses', label: '☠️ Curses', badge: data.activeCurseInstances.length || undefined },
+    { id: 'dungeons', label: '🏰 Dungeons' },
     { id: 'family', label: '👨‍👩‍👧 Family' },
   ]
 
@@ -159,6 +161,16 @@ export default function ParentDashboard() {
                 activeCurseInstances={data.activeCurseInstances}
                 actions={actions}
                 plan={data.family?.plan ?? 'free'}
+              />
+            )}
+            {tab === 'dungeons' && (
+              <DungeonsTab
+                activeDungeon={data.activeDungeon}
+                activeBoss={data.activeBoss}
+                pastDungeons={data.pastDungeons}
+                defeatedBosses={data.defeatedBosses}
+                kidCount={data.kids.length}
+                actions={actions}
               />
             )}
             {tab === 'family' && (

@@ -32,8 +32,6 @@ create table kids (
   last_completed_date date,
   xp integer not null default 0,
   level integer not null default 1,
-  weekly_goal integer not null default 5,
-  weekly_goal_paid_week date,
   pin text not null, -- 4-digit PIN (stored plaintext, protected by RLS)
   created_at timestamptz default now()
 );
@@ -88,6 +86,46 @@ create table redemptions (
   constraint redemptions_status_check check (status in ('pending', 'approved'))
 );
 
+create table dungeon_runs (
+  id uuid primary key default gen_random_uuid(),
+  family_id uuid not null references families(id) on delete cascade,
+  title text not null default 'Weekly Dungeon',
+  icon text not null default '🏰',
+  hp integer not null,
+  current_damage integer not null default 0,
+  reward_coins integer not null default 50,
+  reward_xp integer not null default 100,
+  week_start date not null,
+  status text not null default 'active',
+  cleared_at timestamptz,
+  created_at timestamptz default now(),
+  constraint dungeon_status_check check (status in ('active', 'cleared')),
+  unique(family_id, week_start)
+);
+
+create table raid_bosses (
+  id uuid primary key default gen_random_uuid(),
+  family_id uuid not null references families(id) on delete cascade,
+  title text not null,
+  icon text not null default '🐉',
+  max_hp integer not null,
+  current_hp integer not null,
+  bounty_coins integer not null,
+  status text not null default 'active',
+  defeated_at timestamptz,
+  created_at timestamptz default now(),
+  constraint raid_boss_status_check check (status in ('active', 'defeated'))
+);
+
+create table raid_boss_hits (
+  id uuid primary key default gen_random_uuid(),
+  boss_id uuid not null references raid_bosses(id) on delete cascade,
+  completion_id uuid not null references completions(id) on delete cascade,
+  kid_id uuid not null references kids(id) on delete cascade,
+  damage_dealt integer not null,
+  hit_at timestamptz default now()
+);
+
 -- ─── Row Level Security ───────────────────────────────────────────────────────
 
 alter table families enable row level security;
@@ -97,6 +135,9 @@ alter table quests enable row level security;
 alter table completions enable row level security;
 alter table rewards enable row level security;
 alter table redemptions enable row level security;
+alter table dungeon_runs enable row level security;
+alter table raid_bosses enable row level security;
+alter table raid_boss_hits enable row level security;
 
 -- Helper: get the family_id for the current authenticated user
 create or replace function get_user_family_id()
