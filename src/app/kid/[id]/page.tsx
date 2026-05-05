@@ -456,11 +456,14 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                     )}
                     <Section title="⚡ Up for Grabs" accent="gold">
                       {upForGrabs.map((q, i) => {
+                        const periodFilter = q.frequency === 'weekly'
+                          ? (date: string) => date >= weekStart
+                          : (date: string) => date === today
                         const claimed = familySharedCompletions.filter(
-                          (c) => c.quest_id === q.id && (c.status === 'approved' || c.status === 'pending'),
+                          (c) => c.quest_id === q.id && periodFilter(c.date) && (c.status === 'approved' || c.status === 'pending'),
                         ).length
                         const myCompletion = completions.find(
-                          (c) => c.quest_id === q.id && c.kid_id === kid.id && (c.date === today || c.date >= weekStart),
+                          (c) => c.quest_id === q.id && c.kid_id === kid.id && periodFilter(c.date),
                         )
                         const isShareLocked = !myCompletion && claimed >= q.slots
                         return (
