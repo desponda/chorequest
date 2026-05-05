@@ -23,6 +23,11 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
   const [penalty, setPenalty] = useState(10)
   const [castingCurseId, setCastingCurseId] = useState<string | null>(null)
 
+  // Quick cast state
+  const [qcTitle, setQcTitle] = useState('')
+  const [qcIcon, setQcIcon] = useState('😈')
+  const [qcPenalty, setQcPenalty] = useState(10)
+
   if (!PLAN_LIMITS[plan].curses) {
     return (
       <motion.div key="curses" {...fadeSlide} className="flex flex-col gap-6">
@@ -51,9 +56,67 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
     setCastingCurseId(null)
   }
 
+  const handleQuickCast = async (kidId: string) => {
+    if (!qcTitle.trim()) return
+    await actions.castAdHocCurse({ title: qcTitle, icon: qcIcon, penalty: qcPenalty, kidId })
+    setQcTitle('')
+    setQcPenalty(10)
+  }
+
   return (
     <motion.div key="curses" {...fadeSlide} className="flex flex-col gap-6">
-      <Section title="Define Curses">
+      <Section title="⚡ Quick Cast">
+        <div className="flex flex-col gap-3">
+          <p className="text-white/40 text-xs">Cast a one-off curse instantly — no template needed.</p>
+          <div className="flex gap-2 flex-wrap">
+            {CURSE_ICONS.map((ic) => (
+              <button
+                key={ic}
+                onClick={() => setQcIcon(ic)}
+                className="text-xl w-10 h-10 rounded-xl transition-all"
+                style={{
+                  background: qcIcon === ic ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)',
+                  border: `1px solid ${qcIcon === ic ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                }}
+              >
+                {ic}
+              </button>
+            ))}
+          </div>
+          <FormInput placeholder="What happened? (e.g. Whining, Hit sibling...)" value={qcTitle} onChange={setQcTitle} />
+          <div>
+            <label className="text-xs text-white/40 mb-1 block">Coin penalty</label>
+            <input
+              type="number"
+              min={1}
+              max={200}
+              value={qcPenalty}
+              onChange={(e) => setQcPenalty(Number(e.target.value))}
+              className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+            />
+          </div>
+          {kids.length > 0 && (
+            <div className="flex gap-2 flex-wrap">
+              {kids.map(k => (
+                <motion.button
+                  key={k.id}
+                  onClick={() => handleQuickCast(k.id)}
+                  disabled={!qcTitle.trim()}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-30"
+                  style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171' }}
+                  whileHover={{ background: 'rgba(239,68,68,0.22)' }}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  {k.avatar} Cast on {k.name}
+                </motion.button>
+              ))}
+            </div>
+          )}
+        </div>
+      </Section>
+
+      <Section title="Saved Curses">
         <div className="flex flex-col gap-3">
           <p className="text-white/45 text-xs">
             Create named penalties you can cast instantly when bad behavior happens.
