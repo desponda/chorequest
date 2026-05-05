@@ -31,6 +31,10 @@ export interface Kid {
   coins: number
   streak: number
   last_completed_date: string | null
+  xp: number
+  level: number
+  weekly_goal: number
+  weekly_goal_paid_week: string | null
   pin?: string
   created_at: string
 }

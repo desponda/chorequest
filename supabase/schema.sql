@@ -30,6 +30,10 @@ create table kids (
   coins integer not null default 0,
   streak integer not null default 0,
   last_completed_date date,
+  xp integer not null default 0,
+  level integer not null default 1,
+  weekly_goal integer not null default 5,
+  weekly_goal_paid_week date,
   pin text not null, -- 4-digit PIN (stored plaintext, protected by RLS)
   created_at timestamptz default now()
 );

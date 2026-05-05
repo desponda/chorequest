@@ -8,7 +8,8 @@ import type { Family, Kid, Quest, QuestKind, QuestFrequency, QuestTier, Completi
 import { DEFAULT_QUESTS } from '@/lib/constants'
 import { PLAN_LIMITS, PLAN_LABELS, PLAN_UPGRADE_HINT } from '@/lib/plans'
 import { questDateString } from '@/lib/utils'
-import { getStreakBonus, yesterday } from './_streak'
+import { yesterday } from './_streak'
+import { getLevelFromXP, getWeekMonday } from '@/lib/xp'
 
 interface Deps {
   supabase: SupabaseClient
@@ -75,8 +76,7 @@ export function useParentActions(deps: Deps): ParentActions {
     const completion = completions.find((c) => c.id === completionId)
     if (!completion) return
 
-    const bonus = getStreakBonus(completion.kid?.streak ?? 0)
-    const coinsAwarded = Math.round((completion.quest?.coins ?? 0) * bonus)
+    const coinsAwarded = completion.quest?.coins ?? 0
 
     const { data: updated, error } = await supabase
       .from('completions')
@@ -91,19 +91,55 @@ export function useParentActions(deps: Deps): ParentActions {
       return
     }
 
-    await supabase.from('kids').update({ coins: (completion.kid?.coins ?? 0) + coinsAwarded }).eq('id', completion.kid_id)
+    const { data: freshKid } = await supabase
+      .from('kids')
+      .select('coins, xp, level, streak, last_completed_date, weekly_goal, weekly_goal_paid_week')
+      .eq('id', completion.kid_id)
+      .single()
 
+    const newXP = (freshKid?.xp ?? 0) + coinsAwarded
+    const newLevel = getLevelFromXP(newXP)
     const today = questDateString(family?.daily_reset_hour ?? 0)
-    const lastDate = completion.kid?.last_completed_date
-    const newStreak = lastDate === yesterday() ? (completion.kid?.streak ?? 0) + 1 : 1
+    const newStreak = freshKid?.last_completed_date === yesterday() ? (freshKid?.streak ?? 0) + 1 : 1
 
-    await supabase.from('kids').update({ streak: newStreak, last_completed_date: today }).eq('id', completion.kid_id)
+    // Check weekly goal payout
+    const monday = getWeekMonday()
+    const { data: weeklyData } = await supabase
+      .from('completions')
+      .select('coins_awarded')
+      .eq('kid_id', completion.kid_id)
+      .eq('status', 'approved')
+      .gte('date', monday)
+
+    const weeklyCount = weeklyData?.length ?? 0
+    const weeklyCoinsTotal = weeklyData?.reduce((s, c) => s + (c.coins_awarded ?? 0), 0) ?? 0
+    const goalHit = weeklyCount >= (freshKid?.weekly_goal ?? 5)
+    const alreadyPaid = freshKid?.weekly_goal_paid_week === monday
+    const bonusCoins = goalHit && !alreadyPaid ? Math.ceil(weeklyCoinsTotal * 0.2) : 0
+
+    await supabase.from('kids').update({
+      coins: (freshKid?.coins ?? 0) + coinsAwarded + bonusCoins,
+      xp: newXP + bonusCoins,
+      level: getLevelFromXP(newXP + bonusCoins),
+      streak: newStreak,
+      last_completed_date: today,
+      ...(goalHit && !alreadyPaid ? { weekly_goal_paid_week: monday } : {}),
+    }).eq('id', completion.kid_id)
 
     if (completion.quest?.kind === 'oneoff') {
       await supabase.from('quests').update({ active: false }).eq('id', completion.quest.id)
     }
 
-    toast.success(`Quest approved! +${coinsAwarded} coins awarded ✨`)
+    if (bonusCoins > 0) {
+      toast.success(`🎯 Weekly goal hit! +${coinsAwarded} coins + ${bonusCoins} bonus for ${completion.kid?.name ?? 'adventurer'}!`)
+    } else {
+      toast.success(`Quest approved! +${coinsAwarded} coins awarded ✨`)
+    }
+
+    if (newLevel > (freshKid?.level ?? 1)) {
+      setTimeout(() => toast.success(`⬆️ ${completion.kid?.name ?? 'Level up'}! Reached Level ${newLevel}!`), 600)
+    }
+
     await refetch()
   }, [completions, family?.daily_reset_hour, refetch, supabase])
 
@@ -116,7 +152,6 @@ export function useParentActions(deps: Deps): ParentActions {
   const undoApproval = useCallback(async (completionId: string) => {
     const completion = completions.find((c) => c.id === completionId)
     if (!completion) return
-    const kid = completion.kid as Kid | undefined
     const coinsToRemove = completion.coins_awarded ?? 0
 
     await supabase
@@ -124,8 +159,15 @@ export function useParentActions(deps: Deps): ParentActions {
       .update({ status: 'pending', approved_at: null, coins_awarded: null })
       .eq('id', completionId)
 
-    if (kid && coinsToRemove > 0) {
-      await supabase.from('kids').update({ coins: Math.max(0, (kid.coins ?? 0) - coinsToRemove) }).eq('id', kid.id)
+    if (coinsToRemove > 0) {
+      const { data: freshKid } = await supabase
+        .from('kids').select('coins, xp').eq('id', completion.kid_id).single()
+      const newXP = Math.max(0, (freshKid?.xp ?? 0) - coinsToRemove)
+      await supabase.from('kids').update({
+        coins: Math.max(0, (freshKid?.coins ?? 0) - coinsToRemove),
+        xp: newXP,
+        level: getLevelFromXP(newXP),
+      }).eq('id', completion.kid_id)
     }
     toast.success('Approval undone — back to pending')
     await refetch()
