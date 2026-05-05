@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import type { DungeonRun, RaidBoss } from '@/lib/types'
+import type { DungeonRun, DungeonClear, RaidBoss, Kid, Completion } from '@/lib/types'
 import { Section, FormInput, Empty, fadeSlide } from './_ui'
 import type { ParentActions } from './use-parent-actions'
 
@@ -11,10 +11,12 @@ const BOSS_ICONS = ['🐉', '👾', '💀', '🦂', '👹', '🔥', '🌩️', '
 
 interface Props {
   activeDungeon: DungeonRun | null
+  dungeonClears: DungeonClear[]
+  weeklyCompletions: Completion[]
+  kids: Kid[]
   activeBoss: RaidBoss | null
   pastDungeons: DungeonRun[]
   defeatedBosses: RaidBoss[]
-  kidCount: number
   actions: ParentActions
 }
 
@@ -39,7 +41,15 @@ function HpBar({ current, max, color }: { current: number; max: number; color: s
   )
 }
 
-export function DungeonsTab({ activeDungeon, activeBoss, pastDungeons, defeatedBosses, kidCount, actions }: Props) {
+export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, kids, activeBoss, pastDungeons, defeatedBosses, actions }: Props) {
+  const kidCount = kids.length
+
+  const getKidDamage = (kidId: string) =>
+    weeklyCompletions
+      .filter(c => c.kid_id === kidId)
+      .reduce((s, c) => s + (c.coins_awarded ?? 0), 0)
+
+  const kidCleared = (kidId: string) => dungeonClears.some(c => c.kid_id === kidId)
   // Dungeon form state
   const [dTitle, setDTitle] = useState('')
   const [dIcon, setDIcon] = useState('🏰')
@@ -74,7 +84,7 @@ export function DungeonsTab({ activeDungeon, activeBoss, pastDungeons, defeatedB
               <span className="text-3xl">{activeDungeon.icon}</span>
               <div className="flex-1">
                 <p className="text-white/90 font-semibold">{activeDungeon.title}</p>
-                <p className="text-white/40 text-xs">Loot: +{activeDungeon.reward_coins} coins · +{activeDungeon.reward_xp} XP per kid</p>
+                <p className="text-white/40 text-xs">Goal: {activeDungeon.hp} coins each · Loot: +{activeDungeon.reward_coins} coins · +{activeDungeon.reward_xp} XP</p>
               </div>
               <button
                 onClick={() => actions.deleteDungeonRun(activeDungeon.id)}
@@ -84,14 +94,30 @@ export function DungeonsTab({ activeDungeon, activeBoss, pastDungeons, defeatedB
                 ✕
               </button>
             </div>
-            <HpBar
-              current={activeDungeon.current_damage}
-              max={activeDungeon.hp}
-              color="linear-gradient(90deg, #38bdf8, #a78bfa)"
-            />
-            <p className="text-xs text-white/30 text-center">
-              Every approved quest deals damage · {activeDungeon.hp - activeDungeon.current_damage} coins of damage remaining
-            </p>
+            {kids.length === 0 && (
+              <p className="text-white/30 text-xs text-center">Add kids to track progress</p>
+            )}
+            {kids.map(kid => {
+              const damage = getKidDamage(kid.id)
+              const cleared = kidCleared(kid.id)
+              return (
+                <div key={kid.id} className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{kid.avatar}</span>
+                    <span className="text-white/70 text-xs font-semibold flex-1">{kid.name}</span>
+                    {cleared
+                      ? <span className="text-xs font-bold text-cq-forest">Cleared ✓</span>
+                      : <span className="text-xs text-white/30">{damage} / {activeDungeon.hp}</span>
+                    }
+                  </div>
+                  <HpBar
+                    current={cleared ? activeDungeon.hp : damage}
+                    max={activeDungeon.hp}
+                    color={cleared ? '#4ade80' : 'linear-gradient(90deg, #38bdf8, #a78bfa)'}
+                  />
+                </div>
+              )
+            })}
           </div>
         ) : (
           <div className="flex flex-col gap-3">

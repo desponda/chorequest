@@ -23,7 +23,7 @@ type Tab = 'approvals' | 'quests' | 'family' | 'rewards' | 'curses' | 'dungeons'
 
 export default function ParentDashboard() {
   const data = useParentData()
-  const actions = useParentActions({ ...data, activeDungeon: data.activeDungeon, activeBoss: data.activeBoss })
+  const actions = useParentActions(data)
   const lock = useParentPinLock(data.family)
 
   const [tab, setTab] = useState<Tab>('approvals')
@@ -166,10 +166,12 @@ export default function ParentDashboard() {
             {tab === 'dungeons' && (
               <DungeonsTab
                 activeDungeon={data.activeDungeon}
+                dungeonClears={data.dungeonClears}
+                weeklyCompletions={data.weeklyCompletions}
+                kids={data.kids}
                 activeBoss={data.activeBoss}
                 pastDungeons={data.pastDungeons}
                 defeatedBosses={data.defeatedBosses}
-                kidCount={data.kids.length}
                 actions={actions}
               />
             )}

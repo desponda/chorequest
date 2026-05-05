@@ -8,9 +8,10 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { StarField } from '@/components/star-field'
 import { KidColumn } from '@/components/kid-column'
-import type { Kid, Quest, Completion, Family, Reward } from '@/lib/types'
+import type { Kid, Quest, Completion, Family, Reward, DungeonRun, DungeonClear, RaidBoss } from '@/lib/types'
 import { KID_COLORS, TIER_CONFIG } from '@/lib/constants'
 import { questDateString, questWeekKey } from '@/lib/utils'
+import { getWeekMonday } from '@/lib/xp'
 import { toast } from 'sonner'
 
 export default function WallDisplay() {
@@ -25,6 +26,10 @@ export default function WallDisplay() {
   const [rewards, setRewards] = useState<Reward[]>([])
   const [showRewards, setShowRewards] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [activeDungeon, setActiveDungeon] = useState<DungeonRun | null>(null)
+  const [dungeonClears, setDungeonClears] = useState<DungeonClear[]>([])
+  const [weeklyCompletions, setWeeklyCompletions] = useState<Completion[]>([])
+  const [activeBoss, setActiveBoss] = useState<RaidBoss | null>(null)
   const [supabase] = useState(createClient)
 
   const fetchData = useCallback(async () => {
@@ -46,9 +51,14 @@ export default function WallDisplay() {
     const today = questDateString(resetHour)
     const weekStart = questWeekKey(resetHour)
 
-    const [completionsRes, cursesRes] = await Promise.all([
+    const monday = getWeekMonday()
+
+    const [completionsRes, cursesRes, dungeonRes, bossRes, weeklyCompletionsRes] = await Promise.all([
       supabase.from('completions').select('*').gte('date', weekStart).lte('date', today),
       supabase.from('curse_instances').select('kid_id').eq('status', 'active'),
+      supabase.from('dungeon_runs').select('*').eq('family_id', profile.family_id).eq('week_start', monday).maybeSingle(),
+      supabase.from('raid_bosses').select('*').eq('family_id', profile.family_id).eq('status', 'active').maybeSingle(),
+      supabase.from('completions').select('kid_id, coins_awarded').eq('status', 'approved').gte('date', monday),
     ])
 
     if (familyRes.data) setFamily({ ...familyRes.data, has_parent_pin: false, plan: (familyRes.data.plan as import('@/lib/types').Plan) ?? 'free' })
@@ -65,6 +75,17 @@ export default function WallDisplay() {
       counts[ci.kid_id] = (counts[ci.kid_id] ?? 0) + 1
     }
     setActiveCurseCounts(counts)
+
+    const dungeon = (dungeonRes.data as DungeonRun) ?? null
+    setActiveDungeon(dungeon)
+    if (dungeon) {
+      const { data: clears } = await supabase.from('dungeon_clears').select('*').eq('dungeon_run_id', dungeon.id)
+      setDungeonClears((clears ?? []) as DungeonClear[])
+    } else {
+      setDungeonClears([])
+    }
+    setActiveBoss((bossRes.data as RaidBoss) ?? null)
+    setWeeklyCompletions((weeklyCompletionsRes.data ?? []) as Completion[])
 
     setLoading(false)
   }, [supabase])
@@ -84,6 +105,9 @@ export default function WallDisplay() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'completions' }, fetchData)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'kids' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'curse_instances' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'dungeon_runs' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'dungeon_clears' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'raid_bosses' }, fetchData)
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
@@ -278,6 +302,92 @@ export default function WallDisplay() {
           </Link>
         </div>
       </motion.header>
+
+      {/* Dungeon + Raid Boss progress bar */}
+      {(activeDungeon || activeBoss) && (
+        <div className="relative z-10 px-4 sm:px-8 pb-2 flex flex-col gap-2">
+          {/* Raid Boss — shared HP bar across full width */}
+          {activeBoss && (
+            <motion.div
+              className="rounded-2xl px-4 py-3 flex items-center gap-4"
+              style={{ background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.2)' }}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <motion.span
+                className="text-2xl flex-shrink-0"
+                animate={{ scale: [1, 1.08, 1] }}
+                transition={{ duration: 2.5, repeat: Infinity }}
+              >
+                {activeBoss.icon}
+              </motion.span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="font-heading text-sm font-bold text-white/80 truncate">{activeBoss.title}</p>
+                  <p className="text-xs text-white/35 flex-shrink-0 ml-2">{activeBoss.current_hp.toLocaleString()} / {activeBoss.max_hp.toLocaleString()} HP</p>
+                </div>
+                <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{ background: 'linear-gradient(90deg, #fb923c, #ef4444)' }}
+                    initial={{ width: '100%' }}
+                    animate={{ width: `${Math.round((activeBoss.current_hp / activeBoss.max_hp) * 100)}%` }}
+                    transition={{ duration: 0.9, ease: 'easeOut' }}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-cq-ember font-bold flex-shrink-0">{activeBoss.bounty_coins}⚙ bounty</p>
+            </motion.div>
+          )}
+
+          {/* Dungeon — per-kid progress bars in a row */}
+          {activeDungeon && (
+            <motion.div
+              className="rounded-2xl px-4 py-3"
+              style={{ background: 'rgba(56,189,248,0.06)', border: '1px solid rgba(56,189,248,0.16)' }}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+            >
+              <div className="flex items-center gap-2 mb-2.5">
+                <span className="text-lg">{activeDungeon.icon}</span>
+                <p className="font-heading text-xs font-bold text-white/60 tracking-wide">{activeDungeon.title}</p>
+                <p className="text-xs text-white/30 ml-auto">+{activeDungeon.reward_coins}🪙 +{activeDungeon.reward_xp}✨ per adventurer</p>
+              </div>
+              <div className={`grid gap-3`} style={{ gridTemplateColumns: `repeat(${Math.max(1, kids.length)}, 1fr)` }}>
+                {kids.map(kid => {
+                  const damage = weeklyCompletions
+                    .filter(c => c.kid_id === kid.id)
+                    .reduce((s, c) => s + (c.coins_awarded ?? 0), 0)
+                  const cleared = dungeonClears.some(c => c.kid_id === kid.id)
+                  const pct = cleared ? 100 : Math.min(100, Math.round((damage / activeDungeon.hp) * 100))
+                  return (
+                    <div key={kid.id}>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-sm">{kid.avatar}</span>
+                        <span className="text-xs text-white/60 font-semibold flex-1 truncate">{kid.name}</span>
+                        {cleared
+                          ? <span className="text-xs text-cq-forest font-bold">✓</span>
+                          : <span className="text-xs text-white/30">{pct}%</span>
+                        }
+                      </div>
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+                        <motion.div
+                          className="h-full rounded-full"
+                          style={{ background: cleared ? '#4ade80' : 'linear-gradient(90deg, #38bdf8, #a78bfa)' }}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${pct}%` }}
+                          transition={{ duration: 0.8, ease: 'easeOut' }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </motion.div>
+          )}
+        </div>
+      )}
 
       {/* Kid columns */}
       <main
