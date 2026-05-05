@@ -13,7 +13,7 @@ import { StreakBadge } from '@/components/streak-badge'
 import type { Kid, Quest, Completion, Reward, CurseInstance, Redemption } from '@/lib/types'
 import { KID_COLORS, getLockDurationMs } from '@/lib/constants'
 import { questDateString, questWeekKey } from '@/lib/utils'
-import { isQuestVisibleToKid, sharedSlotsLeft, kidHasActiveCompletion, sharedClaimedCount, kidCompletionForPeriod } from '@/lib/quest-rules'
+import { isQuestVisibleToKid, kidHasActiveCompletion, sharedClaimedCount, kidCompletionForPeriod } from '@/lib/quest-rules'
 import { toast } from 'sonner'
 
 const PIN_SESSION_KEY = 'cq_kid_pin_'
@@ -130,16 +130,17 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
       const quest = data.quests.find((q) => q.id === questId)
       if (!quest) return
 
+      const today = questDateString(data.resetHour)
+      const weekStart = questWeekKey(data.resetHour)
+
       // For shared quests, double-check slot availability before posting
       if (quest.kind === 'shared') {
-        const left = sharedSlotsLeft(quest, data.familySharedCompletions as Completion[])
-        if (left !== null && left <= 0) {
+        const left = quest.slots - sharedClaimedCount(quest, data.familySharedCompletions as Completion[], today, weekStart)
+        if (left <= 0) {
           toast.error('All slots claimed for this period!')
           return
         }
       }
-
-      const today = questDateString(data.resetHour)
       const res = await fetch(`/api/kid/${id}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
