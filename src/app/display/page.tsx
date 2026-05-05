@@ -11,6 +11,7 @@ import { KidColumn } from '@/components/kid-column'
 import type { Kid, Quest, Completion, Family, Reward, DungeonRun, DungeonClear, RaidBoss } from '@/lib/types'
 import { KID_COLORS, TIER_CONFIG } from '@/lib/constants'
 import { questDateString, questWeekKey } from '@/lib/utils'
+import { sharedQuestPeriodFilter } from '@/lib/quest-rules'
 import { getWeekMonday } from '@/lib/xp'
 import { toast } from 'sonner'
 
@@ -121,9 +122,12 @@ export default function WallDisplay() {
       const today = questDateString(family?.daily_reset_hour ?? 0)
 
       if (quest.kind === 'shared') {
+        const weekStartNow = questWeekKey(family?.daily_reset_hour ?? 0)
+        const inPeriod = sharedQuestPeriodFilter(quest, today, weekStartNow)
         const familyCount = completions.filter(c =>
           c.quest_id === questId &&
-          (c.status === 'approved' || c.status === 'pending')
+          inPeriod(c.date) &&
+          (c.status === 'approved' || c.status === 'pending'),
         ).length
         if (familyCount >= quest.slots) {
           toast.error('All slots claimed!')
@@ -161,6 +165,7 @@ export default function WallDisplay() {
   )
 
   const today = questDateString(family?.daily_reset_hour ?? 0)
+  const weekStart = questWeekKey(family?.daily_reset_hour ?? 0)
   const dayOfWeek = new Date().getDay()
 
   const getKidPersonalQuests = (kid: Kid) =>
@@ -177,11 +182,14 @@ export default function WallDisplay() {
     return true
   })
 
-  const getFamilyCount = (questId: string) =>
-    completions.filter(c =>
-      c.quest_id === questId &&
-      (c.status === 'approved' || c.status === 'pending')
+  const getFamilyCount = (quest: Quest) => {
+    const inPeriod = sharedQuestPeriodFilter(quest, today, weekStart)
+    return completions.filter(c =>
+      c.quest_id === quest.id &&
+      inPeriod(c.date) &&
+      (c.status === 'approved' || c.status === 'pending'),
     ).length
+  }
 
   const getKidCompletions = (kid: Kid) =>
     completions.filter((c) => c.kid_id === kid.id)
@@ -444,7 +452,7 @@ export default function WallDisplay() {
             style={{ gridTemplateColumns: `repeat(${isMobile ? Math.min(bountyQuests.length, 2) : Math.min(bountyQuests.length, 4)}, 1fr)` }}
           >
             {bountyQuests.map((quest, i) => {
-              const count = getFamilyCount(quest.id)
+              const count = getFamilyCount(quest)
               const isFull = count >= quest.slots
               const tier = TIER_CONFIG[quest.tier ?? 'normal']
               return (
