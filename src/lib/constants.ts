@@ -91,10 +91,7 @@ export function getStreakBonus(streak: number): number {
   return 1.0
 }
 
-export function getStreakLabel(streak: number): string | null {
-  if (streak >= 14) return '2× COINS!'
-  if (streak >= 7) return '1.5× COINS!'
-  if (streak >= 3) return '+25% BONUS'
+export function getStreakLabel(_streak: number): string | null {
   return null
 }
 
