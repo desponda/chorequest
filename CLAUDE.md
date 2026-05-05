@@ -72,7 +72,17 @@ src/
 - **Realtime** is enabled on `completions` and `kids` tables
 - `get_user_family_id()` is a security-definer helper function used in all RLS policies
 - Auth **Site URL** and **Redirect URLs** are set to `https://chorequest.dresponda.com`
-- Schema is in `supabase/schema.sql` — apply changes via Supabase MCP `apply_migration` tool
+- Schema is in `supabase/schema.sql`
+
+### Migration Rules — READ BEFORE TOUCHING THE DB
+
+> **NEVER apply migrations manually via `apply_migration` (MCP) or `execute_sql`.**
+
+Always use CI/CD:
+1. Write the migration file in `supabase/migrations/` with a timestamp prefix (e.g. `YYYYMMDDHHMMSS_description.sql`)
+2. Commit and push via PR → CI runs `supabase db push` which applies only unapplied migrations and records the **filename timestamp** as the version
+
+**Why**: `apply_migration` via MCP stamps the version with the current clock time, not the filename prefix. This causes `supabase db push` to fail in CI with *"Remote migration versions not found in local migrations directory"* — breaking every subsequent deploy until the files are manually renamed to match. We have been burned by this repeatedly.
 
 ## Database Schema (key tables)
 
