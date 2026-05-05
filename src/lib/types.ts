@@ -105,13 +105,17 @@ export interface DungeonRun {
   title: string
   icon: string
   hp: number
-  current_damage: number
   reward_coins: number
   reward_xp: number
   week_start: string
-  status: 'active' | 'cleared'
-  cleared_at: string | null
   created_at: string
+}
+
+export interface DungeonClear {
+  id: string
+  dungeon_run_id: string
+  kid_id: string
+  cleared_at: string
 }
 
 export interface RaidBoss {

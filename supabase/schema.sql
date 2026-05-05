@@ -92,15 +92,19 @@ create table dungeon_runs (
   title text not null default 'Weekly Dungeon',
   icon text not null default '🏰',
   hp integer not null,
-  current_damage integer not null default 0,
   reward_coins integer not null default 50,
   reward_xp integer not null default 100,
   week_start date not null,
-  status text not null default 'active',
-  cleared_at timestamptz,
   created_at timestamptz default now(),
-  constraint dungeon_status_check check (status in ('active', 'cleared')),
   unique(family_id, week_start)
+);
+
+create table dungeon_clears (
+  id uuid primary key default gen_random_uuid(),
+  dungeon_run_id uuid not null references dungeon_runs(id) on delete cascade,
+  kid_id uuid not null references kids(id) on delete cascade,
+  cleared_at timestamptz default now(),
+  unique(dungeon_run_id, kid_id)
 );
 
 create table raid_bosses (
@@ -136,6 +140,7 @@ alter table completions enable row level security;
 alter table rewards enable row level security;
 alter table redemptions enable row level security;
 alter table dungeon_runs enable row level security;
+alter table dungeon_clears enable row level security;
 alter table raid_bosses enable row level security;
 alter table raid_boss_hits enable row level security;
 

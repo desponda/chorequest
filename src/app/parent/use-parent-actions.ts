@@ -10,7 +10,7 @@ import { PLAN_LIMITS, PLAN_LABELS, PLAN_UPGRADE_HINT } from '@/lib/plans'
 import { questDateString } from '@/lib/utils'
 import { yesterday } from './_streak'
 import { getLevelFromXP, getWeekMonday } from '@/lib/xp'
-import type { DungeonRun, RaidBoss } from '@/lib/types'
+import type { DungeonRun, DungeonClear, RaidBoss } from '@/lib/types'
 
 interface Deps {
   supabase: SupabaseClient
@@ -23,6 +23,7 @@ interface Deps {
   curses: Curse[]
   activeCurseInstances: CurseInstance[]
   activeDungeon: DungeonRun | null
+  dungeonClears: DungeonClear[]
   activeBoss: RaidBoss | null
   refetch: () => Promise<void>
 }
@@ -76,7 +77,7 @@ export interface AddQuestInput {
 }
 
 export function useParentActions(deps: Deps): ParentActions {
-  const { supabase, family, completions, redemptions, kids, quests, rewards, curses, activeCurseInstances, activeDungeon, activeBoss, refetch } = deps
+  const { supabase, family, completions, redemptions, kids, quests, rewards, curses, activeCurseInstances, activeDungeon, dungeonClears, activeBoss, refetch } = deps
   const router = useRouter()
 
   const approve = useCallback(async (completionId: string) => {
@@ -128,28 +129,33 @@ export function useParentActions(deps: Deps): ParentActions {
       setTimeout(() => toast.success(`⬆️ ${completion.kid?.name ?? 'Level up'}! Reached Level ${newLevel}!`), 600)
     }
 
-    // Deal damage to active dungeon run
-    if (activeDungeon && family) {
-      const newDamage = activeDungeon.current_damage + coinsAwarded
-      if (newDamage >= activeDungeon.hp) {
-        await supabase.from('dungeon_runs').update({
-          current_damage: newDamage,
-          status: 'cleared',
-          cleared_at: new Date().toISOString(),
-        }).eq('id', activeDungeon.id)
+    // Per-kid dungeon progress check
+    if (activeDungeon) {
+      const alreadyCleared = dungeonClears.some(c => c.kid_id === completion.kid_id)
+      if (!alreadyCleared) {
+        const { data: weeklyData } = await supabase
+          .from('completions')
+          .select('coins_awarded')
+          .eq('kid_id', completion.kid_id)
+          .eq('status', 'approved')
+          .gte('date', activeDungeon.week_start)
 
-        const { data: allKids } = await supabase.from('kids').select('id, coins, xp').eq('family_id', family.id)
-        await Promise.all((allKids ?? []).map(async (k) => {
-          const kNewXP = k.xp + activeDungeon.reward_xp
-          return supabase.from('kids').update({
-            coins: k.coins + activeDungeon.reward_coins,
-            xp: kNewXP,
-            level: getLevelFromXP(kNewXP),
-          }).eq('id', k.id)
-        }))
-        setTimeout(() => toast.success(`🏰 Dungeon cleared! +${activeDungeon.reward_coins} coins for everyone!`), 700)
-      } else {
-        await supabase.from('dungeon_runs').update({ current_damage: newDamage }).eq('id', activeDungeon.id)
+        const kidDamage = weeklyData?.reduce((s, c) => s + (c.coins_awarded ?? 0), 0) ?? 0
+
+        if (kidDamage >= activeDungeon.hp) {
+          await supabase.from('dungeon_clears').insert({
+            dungeon_run_id: activeDungeon.id,
+            kid_id: completion.kid_id,
+          })
+          const { data: freshKid2 } = await supabase.from('kids').select('coins, xp').eq('id', completion.kid_id).single()
+          const k2XP = (freshKid2?.xp ?? 0) + activeDungeon.reward_xp
+          await supabase.from('kids').update({
+            coins: (freshKid2?.coins ?? 0) + activeDungeon.reward_coins,
+            xp: k2XP,
+            level: getLevelFromXP(k2XP),
+          }).eq('id', completion.kid_id)
+          setTimeout(() => toast.success(`🏰 ${completion.kid?.name ?? 'Dungeon'} cleared the dungeon! +${activeDungeon.reward_coins} coins!`), 700)
+        }
       }
     }
 
@@ -188,7 +194,7 @@ export function useParentActions(deps: Deps): ParentActions {
     }
 
     await refetch()
-  }, [activeBoss, activeDungeon, completions, family, refetch, supabase])
+  }, [activeBoss, activeDungeon, dungeonClears, completions, family, refetch, supabase])
 
   const reject = useCallback(async (completionId: string) => {
     await supabase.from('completions').update({ status: 'rejected' }).eq('id', completionId)
@@ -588,7 +594,6 @@ export function useParentActions(deps: Deps): ParentActions {
       reward_coins: data.rewardCoins,
       reward_xp: data.rewardXp,
       week_start: monday,
-      status: 'active',
     })
     if (error) {
       if (error.code === '23505') toast.error('A dungeon already exists for this week')
