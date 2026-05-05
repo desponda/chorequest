@@ -1,8 +1,6 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { getStreakLabel } from '@/lib/constants'
-
 interface StreakBadgeProps {
   streak: number
   compact?: boolean
@@ -10,8 +8,6 @@ interface StreakBadgeProps {
 
 export function StreakBadge({ streak, compact = false }: StreakBadgeProps) {
   if (streak < 2) return null
-
-  const bonus = getStreakLabel(streak)
 
   if (compact) {
     return (
@@ -46,17 +42,6 @@ export function StreakBadge({ streak, compact = false }: StreakBadgeProps) {
       <span className="text-cq-ember font-bold text-sm">
         {streak} day streak
       </span>
-      {bonus && (
-        <span
-          className="text-xs font-bold px-1.5 py-0.5 rounded-full"
-          style={{
-            background: 'rgba(251, 146, 60, 0.25)',
-            color: '#fed7aa',
-          }}
-        >
-          {bonus}
-        </span>
-      )}
     </motion.div>
   )
 }

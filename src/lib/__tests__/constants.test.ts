@@ -30,24 +30,12 @@ describe('getStreakBonus', () => {
 })
 
 describe('getStreakLabel', () => {
-  it('returns null for streaks below 3', () => {
+  it('always returns null (bonus labels removed)', () => {
     expect(getStreakLabel(0)).toBeNull()
-    expect(getStreakLabel(2)).toBeNull()
-  })
-
-  it('returns +25% BONUS for streaks 3–6', () => {
-    expect(getStreakLabel(3)).toBe('+25% BONUS')
-    expect(getStreakLabel(6)).toBe('+25% BONUS')
-  })
-
-  it('returns 1.5× COINS! for streaks 7–13', () => {
-    expect(getStreakLabel(7)).toBe('1.5× COINS!')
-    expect(getStreakLabel(13)).toBe('1.5× COINS!')
-  })
-
-  it('returns 2× COINS! for streaks 14+', () => {
-    expect(getStreakLabel(14)).toBe('2× COINS!')
-    expect(getStreakLabel(30)).toBe('2× COINS!')
+    expect(getStreakLabel(3)).toBeNull()
+    expect(getStreakLabel(7)).toBeNull()
+    expect(getStreakLabel(14)).toBeNull()
+    expect(getStreakLabel(30)).toBeNull()
   })
 })
 
