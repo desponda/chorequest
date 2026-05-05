@@ -109,6 +109,11 @@
     border: 1px solid rgba(255, 255, 255, 0.09);
   }
 
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+
   .scrollbar-thin-glass {
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.12) transparent;

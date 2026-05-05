@@ -112,12 +112,12 @@ export default function ParentDashboard() {
           </div>
         </motion.header>
 
-        <div className="flex gap-2 px-6 py-4 overflow-x-auto flex-shrink-0">
+        <div className="flex gap-1.5 px-6 py-4 flex-shrink-0">
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+              className="flex-1 min-w-0 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
               style={{
                 background: tab === t.id ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.05)',
                 border: `1px solid ${tab === t.id ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.08)'}`,
