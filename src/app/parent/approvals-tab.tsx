@@ -6,6 +6,18 @@ import type { Kid, Quest, Completion, Reward, Redemption } from '@/lib/types'
 import { Empty, fadeSlide } from './_ui'
 import type { ParentActions } from './use-parent-actions'
 
+function formatQuestDate(date: string): string {
+  const now = new Date()
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const yest = new Date(now)
+  yest.setDate(yest.getDate() - 1)
+  const yestStr = `${yest.getFullYear()}-${String(yest.getMonth() + 1).padStart(2, '0')}-${String(yest.getDate()).padStart(2, '0')}`
+  if (date === todayStr) return 'Today'
+  if (date === yestStr) return 'Yesterday'
+  const d = new Date(date + 'T12:00:00')
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
 interface Props {
   pendingCompletions: Completion[]
   pendingRedemptions: Redemption[]
@@ -91,7 +103,7 @@ export function ApprovalsTab({
                 <span className="text-2xl">{kid.avatar}</span>
                 <div>
                   <p className="font-semibold text-white/90 text-sm">{kid.name}</p>
-                  <p className="text-white/40 text-xs">completed a quest</p>
+                  <p className="text-white/40 text-xs">completed a quest · {formatQuestDate(c.date)}</p>
                 </div>
                 {kid.streak > 1 && (
                   <span className="ml-auto text-xs text-cq-ember">🔥 {kid.streak} streak</span>
@@ -114,7 +126,7 @@ export function ApprovalsTab({
 
       {reviewed.length > 0 && (
         <div>
-          <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Reviewed today</p>
+          <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Review history</p>
           {reviewed.map((entry) => {
             if (entry.kind === 'completion') {
               const c = entry.item
@@ -125,6 +137,7 @@ export function ApprovalsTab({
                   <span className="text-lg">{kid.avatar}</span>
                   <span className="text-white/50 text-sm">{kid.name}</span>
                   <span className="text-white/35 text-sm flex-1 truncate">{(c.quest as Quest)?.title}</span>
+                  <span className="text-white/25 text-xs flex-shrink-0">{formatQuestDate(c.date)}</span>
                   <span className={`text-xs font-semibold flex-shrink-0 ${c.status === 'approved' ? 'text-cq-forest' : 'text-red-400'}`}>
                     {c.status === 'approved' ? `✓ +${c.coins_awarded}🪙` : '✗'}
                   </span>

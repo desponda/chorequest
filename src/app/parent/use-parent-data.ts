@@ -69,8 +69,8 @@ export function useParentData(): ParentData {
       supabase.from('quests').select('*').eq('family_id', profile.family_id).order('created_at'),
       // pending completions: no date filter — yesterday's unapproved items must surface
       supabase.from('completions').select(`*, quest:quests(*), kid:kids(${KID_COLS})`).eq('status', 'pending').order('completed_at', { ascending: false }),
-      // reviewed today: date-scoped for the "Reviewed today" section only
-      supabase.from('completions').select(`*, quest:quests(*), kid:kids(${KID_COLS})`).eq('date', today).in('status', ['approved', 'rejected']).order('completed_at', { ascending: false }),
+      // reviewed completions: no date filter — show full history
+      supabase.from('completions').select(`*, quest:quests(*), kid:kids(${KID_COLS})`).in('status', ['approved', 'rejected']).order('completed_at', { ascending: false }).limit(200),
       supabase.from('rewards').select('*').eq('family_id', profile.family_id).order('created_at'),
       supabase.from('redemptions').select(`*, reward:rewards(*), kid:kids(${KID_COLS})`).eq('status', 'pending').order('redeemed_at', { ascending: false }),
       supabase.from('redemptions').select(`*, reward:rewards(*), kid:kids(${KID_COLS})`).eq('status', 'approved').gte('redeemed_at', today).order('redeemed_at', { ascending: false }),
