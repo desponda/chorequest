@@ -145,6 +145,7 @@ export default function ParentDashboard() {
                 pendingRedemptions={pendingRedemptions}
                 approvedRedemptions={approvedRedemptions}
                 reviewedCompletions={reviewedCompletions}
+                resolvedCurseInstances={data.resolvedCurseInstances}
                 actions={actions}
               />
             )}

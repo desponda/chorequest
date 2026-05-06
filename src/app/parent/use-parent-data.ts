@@ -16,6 +16,7 @@ export interface ParentData {
   redemptions: Redemption[]
   curses: Curse[]
   activeCurseInstances: CurseInstance[]
+  resolvedCurseInstances: CurseInstance[]
   activeDungeon: DungeonRun | null
   dungeonClears: DungeonClear[]
   weeklyCompletions: Completion[]
@@ -39,6 +40,7 @@ export function useParentData(): ParentData {
   const [redemptions, setRedemptions] = useState<Redemption[]>([])
   const [curses, setCurses] = useState<Curse[]>([])
   const [activeCurseInstances, setActiveCurseInstances] = useState<CurseInstance[]>([])
+  const [resolvedCurseInstances, setResolvedCurseInstances] = useState<CurseInstance[]>([])
   const [activeDungeon, setActiveDungeon] = useState<DungeonRun | null>(null)
   const [dungeonClears, setDungeonClears] = useState<DungeonClear[]>([])
   const [weeklyCompletions, setWeeklyCompletions] = useState<Completion[]>([])
@@ -61,7 +63,7 @@ export function useParentData(): ParentData {
 
     const [
       familyRes, kidsRes, questsRes, pendingCompletionsRes, reviewedTodayRes, rewardsRes,
-      pendingRedemptionsRes, approvedRedemptionsRes, cursesRes, curseInstancesRes,
+      pendingRedemptionsRes, approvedRedemptionsRes, cursesRes, curseInstancesRes, resolvedCurseInstancesRes,
       activeDungeonRes, activeBossRes, pastDungeonsRes, defeatedBossesRes, weeklyCompletionsRes,
     ] = await Promise.all([
       supabase.from('families').select('id, name, invite_token, api_key, daily_reset_hour, created_at, parent_pin, plan').eq('id', profile.family_id).single(),
@@ -73,9 +75,10 @@ export function useParentData(): ParentData {
       supabase.from('completions').select(`*, quest:quests(*), kid:kids(${KID_COLS})`).in('status', ['approved', 'rejected']).order('completed_at', { ascending: false }).limit(200),
       supabase.from('rewards').select('*').eq('family_id', profile.family_id).order('created_at'),
       supabase.from('redemptions').select(`*, reward:rewards(*), kid:kids(${KID_COLS})`).eq('status', 'pending').order('redeemed_at', { ascending: false }),
-      supabase.from('redemptions').select(`*, reward:rewards(*), kid:kids(${KID_COLS})`).eq('status', 'approved').gte('redeemed_at', today).order('redeemed_at', { ascending: false }),
+      supabase.from('redemptions').select(`*, reward:rewards(*), kid:kids(${KID_COLS})`).eq('status', 'approved').order('redeemed_at', { ascending: false }).limit(200),
       supabase.from('curses').select('*').eq('family_id', profile.family_id).order('created_at'),
       supabase.from('curse_instances').select(`*, curse:curses(*), kid:kids(${KID_COLS})`).eq('status', 'active').order('cast_at', { ascending: false }),
+      supabase.from('curse_instances').select(`*, curse:curses(*), kid:kids(${KID_COLS})`).eq('status', 'resolved').order('resolved_at', { ascending: false }).limit(200),
       supabase.from('dungeon_runs').select('*').eq('family_id', profile.family_id).eq('week_start', monday).maybeSingle(),
       supabase.from('raid_bosses').select('*').eq('family_id', profile.family_id).eq('status', 'active').maybeSingle(),
       supabase.from('dungeon_runs').select('*').eq('family_id', profile.family_id).lt('week_start', monday).order('week_start', { ascending: false }).limit(5),
@@ -106,6 +109,7 @@ export function useParentData(): ParentData {
     ])
     if (cursesRes.data) setCurses(cursesRes.data as Curse[])
     if (curseInstancesRes.data) setActiveCurseInstances(curseInstancesRes.data as CurseInstance[])
+    if (resolvedCurseInstancesRes.data) setResolvedCurseInstances(resolvedCurseInstancesRes.data as CurseInstance[])
 
     const dungeon = (activeDungeonRes.data as DungeonRun) ?? null
     setActiveDungeon(dungeon)
@@ -139,7 +143,7 @@ export function useParentData(): ParentData {
   }, [refetch, supabase])
 
   return {
-    family, kids, quests, completions, rewards, redemptions, curses, activeCurseInstances,
+    family, kids, quests, completions, rewards, redemptions, curses, activeCurseInstances, resolvedCurseInstances,
     activeDungeon, dungeonClears, weeklyCompletions,
     activeBoss, pastDungeons, defeatedBosses,
     loading, supabase, refetch,
