@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { QuestCard } from '@/components/quest-card'
-import type { Kid, Quest, Completion, Reward, Redemption } from '@/lib/types'
+import type { Kid, Quest, Completion, Reward, Redemption, CurseInstance, Curse } from '@/lib/types'
 import { Empty, fadeSlide } from './_ui'
 import type { ParentActions } from './use-parent-actions'
 
@@ -23,6 +23,7 @@ interface Props {
   pendingRedemptions: Redemption[]
   approvedRedemptions: Redemption[]
   reviewedCompletions: Completion[]
+  resolvedCurseInstances: CurseInstance[]
   actions: ParentActions
 }
 
@@ -31,15 +32,18 @@ export function ApprovalsTab({
   pendingRedemptions,
   approvedRedemptions,
   reviewedCompletions,
+  resolvedCurseInstances,
   actions,
 }: Props) {
   type ReviewedItem =
     | { kind: 'completion'; ts: string; item: Completion }
     | { kind: 'redemption'; ts: string; item: Redemption }
+    | { kind: 'curse'; ts: string; item: CurseInstance }
 
   const reviewed: ReviewedItem[] = [
     ...reviewedCompletions.map((c) => ({ kind: 'completion' as const, ts: c.completed_at, item: c })),
     ...approvedRedemptions.map((r) => ({ kind: 'redemption' as const, ts: r.redeemed_at, item: r })),
+    ...resolvedCurseInstances.map((ci) => ({ kind: 'curse' as const, ts: ci.resolved_at ?? ci.cast_at, item: ci })),
   ].sort((a, b) => b.ts.localeCompare(a.ts))
 
   return (
@@ -151,6 +155,23 @@ export function ApprovalsTab({
                 </div>
               )
             }
+            if (entry.kind === 'curse') {
+              const ci = entry.item
+              const kid = ci.kid as Kid | undefined
+              const curse = ci.curse as Curse | undefined
+              if (!kid || !curse) return null
+              return (
+                <div key={ci.id} className="flex items-center gap-3 py-2">
+                  <span className="text-lg">{kid.avatar}</span>
+                  <span className="text-white/50 text-sm">{kid.name}</span>
+                  <span className="text-white/35 text-sm flex-1 truncate flex items-center gap-1.5"><span>{curse.icon}</span> {curse.title}</span>
+                  <span className="text-white/25 text-xs flex-shrink-0">{ci.resolved_at ? formatQuestDate(ci.resolved_at.slice(0, 10)) : ''}</span>
+                  <span className="text-xs font-semibold flex-shrink-0 text-red-400">
+                    ☠️ -{ci.coins_deducted}🪙
+                  </span>
+                </div>
+              )
+            }
             const r = entry.item
             const kid = r.kid as Kid | undefined
             const reward = r.reward as Reward | undefined
@@ -160,6 +181,7 @@ export function ApprovalsTab({
                 <span className="text-lg">{kid.avatar}</span>
                 <span className="text-white/50 text-sm">{kid.name}</span>
                 <span className="text-white/35 text-sm flex-1 truncate flex items-center gap-1.5"><span>{reward.icon}</span> {reward.title}</span>
+                <span className="text-white/25 text-xs flex-shrink-0">{formatQuestDate(r.redeemed_at.slice(0, 10))}</span>
                 <span className="text-xs font-semibold flex-shrink-0 text-cq-gold">
                   🎁 -{reward.cost}🪙
                 </span>
