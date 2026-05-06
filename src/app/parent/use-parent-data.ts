@@ -60,14 +60,17 @@ export function useParentData(): ParentData {
     const monday = getWeekMonday()
 
     const [
-      familyRes, kidsRes, questsRes, completionsRes, rewardsRes,
+      familyRes, kidsRes, questsRes, pendingCompletionsRes, reviewedTodayRes, rewardsRes,
       pendingRedemptionsRes, approvedRedemptionsRes, cursesRes, curseInstancesRes,
       activeDungeonRes, activeBossRes, pastDungeonsRes, defeatedBossesRes, weeklyCompletionsRes,
     ] = await Promise.all([
       supabase.from('families').select('id, name, invite_token, api_key, daily_reset_hour, created_at, parent_pin, plan').eq('id', profile.family_id).single(),
       supabase.from('kids').select(KID_COLS).eq('family_id', profile.family_id).order('created_at'),
       supabase.from('quests').select('*').eq('family_id', profile.family_id).order('created_at'),
-      supabase.from('completions').select(`*, quest:quests(*), kid:kids(${KID_COLS})`).eq('date', today).order('completed_at', { ascending: false }),
+      // pending completions: no date filter — yesterday's unapproved items must surface
+      supabase.from('completions').select(`*, quest:quests(*), kid:kids(${KID_COLS})`).eq('status', 'pending').order('completed_at', { ascending: false }),
+      // reviewed today: date-scoped for the "Reviewed today" section only
+      supabase.from('completions').select(`*, quest:quests(*), kid:kids(${KID_COLS})`).eq('date', today).in('status', ['approved', 'rejected']).order('completed_at', { ascending: false }),
       supabase.from('rewards').select('*').eq('family_id', profile.family_id).order('created_at'),
       supabase.from('redemptions').select(`*, reward:rewards(*), kid:kids(${KID_COLS})`).eq('status', 'pending').order('redeemed_at', { ascending: false }),
       supabase.from('redemptions').select(`*, reward:rewards(*), kid:kids(${KID_COLS})`).eq('status', 'approved').gte('redeemed_at', today).order('redeemed_at', { ascending: false }),
@@ -92,7 +95,10 @@ export function useParentData(): ParentData {
     }
     if (kidsRes.data) setKids(kidsRes.data as Kid[])
     if (questsRes.data) setQuests(questsRes.data as Quest[])
-    if (completionsRes.data) setCompletions(completionsRes.data as Completion[])
+    setCompletions([
+      ...((pendingCompletionsRes.data ?? []) as Completion[]),
+      ...((reviewedTodayRes.data ?? []) as Completion[]),
+    ])
     if (rewardsRes.data) setRewards(rewardsRes.data as Reward[])
     setRedemptions([
       ...((pendingRedemptionsRes.data ?? []) as Redemption[]),
