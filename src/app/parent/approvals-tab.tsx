@@ -169,6 +169,13 @@ export function ApprovalsTab({
                   <span className="text-xs font-semibold flex-shrink-0 text-red-400">
                     ☠️ -{ci.coins_deducted}🪙
                   </span>
+                  <button
+                    onClick={() => actions.undoResolvedCurse(ci.id)}
+                    className="text-xs text-white/20 hover:text-cq-gold transition-all flex-shrink-0 ml-1"
+                    title="Undo"
+                  >
+                    ↩
+                  </button>
                 </div>
               )
             }
@@ -185,6 +192,13 @@ export function ApprovalsTab({
                 <span className="text-xs font-semibold flex-shrink-0 text-cq-gold">
                   🎁 -{reward.cost}🪙
                 </span>
+                <button
+                  onClick={() => actions.undoRedemption(r.id)}
+                  className="text-xs text-white/20 hover:text-cq-gold transition-all flex-shrink-0 ml-1"
+                  title="Undo"
+                >
+                  ↩
+                </button>
               </div>
             )
           })}

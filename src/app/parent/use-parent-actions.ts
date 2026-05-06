@@ -22,6 +22,7 @@ interface Deps {
   rewards: Reward[]
   curses: Curse[]
   activeCurseInstances: CurseInstance[]
+  resolvedCurseInstances: CurseInstance[]
   activeDungeon: DungeonRun | null
   dungeonClears: DungeonClear[]
   activeBoss: RaidBoss | null
@@ -35,6 +36,8 @@ export interface ParentActions {
   undoRejection: (completionId: string) => Promise<void>
   fulfillRedemption: (redemptionId: string) => Promise<void>
   denyRedemption: (redemptionId: string) => Promise<void>
+  undoRedemption: (redemptionId: string) => Promise<void>
+  undoResolvedCurse: (instanceId: string) => Promise<void>
   addKid: (data: { name: string; avatar: string; color: 'azure' | 'mystic'; pin: string }) => Promise<void>
   addQuest: (data: AddQuestInput) => Promise<void>
   toggleQuest: (id: string, active: boolean) => Promise<void>
@@ -77,7 +80,7 @@ export interface AddQuestInput {
 }
 
 export function useParentActions(deps: Deps): ParentActions {
-  const { supabase, family, completions, redemptions, kids, quests, rewards, curses, activeCurseInstances, activeDungeon, dungeonClears, activeBoss, refetch } = deps
+  const { supabase, family, completions, redemptions, kids, quests, rewards, curses, activeCurseInstances, resolvedCurseInstances, activeDungeon, dungeonClears, activeBoss, refetch } = deps
   const router = useRouter()
 
   const approve = useCallback(async (completionId: string) => {
@@ -266,6 +269,28 @@ export function useParentActions(deps: Deps): ParentActions {
     }
     await refetch()
   }, [refetch, supabase])
+
+  const undoRedemption = useCallback(async (redemptionId: string) => {
+    const redemption = redemptions.find((r) => r.id === redemptionId)
+    if (!redemption) return
+    const kid = redemption.kid as Kid | undefined
+    const reward = redemption.reward as Reward | undefined
+    if (!kid || !reward) return
+    await supabase.from('redemptions').update({ status: 'pending' }).eq('id', redemptionId)
+    const { data: freshKid } = await supabase.from('kids').select('coins').eq('id', kid.id).single()
+    await supabase.from('kids').update({ coins: (freshKid?.coins ?? kid.coins) + reward.cost }).eq('id', kid.id)
+    toast.success(`Redemption undone — ${reward.cost} coins returned to ${kid.name}`)
+    await refetch()
+  }, [redemptions, refetch, supabase])
+
+  const undoResolvedCurse = useCallback(async (instanceId: string) => {
+    const instance = resolvedCurseInstances.find((ci) => ci.id === instanceId)
+    const kid = instance?.kid as Kid | undefined
+    const curse = instance?.curse as Curse | undefined
+    await supabase.from('curse_instances').update({ status: 'active', resolved_at: null }).eq('id', instanceId)
+    toast.success(`${curse?.title ?? 'Curse'} reopened for ${kid?.name ?? 'kid'}`)
+    await refetch()
+  }, [resolvedCurseInstances, refetch, supabase])
 
   const addKid = useCallback(async (data: { name: string; avatar: string; color: 'azure' | 'mystic'; pin: string }) => {
     if (!data.name.trim() || data.pin.length !== 4 || !family) return
@@ -642,7 +667,7 @@ export function useParentActions(deps: Deps): ParentActions {
 
   return {
     approve, reject, undoApproval, undoRejection,
-    fulfillRedemption, denyRedemption,
+    fulfillRedemption, denyRedemption, undoRedemption, undoResolvedCurse,
     addKid,
     addQuest, toggleQuest, deleteQuest, saveQuest, seedDefaultQuests,
     addReward, deleteReward, saveReward,
