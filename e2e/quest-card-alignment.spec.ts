@@ -62,6 +62,47 @@ test.describe('QuestCard column alignment', () => {
     }
   })
 
+  test('all card heights are identical (no height jump between button and pill states)', async ({ page }) => {
+    const cards = page.locator('[data-card]')
+    const count = await cards.count()
+    expect(count).toBeGreaterThan(5)
+
+    const heights: number[] = []
+    for (let i = 0; i < count; i++) {
+      const box = await cards.nth(i).boundingBox()
+      expect(box, `card ${i} has no bounding box`).not.toBeNull()
+      heights.push(box!.height)
+    }
+
+    const first = heights[0]
+    for (let i = 1; i < heights.length; i++) {
+      expect(
+        Math.abs(heights[i] - first),
+        `card height mismatch on card ${i}: got ${heights[i]}px, expected ${first}px`,
+      ).toBeLessThanOrEqual(2)
+    }
+  })
+
+  test('action slot contents (button and pills) have identical height', async ({ page }) => {
+    const actionContents = page.locator('[data-testid="quest-action-content"]')
+    const count = await actionContents.count()
+    expect(count).toBeGreaterThan(5)
+
+    const heights: number[] = []
+    for (let i = 0; i < count; i++) {
+      const box = await actionContents.nth(i).boundingBox()
+      if (box) heights.push(box.height)
+    }
+
+    const first = heights[0]
+    for (let i = 1; i < heights.length; i++) {
+      expect(
+        Math.abs(heights[i] - first),
+        `action content height mismatch on item ${i}: got ${heights[i]}px, expected ${first}px`,
+      ).toBeLessThanOrEqual(2)
+    }
+  })
+
   test('screenshot matches baseline', async ({ page, browserName }) => {
     if (browserName !== 'chromium') return
     await expect(page).toHaveScreenshot('quest-card-alignment.png', { fullPage: true })
