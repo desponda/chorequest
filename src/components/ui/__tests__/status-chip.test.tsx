@@ -7,9 +7,10 @@ import { render, screen } from '@testing-library/react'
 vi.mock('framer-motion', () => ({
   motion: new Proxy({}, {
     get: (_target, prop: string) => {
-      const Tag = prop as keyof JSX.IntrinsicElements
-      return ({ children, ...rest }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) =>
-        React.createElement(Tag, rest, children)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const Tag = prop as any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return ({ children, ...rest }: any) => React.createElement(Tag, rest, children)
     },
   }),
 }))
