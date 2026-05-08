@@ -111,8 +111,14 @@ export function useParentActions(deps: Deps): ParentActions {
 
     const newXP = (freshKid?.xp ?? 0) + coinsAwarded
     const newLevel = getLevelFromXP(newXP)
-    const today = questDateString(family?.daily_reset_hour ?? 0)
-    const newStreak = freshKid?.last_completed_date === yesterday() ? (freshKid?.streak ?? 0) + 1 : 1
+    const resetHour = family?.daily_reset_hour ?? 0
+    const today = questDateString(resetHour)
+    // Preserve streak if already approved something today; increment if last was quest-yesterday; reset otherwise.
+    const newStreak = freshKid?.last_completed_date === today
+      ? (freshKid?.streak ?? 1)
+      : freshKid?.last_completed_date === yesterday(resetHour)
+      ? (freshKid?.streak ?? 0) + 1
+      : 1
 
     await supabase.from('kids').update({
       coins: (freshKid?.coins ?? 0) + coinsAwarded,

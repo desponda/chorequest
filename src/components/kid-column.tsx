@@ -106,9 +106,12 @@ export function KidColumn({
         )}
 
         <div className="text-center">
-          <h2 className="font-heading text-xl font-bold text-white/95 tracking-wide">
-            {kid.name}
-          </h2>
+          <div className="flex items-center justify-center gap-2">
+            <h2 className="font-heading text-xl font-bold text-white/95 tracking-wide">
+              {kid.name}
+            </h2>
+            {kid.streak > 1 && <StreakBadge streak={kid.streak} compact />}
+          </div>
           <p className="text-xs mt-0.5 font-medium" style={{ color: colors.primary }}>
             {getLevelTitle(kid.level ?? 1)} · Lv {kid.level ?? 1}
           </p>
@@ -133,20 +136,15 @@ export function KidColumn({
           </div>
         </div>
 
-        {(kid.streak > 1 || activeCurseCount > 0) && (
-          <div className="flex items-center gap-2">
-            {kid.streak > 1 && <StreakBadge streak={kid.streak} />}
-            {activeCurseCount > 0 && (
-              <motion.span
-                className="text-xs px-2 py-0.5 rounded-full font-bold"
-                style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171' }}
-                animate={{ scale: [1, 1.06, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                ☠️ {activeCurseCount} curse{activeCurseCount > 1 ? 's' : ''}
-              </motion.span>
-            )}
-          </div>
+        {activeCurseCount > 0 && (
+          <motion.span
+            className="text-xs px-2 py-0.5 rounded-full font-bold"
+            style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171' }}
+            animate={{ scale: [1, 1.06, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            ☠️ {activeCurseCount} curse{activeCurseCount > 1 ? 's' : ''}
+          </motion.span>
         )}
 
         {/* Progress bar */}
