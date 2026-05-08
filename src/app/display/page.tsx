@@ -26,6 +26,7 @@ export default function WallDisplay() {
   const [claimingBounty, setClaimingBounty] = useState<Quest | null>(null)
   const [rewards, setRewards] = useState<Reward[]>([])
   const [showRewards, setShowRewards] = useState(false)
+  const [showBounty, setShowBounty] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [activeDungeon, setActiveDungeon] = useState<DungeonRun | null>(null)
   const [dungeonClears, setDungeonClears] = useState<DungeonClear[]>([])
@@ -275,6 +276,25 @@ export default function WallDisplay() {
         </div>
 
         <div className="flex-1 flex justify-end items-center gap-2 sm:gap-3">
+          {bountyQuests.length > 0 && (
+            <button
+              onClick={() => setShowBounty(true)}
+              className="relative flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+              style={{
+                background: 'rgba(251,191,36,0.12)',
+                border: '1px solid rgba(251,191,36,0.35)',
+                color: '#fbbf24',
+              }}
+            >
+              ⚡<span className="hidden sm:inline"> Bounty</span>
+              {bountyQuests.some(q => getFamilyCount(q) < q.slots) && (
+                <span
+                  className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full"
+                  style={{ background: '#fbbf24' }}
+                />
+              )}
+            </button>
+          )}
           <button
             onClick={() => setShowRewards(true)}
             className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-xl text-sm font-semibold transition-all"
@@ -525,6 +545,98 @@ export default function WallDisplay() {
       >
         ✦ tap a quest to complete it ✦
       </motion.footer>
+
+      {/* Bounty board modal */}
+      <AnimatePresence>
+        {showBounty && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowBounty(false)}
+          >
+            <motion.div
+              className="rounded-3xl mx-4 w-full max-w-sm sm:max-w-lg overflow-hidden"
+              style={{
+                background: 'rgba(10,6,28,0.98)',
+                border: '1px solid rgba(251,191,36,0.25)',
+                boxShadow: '0 0 80px rgba(0,0,0,0.7), 0 0 40px rgba(251,191,36,0.08)',
+                maxHeight: '80vh',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+              initial={{ scale: 0.88, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.88, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-7 pt-6 pb-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="font-heading text-xl font-bold text-white/90 tracking-wide">⚡ Bounty Board</h2>
+                    <p className="text-white/35 text-xs mt-0.5">First to claim earns the coins</p>
+                  </div>
+                  <button
+                    onClick={() => setShowBounty(false)}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-white/30 hover:text-white/60 transition-all"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <div className="overflow-y-auto px-7 py-4 flex-1 flex flex-col gap-3">
+                {bountyQuests.map((quest) => {
+                  const count = getFamilyCount(quest)
+                  const isFull = count >= quest.slots
+                  const tier = TIER_CONFIG[quest.tier ?? 'normal']
+                  const isNormal = (quest.tier ?? 'normal') === 'normal'
+                  return (
+                    <motion.button
+                      key={quest.id}
+                      onClick={() => { if (!isFull) { setClaimingBounty(quest); setShowBounty(false) } }}
+                      disabled={isFull}
+                      className="flex items-center gap-4 rounded-2xl p-4 text-left w-full transition-all disabled:opacity-50"
+                      style={{
+                        background: isFull ? 'rgba(255,255,255,0.02)' : `rgba(${isNormal ? '251,191,36' : tier.color.replace('#','').match(/.{2}/g)?.map(h=>parseInt(h,16)).join(',') ?? '251,191,36'},0.06)`,
+                        border: `1px solid ${isFull ? 'rgba(255,255,255,0.07)' : isNormal ? 'rgba(251,191,36,0.2)' : tier.border}`,
+                      }}
+                      whileHover={!isFull ? { scale: 1.01 } : {}}
+                      whileTap={!isFull ? { scale: 0.99 } : {}}
+                    >
+                      <span className="text-3xl flex-shrink-0">{quest.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm text-white/90 truncate">{quest.title}</p>
+                        <p className="text-xs mt-0.5" style={{ color: isFull ? 'rgba(74,222,128,0.7)' : 'rgba(255,255,255,0.4)' }}>
+                          {isFull ? '✓ all claimed' : `${count}/${quest.slots} slots taken`}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <span className="text-sm">🪙</span>
+                        <span className="font-heading font-bold text-sm" style={{ color: isNormal ? '#fbbf24' : tier.color }}>
+                          {quest.coins}
+                        </span>
+                      </div>
+                      {!isFull && (
+                        <span
+                          className="text-xs px-3 py-1.5 rounded-xl font-semibold flex-shrink-0"
+                          style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.3)', color: '#fbbf24' }}
+                        >
+                          Claim
+                        </span>
+                      )}
+                    </motion.button>
+                  )
+                })}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Rewards quick-view modal */}
       <AnimatePresence>
