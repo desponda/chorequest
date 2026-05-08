@@ -257,10 +257,10 @@ export function QuestCard({
               ) : null}
             </div>
 
-            {/* Coins: fixed 44px, right-aligned */}
-            <div style={{ width: '44px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px' }}>
-              <span className="text-sm">🪙</span>
-              <span className="font-heading font-bold text-sm" style={{ color: isNormal ? '#fbbf24' : tier.color }}>
+            {/* Coins: emoji fixed-width + number right-aligned — keeps 🪙 pinned regardless of digit count */}
+            <div style={{ width: '48px', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+              <span className="text-sm" style={{ width: '18px', textAlign: 'center', flexShrink: 0 }}>🪙</span>
+              <span className="font-heading font-bold text-sm" style={{ flex: 1, textAlign: 'right', color: isNormal ? '#fbbf24' : tier.color }}>
                 {quest.coins}
               </span>
             </div>
