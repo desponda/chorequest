@@ -138,7 +138,7 @@ export function ApprovalsTab({
               const kid = c.kid as Kid | undefined
               if (!kid) return null
               return (
-                <div key={c.id} className="grid items-center gap-x-2 py-1.5" style={{ gridTemplateColumns: '1fr auto auto 1.5rem' }}>
+                <div key={c.id} className="grid items-center gap-x-2 py-1.5" style={{ gridTemplateColumns: '1fr 5.5rem 6.5rem 1.5rem' }}>
                   <span className="text-sm truncate flex items-center gap-1.5 min-w-0">
                     <span className="text-base flex-shrink-0">{kid.avatar}</span>
                     <span className="text-white/50 flex-shrink-0">{kid.name}</span>
@@ -162,7 +162,7 @@ export function ApprovalsTab({
               const curse = ci.curse as Curse | undefined
               if (!kid || !curse) return null
               return (
-                <div key={ci.id} className="grid items-center gap-x-2 py-1.5" style={{ gridTemplateColumns: '1fr auto auto 1.5rem' }}>
+                <div key={ci.id} className="grid items-center gap-x-2 py-1.5" style={{ gridTemplateColumns: '1fr 5.5rem 6.5rem 1.5rem' }}>
                   <span className="text-sm truncate flex items-center gap-1.5 min-w-0">
                     <span className="text-base flex-shrink-0">{kid.avatar}</span>
                     <span className="text-white/50 flex-shrink-0">{kid.name}</span>
@@ -185,7 +185,7 @@ export function ApprovalsTab({
             const reward = r.reward as Reward | undefined
             if (!kid || !reward) return null
             return (
-              <div key={r.id} className="grid items-center gap-x-2 py-1.5" style={{ gridTemplateColumns: '1fr auto auto 1.5rem' }}>
+              <div key={r.id} className="grid items-center gap-x-2 py-1.5" style={{ gridTemplateColumns: '1fr 5.5rem 6.5rem 1.5rem' }}>
                 <span className="text-sm truncate flex items-center gap-1.5 min-w-0">
                   <span className="text-base flex-shrink-0">{kid.avatar}</span>
                   <span className="text-white/50 flex-shrink-0">{kid.name}</span>
