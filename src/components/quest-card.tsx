@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 import type { Quest, Completion, KidColor } from '@/lib/types'
 import { KID_COLORS, TIER_CONFIG } from '@/lib/constants'
 import { CoinBurst } from './coin-burst'
-import { StatusChip } from './ui/status-chip'
 import { TierBadge } from './ui/tier-badge'
 
 interface QuestCardProps {
@@ -225,6 +224,7 @@ export function QuestCard({
             <div data-testid="quest-action-slot" style={{ width: '96px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
               {(isTodo || isRejected) && onComplete ? (
                 <motion.button
+                  data-testid="quest-action-content"
                   onClick={handleComplete}
                   disabled={loading}
                   className="text-sm px-4 py-1.5 rounded-xl font-bold transition-all disabled:opacity-50"
@@ -240,7 +240,34 @@ export function QuestCard({
                 </motion.button>
               ) : (isPending || isApproved || isShareLocked) ? (
                 <>
-                  <StatusChip status={isPending ? 'pending' : isApproved ? 'approved' : 'locked'} />
+                  {/* Status pill — same py-1.5 text-sm as Done button so card height stays consistent */}
+                  {isPending ? (
+                    <motion.span
+                      data-testid="quest-action-content"
+                      className="text-sm px-4 py-1.5 rounded-xl font-semibold whitespace-nowrap"
+                      style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.3)', color: '#fbbf24' }}
+                      animate={{ opacity: [0.6, 1] }}
+                      transition={{ duration: 0.8, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
+                    >
+                      ⏳
+                    </motion.span>
+                  ) : isApproved ? (
+                    <span
+                      data-testid="quest-action-content"
+                      className="text-sm px-4 py-1.5 rounded-xl font-semibold whitespace-nowrap"
+                      style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80' }}
+                    >
+                      ✓ done
+                    </span>
+                  ) : (
+                    <span
+                      data-testid="quest-action-content"
+                      className="text-sm px-4 py-1.5 rounded-xl font-semibold whitespace-nowrap"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)' }}
+                    >
+                      claimed
+                    </span>
+                  )}
                   {!isParent && isPending && onUndo && (
                     <motion.button
                       onClick={async () => { setLoading(true); await onUndo(); setLoading(false) }}
