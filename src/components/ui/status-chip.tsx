@@ -49,8 +49,8 @@ export function StatusChip({ status }: { status: StatusChipStatus }) {
       <motion.span
         className={chipClass}
         style={style}
-        animate={{ opacity: [0.5, 1, 0.5] }}
-        transition={{ duration: 1.6, repeat: Infinity }}
+        animate={{ opacity: [0.5, 1] }}
+        transition={{ duration: 0.8, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
       >
         {cfg.label}
       </motion.span>
