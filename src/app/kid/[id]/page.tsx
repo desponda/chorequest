@@ -92,7 +92,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
     return () => clearInterval(timerId)
   }, [lockedUntil])
 
-  const handlePinDigit = async (digit: string) => {
+  const handlePinDigit = useCallback(async (digit: string) => {
     if (lockedUntil && now < lockedUntil) return
     const next = pinInput + digit
     setPinInput(next)
@@ -122,7 +122,20 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
         }, 700)
       }
     }
-  }
+  }, [lockedUntil, now, pinInput, pinAttempts, id])
+
+  useEffect(() => {
+    if (pinVerified) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key >= '0' && e.key <= '9') handlePinDigit(e.key)
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        setPinInput((p) => p.slice(0, -1))
+        setPinError(false)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [pinVerified, handlePinDigit])
 
   const handleComplete = useCallback(
     async (questId: string) => {
