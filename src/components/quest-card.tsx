@@ -117,8 +117,8 @@ export function QuestCard({
         backdropFilter: 'blur(10px)',
         opacity: isShareLocked ? 0.45 : 1,
       }}
-      whileHover={isTodo && onComplete ? { scale: 1.015 } : {}}
-      whileTap={isTodo && onComplete ? { scale: 0.985 } : {}}
+      whileHover={isTodo && onComplete ? { boxShadow: `0 0 0 2px rgba(${kidRgb}, 0.5), 0 8px 28px rgba(${kidRgb}, 0.18)` } : {}}
+      whileTap={isTodo && onComplete ? { boxShadow: `0 0 0 1px rgba(${kidRgb}, 0.3)` } : {}}
       layout
       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
     >
