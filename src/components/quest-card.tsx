@@ -165,8 +165,8 @@ export function QuestCard({
       )}
 
       <div className="p-4">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl leading-none flex-shrink-0">{quest.icon}</span>
+        <div className="flex items-start gap-3">
+          <span className="text-2xl leading-none mt-0.5 flex-shrink-0">{quest.icon}</span>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
