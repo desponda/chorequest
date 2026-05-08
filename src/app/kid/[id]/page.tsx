@@ -35,7 +35,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   const [data, setData] = useState<KidDataPayload | null>(null)
   const prevPendingIdsRef = useRef<string[]>([])
   const isFirstFetchRef = useRef(true)
-  const [tab, setTab] = useState<'quests' | 'rewards'>('quests')
+  const [tab, setTab] = useState<'quests' | 'bounty' | 'rewards'>('quests')
   const [pinVerified, setPinVerified] = useState(() =>
     typeof window !== 'undefined'
       ? sessionStorage.getItem(PIN_SESSION_KEY + id) === 'verified'
@@ -358,6 +358,12 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
     kidHasActiveCompletion(q, kid.id, completions),
   ).length
 
+  const availableBountyCount = upForGrabs.filter((q) => {
+    const claimed = sharedClaimedCount(q, familySharedCompletions as Completion[], today, weekStart)
+    const myCompletion = kidCompletionForPeriod(q, kid.id, completions, today, weekStart)
+    return !myCompletion && claimed < q.slots
+  }).length
+
   return (
     <div className="min-h-screen bg-quest-void flex flex-col">
       <StarField />
@@ -387,18 +393,29 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
         </motion.header>
 
         <div className="flex px-6 gap-2 mb-4 flex-shrink-0">
-          {(['quests', 'rewards'] as const).map((t) => {
-            const labels = { quests: '⚔️ Quests', rewards: '🎁 Rewards' }
-            const badge = t === 'quests' && pendingCompletions.length > 0 ? pendingCompletions.length : null
+          {(['quests', 'bounty', 'rewards'] as const).map((t) => {
+            const labels = { quests: '⚔️ Quests', bounty: '⚡ Bounty', rewards: '🎁 Rewards' }
+            const badge = t === 'quests' && pendingCompletions.length > 0
+              ? pendingCompletions.length
+              : t === 'bounty' && availableBountyCount > 0
+              ? availableBountyCount
+              : null
+            const isBountyActive = t === 'bounty' && tab === 'bounty'
             return (
               <button
                 key={t}
                 onClick={() => setTab(t)}
                 className="relative flex-1 py-2 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1.5"
                 style={{
-                  background: tab === t ? colors.bg : 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${tab === t ? colors.border : 'rgba(255,255,255,0.07)'}`,
-                  color: tab === t ? colors.primary : 'rgba(255,255,255,0.45)',
+                  background: tab === t
+                    ? (t === 'bounty' ? 'rgba(251,191,36,0.12)' : colors.bg)
+                    : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${tab === t
+                    ? (t === 'bounty' ? 'rgba(251,191,36,0.35)' : colors.border)
+                    : 'rgba(255,255,255,0.07)'}`,
+                  color: tab === t
+                    ? (t === 'bounty' ? '#fbbf24' : colors.primary)
+                    : 'rgba(255,255,255,0.45)',
                 }}
               >
                 {labels[t]}
@@ -474,39 +491,18 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                   </Section>
                 )}
 
-                {upForGrabs.length > 0 && (
-                  <div>
-                    {allDailiesDone && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="rounded-2xl p-3 mb-3 text-center"
-                        style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)' }}
-                      >
-                        <p className="text-cq-forest text-sm font-bold">🎉 All caught up — grab something extra</p>
-                      </motion.div>
-                    )}
-                    <Section title="⚡ Up for Grabs" accent="gold">
-                      {upForGrabs.map((q, i) => {
-                        const claimed = sharedClaimedCount(q, familySharedCompletions as Completion[], today, weekStart)
-                        const myCompletion = kidCompletionForPeriod(q, kid.id, completions, today, weekStart)
-                        const isShareLocked = !myCompletion && claimed >= q.slots
-                        return (
-                          <QuestRowItem
-                            key={q.id}
-                            quest={q}
-                            index={i}
-                            completion={myCompletion}
-                            sharedClaimed={claimed}
-                            isShareLocked={isShareLocked}
-                            kidColor={kid.color}
-                            onComplete={() => handleComplete(q.id)}
-                            onUndo={myCompletion?.status === 'pending' ? () => handleUndo(myCompletion.id) : undefined}
-                          />
-                        )
-                      })}
-                    </Section>
-                  </div>
+                {allDailiesDone && availableBountyCount > 0 && (
+                  <motion.button
+                    onClick={() => setTab('bounty')}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full rounded-2xl p-3 text-center"
+                    style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)' }}
+                  >
+                    <p className="text-amber-400 text-sm font-bold">🎉 All caught up — check the Bounty Board ⚡</p>
+                  </motion.button>
                 )}
 
                 {visibleQuests.length === 0 && (
@@ -516,6 +512,18 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                   </div>
                 )}
               </motion.div>
+            ) : tab === 'bounty' ? (
+              <BountyTab
+                key="bounty"
+                quests={upForGrabs}
+                kid={kid}
+                completions={completions}
+                familySharedCompletions={familySharedCompletions}
+                today={today}
+                weekStart={weekStart}
+                onComplete={handleComplete}
+                onUndo={handleUndo}
+              />
             ) : (
               <RewardsTab
                 rewards={rewards}
@@ -760,6 +768,80 @@ function PendingApprovalSection({
           )
         })}
       </div>
+    </motion.div>
+  )
+}
+
+function BountyTab({
+  quests,
+  kid,
+  completions,
+  familySharedCompletions,
+  today,
+  weekStart,
+  onComplete,
+  onUndo,
+}: {
+  quests: Quest[]
+  kid: Kid
+  completions: Completion[]
+  familySharedCompletions: Array<{ quest_id: string; kid_id: string; status: string; date: string }>
+  today: string
+  weekStart: string
+  onComplete: (questId: string) => Promise<void>
+  onUndo: (completionId: string) => Promise<void>
+}) {
+  if (quests.length === 0) {
+    return (
+      <motion.div
+        key="bounty"
+        className="text-center py-16 text-white/30"
+        initial={{ opacity: 0, x: 10 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -10 }}
+        transition={{ duration: 0.2 }}
+      >
+        <p className="text-4xl mb-3">⚡</p>
+        <p>No bounties right now — check back soon!</p>
+      </motion.div>
+    )
+  }
+
+  return (
+    <motion.div
+      key="bounty"
+      className="flex flex-col gap-3"
+      initial={{ opacity: 0, x: 10 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -10 }}
+      transition={{ duration: 0.2 }}
+    >
+      <div
+        className="rounded-2xl px-4 py-3 flex items-center gap-3"
+        style={{ background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.2)' }}
+      >
+        <span className="text-xl">⚡</span>
+        <p className="text-xs text-amber-400/70">First to claim earns the coins — slots are limited</p>
+      </div>
+
+      {quests.map((q, i) => {
+        const claimed = sharedClaimedCount(q, familySharedCompletions as Completion[], today, weekStart)
+        const myCompletion = kidCompletionForPeriod(q, kid.id, completions, today, weekStart)
+        const isShareLocked = !myCompletion && claimed >= q.slots
+        return (
+          <QuestRowItem
+            key={q.id}
+            quest={q}
+            index={i}
+            completion={myCompletion}
+            sharedClaimed={claimed}
+            isShareLocked={isShareLocked}
+            kidColor={kid.color}
+            onComplete={() => onComplete(q.id)}
+            onUndo={myCompletion?.status === 'pending' ? () => onUndo(myCompletion.id) : undefined}
+          />
+        )
+      })}
     </motion.div>
   )
 }
