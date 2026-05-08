@@ -251,6 +251,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   const colors = KID_COLORS[kid.color]
   const pendingTotal = pendingRedemptions.reduce((sum, r) => sum + (r.reward?.cost ?? 0), 0)
   const availableCoins = Math.max(0, kid.coins - pendingTotal)
+  const pendingCompletions = completions.filter(c => c.status === 'pending')
 
   // PIN screen
   if (!pinVerified) {
@@ -388,11 +389,12 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
         <div className="flex px-6 gap-2 mb-4 flex-shrink-0">
           {(['quests', 'rewards'] as const).map((t) => {
             const labels = { quests: '⚔️ Quests', rewards: '🎁 Rewards' }
+            const badge = t === 'quests' && pendingCompletions.length > 0 ? pendingCompletions.length : null
             return (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className="flex-1 py-2 rounded-xl text-sm font-semibold transition-all"
+                className="relative flex-1 py-2 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1.5"
                 style={{
                   background: tab === t ? colors.bg : 'rgba(255,255,255,0.04)',
                   border: `1px solid ${tab === t ? colors.border : 'rgba(255,255,255,0.07)'}`,
@@ -400,6 +402,14 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                 }}
               >
                 {labels[t]}
+                {badge && (
+                  <span
+                    className="px-1.5 py-0.5 rounded-full text-[10px] font-bold leading-none"
+                    style={{ background: 'rgba(251,191,36,0.9)', color: '#0a0620' }}
+                  >
+                    {badge}
+                  </span>
+                )}
               </button>
             )
           })}
@@ -416,6 +426,14 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                 exit={{ opacity: 0, x: 10 }}
                 transition={{ duration: 0.2 }}
               >
+                {pendingCompletions.length > 0 && (
+                  <PendingApprovalSection
+                    pendingCompletions={pendingCompletions}
+                    quests={quests}
+                    onUndo={handleUndo}
+                  />
+                )}
+
                 {activeCurses.length > 0 && <ActiveCursesSection curses={activeCurses} />}
 
                 {personalDaily.length > 0 && (
@@ -689,6 +707,59 @@ function RewardsTab({
           </motion.div>
         ))
       )}
+    </motion.div>
+  )
+}
+
+function PendingApprovalSection({
+  pendingCompletions,
+  quests,
+  onUndo,
+}: {
+  pendingCompletions: Completion[]
+  quests: Quest[]
+  onUndo: (completionId: string) => Promise<void>
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl overflow-hidden"
+      style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.22)' }}
+    >
+      <div className="px-4 pt-3 pb-2 flex items-center gap-2">
+        <motion.span
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 1.6, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
+          className="text-base"
+        >
+          ⏳
+        </motion.span>
+        <p className="text-xs font-bold uppercase tracking-widest text-amber-400/80">
+          Waiting for approval · {pendingCompletions.length}
+        </p>
+      </div>
+      <div className="flex flex-col divide-y" style={{ borderColor: 'rgba(251,191,36,0.1)' }}>
+        {pendingCompletions.map(c => {
+          const quest = quests.find(q => q.id === c.quest_id)
+          if (!quest) return null
+          return (
+            <div key={c.id} className="flex items-center gap-3 px-4 py-2.5">
+              <span className="text-lg flex-shrink-0">{quest.icon}</span>
+              <span className="text-sm text-white/80 font-medium flex-1 truncate">{quest.title}</span>
+              <span className="text-xs text-amber-400/70 flex-shrink-0">🪙 {quest.coins}</span>
+              <button
+                onClick={() => onUndo(c.id)}
+                className="text-xs text-white/30 hover:text-amber-400 transition-all flex-shrink-0 px-2 py-1 rounded-lg"
+                style={{ background: 'rgba(255,255,255,0.04)' }}
+                title="Cancel submission"
+              >
+                ↩ undo
+              </button>
+            </div>
+          )
+        })}
+      </div>
     </motion.div>
   )
 }

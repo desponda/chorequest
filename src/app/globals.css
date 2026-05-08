@@ -86,6 +86,9 @@
     background-color: #050310;
     @apply text-foreground min-h-screen overflow-x-hidden;
   }
+  button:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 @layer utilities {
