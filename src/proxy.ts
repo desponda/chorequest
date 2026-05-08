@@ -36,7 +36,8 @@ export async function proxy(request: NextRequest) {
     path.startsWith('/blog') ||
     path.startsWith('/api/') ||
     path.startsWith('/join/') ||
-    path.startsWith('/kid/')
+    path.startsWith('/kid/') ||
+    path.startsWith('/e2e-fixtures/')
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()

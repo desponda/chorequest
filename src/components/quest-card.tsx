@@ -222,7 +222,7 @@ export function QuestCard({
           {/* Right side: truly fixed columns — inline styles + flexShrink:0 bypass flex shrink bugs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             {/* Action slot: fixed 96px, content right-aligned */}
-            <div style={{ width: '96px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+            <div data-testid="quest-action-slot" style={{ width: '96px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
               {(isTodo || isRejected) && onComplete ? (
                 <motion.button
                   onClick={handleComplete}
@@ -257,10 +257,10 @@ export function QuestCard({
               ) : null}
             </div>
 
-            {/* Coins: fixed 44px, right-aligned */}
-            <div style={{ width: '44px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px' }}>
-              <span className="text-sm">🪙</span>
-              <span className="font-heading font-bold text-sm" style={{ color: isNormal ? '#fbbf24' : tier.color }}>
+            {/* Coins: emoji fixed-width + number right-aligned — keeps 🪙 pinned regardless of digit count */}
+            <div style={{ width: '48px', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+              <span data-testid="quest-coin-icon" className="text-sm" style={{ width: '18px', textAlign: 'center', flexShrink: 0 }}>🪙</span>
+              <span className="font-heading font-bold text-sm" style={{ flex: 1, textAlign: 'right', color: isNormal ? '#fbbf24' : tier.color }}>
                 {quest.coins}
               </span>
             </div>
