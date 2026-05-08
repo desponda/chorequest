@@ -111,7 +111,13 @@ export default function WallDisplay() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'raid_bosses' }, fetchData)
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    // Fallback poll every 60s in case realtime misses an event (dropped WS, backgrounded tab, etc.)
+    const poll = setInterval(fetchData, 60_000)
+
+    return () => {
+      supabase.removeChannel(channel)
+      clearInterval(poll)
+    }
   }, [fetchData, supabase])
 
   const handleComplete = useCallback(
