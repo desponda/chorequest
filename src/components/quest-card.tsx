@@ -60,11 +60,6 @@ export function QuestCard({
   const isApproved = status === 'approved'
   const isRejected = status === 'rejected'
 
-  const statusChipStatus = isPending ? 'pending'
-    : isApproved ? 'approved'
-    : isShareLocked ? 'locked'
-    : null
-
   const tier = TIER_CONFIG[quest.tier ?? 'normal']
   const isNormal = (quest.tier ?? 'normal') === 'normal'
   const hasCompletionState = isApproved || isPending || isRejected || isShareLocked
@@ -98,15 +93,20 @@ export function QuestCard({
     : tier.glow ?? 'none'
 
   const freqLabel = cadenceLabel(quest)
+  const hasActiveDays = quest.active_days && quest.active_days.length > 0 && quest.active_days.length < 7
+  const hasSecondLine = freqLabel || hasActiveDays || (isShared && quest.kind === 'shared' && quest.slots > 0)
 
   const handleComplete = async () => {
-    if (!onComplete || loading || !isTodo) return
+    if (!onComplete || loading || (!isTodo && !isRejected)) return
     setLoading(true)
     setBursting(true)
     await onComplete()
     setLoading(false)
     setTimeout(() => setBursting(false), 1000)
   }
+
+  const actionBtnLabel = loading ? '✨' : isRejected ? '↺ Retry' : isShared ? '⚡ Claim' : '⚔️ Done'
+  const kidRgb = kidColor === 'azure' ? '56,189,248' : '167,139,250'
 
   return (
     <motion.div
@@ -163,14 +163,16 @@ export function QuestCard({
         </motion.div>
       )}
 
-      <div className="p-4">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl leading-none flex-shrink-0">{quest.icon}</span>
+      <div className="px-3 py-2.5">
+        {/* Single row: icon | title+badge | action | coins */}
+        <div className="flex items-center gap-2.5">
+          <span className="text-xl leading-none flex-shrink-0">{quest.icon}</span>
 
+          {/* Title + tier badge, flex-1 truncates long titles */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex items-center gap-1 min-w-0">
               <p
-                className={`font-semibold text-sm leading-snug ${
+                className={`font-semibold text-sm leading-snug truncate ${
                   isApproved ? 'line-through opacity-40' : isShareLocked ? 'text-white/35' : 'text-white/90'
                 }`}
               >
@@ -179,94 +181,90 @@ export function QuestCard({
               <TierBadge tier={quest.tier} />
             </div>
 
-            {quest.description && (
-              <p className="text-white/40 text-xs mt-0.5 truncate">{quest.description}</p>
-            )}
-
-            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              {freqLabel && (
-                <span className="text-xs px-1.5 py-0.5 rounded-md"
-                  style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  {freqLabel}
-                </span>
-              )}
-
-              {quest.active_days && quest.active_days.length > 0 && quest.active_days.length < 7 && (
-                <div className="flex gap-0.5">
-                  {DAY_LABELS.map((label, i) => (
-                    <span
-                      key={i}
-                      className="text-xs w-4 h-4 flex items-center justify-center rounded font-mono"
-                      style={{
-                        background: quest.active_days!.includes(i) ? 'rgba(255,255,255,0.12)' : 'transparent',
-                        color: quest.active_days!.includes(i) ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.18)',
-                      }}
-                    >
-                      {label}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {isShared && quest.kind === 'shared' && quest.slots > 0 && (
-              <p className="text-xs mt-1" style={{ color: sharedClaimed >= quest.slots ? '#4ade80' : 'rgba(255,255,255,0.4)' }}>
-                {sharedClaimed >= quest.slots ? '✓ ' : ''}{sharedClaimed}/{quest.slots} claimed
-              </p>
-            )}
-          </div>
-
-          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-            <div className="flex items-center gap-1">
-              <span className="text-sm">🪙</span>
-              <span className="font-heading font-bold text-sm" style={{ color: isNormal ? '#fbbf24' : tier.color }}>
-                {quest.coins}
-              </span>
-            </div>
-            {statusChipStatus && (
-              <div className="flex items-center gap-1.5">
-                <StatusChip status={statusChipStatus} />
-                {!isParent && isPending && onUndo && (
-                  <motion.button
-                    onClick={async () => { setLoading(true); await onUndo(); setLoading(false) }}
-                    disabled={loading}
-                    className="text-sm text-white/25 transition-all disabled:opacity-40"
-                    whileHover={{ color: 'rgba(255,255,255,0.65)' }}
-                    whileTap={{ scale: 0.9 }}
-                    title="Undo submission"
+            {hasSecondLine && (
+              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                {freqLabel && (
+                  <span
+                    className="text-[10px] px-1.5 py-0.5 rounded-md"
+                    style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.08)' }}
                   >
-                    ↩
-                  </motion.button>
+                    {freqLabel}
+                  </span>
+                )}
+                {hasActiveDays && (
+                  <div className="flex gap-0.5">
+                    {DAY_LABELS.map((label, i) => (
+                      <span
+                        key={i}
+                        className="text-[9px] w-3.5 h-3.5 flex items-center justify-center rounded font-mono"
+                        style={{
+                          background: quest.active_days!.includes(i) ? 'rgba(255,255,255,0.12)' : 'transparent',
+                          color: quest.active_days!.includes(i) ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.18)',
+                        }}
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {isShared && quest.kind === 'shared' && quest.slots > 0 && (
+                  <span
+                    className="text-[10px]"
+                    style={{ color: sharedClaimed >= quest.slots ? '#4ade80' : 'rgba(255,255,255,0.4)' }}
+                  >
+                    {sharedClaimed >= quest.slots ? '✓ ' : ''}{sharedClaimed}/{quest.slots} claimed
+                  </span>
                 )}
               </div>
             )}
-            {(isTodo || isRejected) && onComplete && (
-              <motion.button
-                onClick={handleComplete}
-                disabled={loading}
-                className="text-xs px-2.5 py-1 rounded-xl font-bold transition-all disabled:opacity-50"
-                style={{
-                  background: `linear-gradient(135deg, ${colors.bg}, transparent)`,
-                  border: `1px solid ${colors.border}`,
-                  color: colors.primary,
-                }}
-                whileHover={{
-                  background: `linear-gradient(135deg, rgba(${
-                    kidColor === 'azure' ? '56,189,248' : '167,139,250'
-                  }, 0.18), rgba(${
-                    kidColor === 'azure' ? '56,189,248' : '167,139,250'
-                  }, 0.06))`,
-                }}
-                whileTap={{ scale: 0.95 }}
-              >
-                {loading ? '✨' : isRejected ? '↺ Retry' : isShared ? '⚡ Claim' : '⚔️ Done'}
-              </motion.button>
-            )}
+          </div>
+
+          {/* Action: Done/Claim/Retry button OR status chip */}
+          {(isTodo || isRejected) && onComplete ? (
+            <motion.button
+              onClick={handleComplete}
+              disabled={loading}
+              className="text-sm px-4 py-1.5 rounded-xl font-bold flex-shrink-0 transition-all disabled:opacity-50"
+              style={{
+                background: `linear-gradient(135deg, rgba(${kidRgb}, 0.16), rgba(${kidRgb}, 0.06))`,
+                border: `1px solid ${colors.border}`,
+                color: colors.primary,
+              }}
+              whileHover={{ background: `linear-gradient(135deg, rgba(${kidRgb}, 0.26), rgba(${kidRgb}, 0.10))` }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {actionBtnLabel}
+            </motion.button>
+          ) : (isPending || isApproved || isShareLocked) ? (
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <StatusChip status={isPending ? 'pending' : isApproved ? 'approved' : 'locked'} />
+              {!isParent && isPending && onUndo && (
+                <motion.button
+                  onClick={async () => { setLoading(true); await onUndo(); setLoading(false) }}
+                  disabled={loading}
+                  className="text-sm text-white/25 transition-all disabled:opacity-40"
+                  whileHover={{ color: 'rgba(255,255,255,0.65)' }}
+                  whileTap={{ scale: 0.9 }}
+                  title="Undo submission"
+                >
+                  ↩
+                </motion.button>
+              )}
+            </div>
+          ) : null}
+
+          {/* Coins */}
+          <div className="flex items-center gap-0.5 flex-shrink-0">
+            <span className="text-sm">🪙</span>
+            <span className="font-heading font-bold text-sm" style={{ color: isNormal ? '#fbbf24' : tier.color }}>
+              {quest.coins}
+            </span>
           </div>
         </div>
 
+        {/* Parent approve/reject panel */}
         {isParent && isPending && completion && (
-          <div className="mt-3 flex gap-2">
+          <div className="mt-2.5 flex gap-2">
             <button
               onClick={() => onApprove?.(completion.id)}
               className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
