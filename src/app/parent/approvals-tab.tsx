@@ -145,7 +145,7 @@ export function ApprovalsTab({
                     <span className="text-white/35 truncate">{(c.quest as Quest)?.title}</span>
                   </span>
                   <span className="text-white/25 text-xs whitespace-nowrap">{formatQuestDate(c.date)}</span>
-                  <StatusChip status={c.status === 'approved' ? 'approved' : 'rejected'} />
+                  <StatusChip status={c.status} />
                   <button
                     onClick={() => c.status === 'approved' ? actions.undoApproval(c.id) : actions.undoRejection(c.id)}
                     className="text-xs text-white/20 hover:text-cq-gold transition-all text-center w-6"
