@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { StarField } from '@/components/star-field'
@@ -14,6 +15,15 @@ interface Props {
 }
 
 export function PinLockScreen({ lockPinInput, lockPinError, parentLockedUntil, now, onDigit, onBackspace }: Props) {
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key >= '0' && e.key <= '9' && lockPinInput.length < 4) onDigit(e.key)
+      if (e.key === 'Backspace' || e.key === 'Delete') onBackspace()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [lockPinInput, onDigit, onBackspace])
+
   return (
     <div className="min-h-screen bg-quest-void flex items-center justify-center px-4">
       <StarField />
