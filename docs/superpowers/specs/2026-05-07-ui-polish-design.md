@@ -97,7 +97,7 @@ Props:
 **Root cause:** Action buttons (✏️ / On / ✕) use `align-self: center` (default in `items-center` flex). When the title wraps to 2+ lines due to tier + kind badges, the buttons float to the vertical middle of the row instead of aligning with the title.
 
 **Changes:**
-1. Outer row: keep `flex items-start gap-3` (already `items-center` — change to `items-start`)
+1. Change outer row from `flex items-center gap-3` → `flex items-start gap-3`
 2. Action button group `div`: add `self-start pt-0.5` so buttons pin to top
 3. Replace inline tier badge `<span>` with `<TierBadge tier={quest.tier} />`
 4. Replace inline kind badge `<span>` with `<KindBadge kind={quest.kind} />`
@@ -123,7 +123,7 @@ Props:
 **Root cause:** History rows use `flex items-center gap-3` with a variable-width status column (`+25🪙`, `✗`, `🎁 -50🪙`, `☠️ -5🪙`). The undo ↩ button shifts left/right depending on status text length.
 
 **Changes:**
-1. Switch each history row from `flex` to `grid` with fixed columns: `grid-cols-[1fr_auto_w-16_w-5]` — flexible title, auto date, fixed-width status, fixed-width undo
+1. Switch each history row from `flex` to `grid` with fixed columns: `grid-cols-[1fr_auto_4rem_1.25rem]` — flexible title, auto date, fixed-width status (4rem), fixed-width undo (1.25rem)
 2. Status column uses `text-right` so all values right-align within their fixed slot
 3. Replace inline status text with `<StatusChip>` for completion rows
 
