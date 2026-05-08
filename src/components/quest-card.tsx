@@ -219,46 +219,51 @@ export function QuestCard({
             )}
           </div>
 
-          {/* Action: Done/Claim/Retry button OR status chip */}
-          {(isTodo || isRejected) && onComplete ? (
-            <motion.button
-              onClick={handleComplete}
-              disabled={loading}
-              className="text-sm px-4 py-1.5 rounded-xl font-bold flex-shrink-0 transition-all disabled:opacity-50"
-              style={{
-                background: `linear-gradient(135deg, rgba(${kidRgb}, 0.16), rgba(${kidRgb}, 0.06))`,
-                border: `1px solid ${colors.border}`,
-                color: colors.primary,
-              }}
-              whileHover={{ background: `linear-gradient(135deg, rgba(${kidRgb}, 0.26), rgba(${kidRgb}, 0.10))` }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {actionBtnLabel}
-            </motion.button>
-          ) : (isPending || isApproved || isShareLocked) ? (
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <StatusChip status={isPending ? 'pending' : isApproved ? 'approved' : 'locked'} />
-              {!isParent && isPending && onUndo && (
+          {/* Right side: fixed-width action slot + fixed-width coins — keeps coins pinned */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Action slot: min-width matches Done button so coins never shift */}
+            <div className="flex items-center justify-end gap-1.5 min-w-[88px]">
+              {(isTodo || isRejected) && onComplete ? (
                 <motion.button
-                  onClick={async () => { setLoading(true); await onUndo(); setLoading(false) }}
+                  onClick={handleComplete}
                   disabled={loading}
-                  className="text-sm text-white/25 transition-all disabled:opacity-40"
-                  whileHover={{ color: 'rgba(255,255,255,0.65)' }}
-                  whileTap={{ scale: 0.9 }}
-                  title="Undo submission"
+                  className="text-sm px-4 py-1.5 rounded-xl font-bold transition-all disabled:opacity-50"
+                  style={{
+                    background: `linear-gradient(135deg, rgba(${kidRgb}, 0.16), rgba(${kidRgb}, 0.06))`,
+                    border: `1px solid ${colors.border}`,
+                    color: colors.primary,
+                  }}
+                  whileHover={{ background: `linear-gradient(135deg, rgba(${kidRgb}, 0.26), rgba(${kidRgb}, 0.10))` }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  ↩
+                  {actionBtnLabel}
                 </motion.button>
-              )}
+              ) : (isPending || isApproved || isShareLocked) ? (
+                <>
+                  <StatusChip status={isPending ? 'pending' : isApproved ? 'approved' : 'locked'} />
+                  {!isParent && isPending && onUndo && (
+                    <motion.button
+                      onClick={async () => { setLoading(true); await onUndo(); setLoading(false) }}
+                      disabled={loading}
+                      className="text-sm text-white/25 transition-all disabled:opacity-40"
+                      whileHover={{ color: 'rgba(255,255,255,0.65)' }}
+                      whileTap={{ scale: 0.9 }}
+                      title="Undo submission"
+                    >
+                      ↩
+                    </motion.button>
+                  )}
+                </>
+              ) : null}
             </div>
-          ) : null}
 
-          {/* Coins */}
-          <div className="flex items-center gap-0.5 flex-shrink-0">
-            <span className="text-sm">🪙</span>
-            <span className="font-heading font-bold text-sm" style={{ color: isNormal ? '#fbbf24' : tier.color }}>
-              {quest.coins}
-            </span>
+            {/* Coins: fixed width so action state never affects position */}
+            <div className="flex items-center gap-0.5 w-12 justify-end">
+              <span className="text-sm">🪙</span>
+              <span className="font-heading font-bold text-sm" style={{ color: isNormal ? '#fbbf24' : tier.color }}>
+                {quest.coins}
+              </span>
+            </div>
           </div>
         </div>
 
