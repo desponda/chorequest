@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import type { Quest, Completion, KidColor } from '@/lib/types'
 import { KID_COLORS, TIER_CONFIG } from '@/lib/constants'
 import { CoinBurst } from './coin-burst'
@@ -62,7 +62,6 @@ export function QuestCard({
 
   const statusChipStatus = isPending ? 'pending'
     : isApproved ? 'approved'
-    : isRejected ? 'rejected'
     : isShareLocked ? 'locked'
     : null
 
@@ -217,64 +216,54 @@ export function QuestCard({
             )}
           </div>
 
-          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
             <div className="flex items-center gap-1">
               <span className="text-sm">🪙</span>
               <span className="font-heading font-bold text-sm" style={{ color: isNormal ? '#fbbf24' : tier.color }}>
                 {quest.coins}
               </span>
             </div>
-            {statusChipStatus && <StatusChip status={statusChipStatus} />}
+            {statusChipStatus && (
+              <div className="flex items-center gap-1.5">
+                <StatusChip status={statusChipStatus} />
+                {!isParent && isPending && onUndo && (
+                  <motion.button
+                    onClick={async () => { setLoading(true); await onUndo(); setLoading(false) }}
+                    disabled={loading}
+                    className="text-sm text-white/25 transition-all disabled:opacity-40"
+                    whileHover={{ color: 'rgba(255,255,255,0.65)' }}
+                    whileTap={{ scale: 0.9 }}
+                    title="Undo submission"
+                  >
+                    ↩
+                  </motion.button>
+                )}
+              </div>
+            )}
+            {(isTodo || isRejected) && onComplete && (
+              <motion.button
+                onClick={handleComplete}
+                disabled={loading}
+                className="text-xs px-2.5 py-1 rounded-xl font-bold transition-all disabled:opacity-50"
+                style={{
+                  background: `linear-gradient(135deg, ${colors.bg}, transparent)`,
+                  border: `1px solid ${colors.border}`,
+                  color: colors.primary,
+                }}
+                whileHover={{
+                  background: `linear-gradient(135deg, rgba(${
+                    kidColor === 'azure' ? '56,189,248' : '167,139,250'
+                  }, 0.18), rgba(${
+                    kidColor === 'azure' ? '56,189,248' : '167,139,250'
+                  }, 0.06))`,
+                }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {loading ? '✨' : isRejected ? '↺ Retry' : isShared ? '⚡ Claim' : '⚔️ Done'}
+              </motion.button>
+            )}
           </div>
         </div>
-
-        <AnimatePresence>
-          {(isTodo || isRejected) && onComplete && (
-            <motion.button
-              onClick={handleComplete}
-              disabled={loading}
-              className="mt-3 w-full py-2.5 rounded-xl text-sm font-bold tracking-wide transition-all disabled:opacity-50"
-              style={{
-                background: `linear-gradient(135deg, ${colors.bg}, transparent)`,
-                border: `1px solid ${colors.border}`,
-                color: colors.primary,
-              }}
-              whileHover={{
-                background: `linear-gradient(135deg, rgba(${
-                  kidColor === 'azure' ? '56,189,248' : '167,139,250'
-                }, 0.18), rgba(${
-                  kidColor === 'azure' ? '56,189,248' : '167,139,250'
-                }, 0.06))`,
-              }}
-              whileTap={{ scale: 0.97 }}
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-            >
-              {loading ? '✨ Sending quest...' : isRejected ? '🔄 Try Again' : isShared ? '⚡ Claim & Complete' : '⚔️ Complete Quest'}
-            </motion.button>
-          )}
-        </AnimatePresence>
-
-        {!isParent && isPending && onUndo && (
-          <motion.button
-            onClick={async () => { setLoading(true); await onUndo(); setLoading(false) }}
-            disabled={loading}
-            className="mt-2 w-full py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-40"
-            style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: 'rgba(255,255,255,0.35)',
-            }}
-            whileHover={{ color: 'rgba(255,255,255,0.65)', borderColor: 'rgba(255,255,255,0.2)' }}
-            whileTap={{ scale: 0.97 }}
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-          >
-            ↩ Undo submission
-          </motion.button>
-        )}
 
         {isParent && isPending && completion && (
           <div className="mt-3 flex gap-2">
