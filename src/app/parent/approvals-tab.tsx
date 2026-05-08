@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { QuestCard } from '@/components/quest-card'
+import { StatusChip } from '@/components/ui/status-chip'
 import type { Kid, Quest, Completion, Reward, Redemption, CurseInstance, Curse } from '@/lib/types'
 import { Empty, fadeSlide } from './_ui'
 import type { ParentActions } from './use-parent-actions'
@@ -137,17 +138,17 @@ export function ApprovalsTab({
               const kid = c.kid as Kid | undefined
               if (!kid) return null
               return (
-                <div key={c.id} className="flex items-center gap-3 py-2">
-                  <span className="text-lg">{kid.avatar}</span>
-                  <span className="text-white/50 text-sm">{kid.name}</span>
-                  <span className="text-white/35 text-sm flex-1 truncate">{(c.quest as Quest)?.title}</span>
-                  <span className="text-white/25 text-xs flex-shrink-0">{formatQuestDate(c.date)}</span>
-                  <span className={`text-xs font-semibold flex-shrink-0 ${c.status === 'approved' ? 'text-cq-forest' : 'text-red-400'}`}>
-                    {c.status === 'approved' ? `✓ +${c.coins_awarded}🪙` : '✗'}
+                <div key={c.id} className="grid items-center gap-x-2 py-1.5" style={{ gridTemplateColumns: '1fr auto auto 1.5rem' }}>
+                  <span className="text-sm truncate flex items-center gap-1.5 min-w-0">
+                    <span className="text-base flex-shrink-0">{kid.avatar}</span>
+                    <span className="text-white/50 flex-shrink-0">{kid.name}</span>
+                    <span className="text-white/35 truncate">{(c.quest as Quest)?.title}</span>
                   </span>
+                  <span className="text-white/25 text-xs whitespace-nowrap">{formatQuestDate(c.date)}</span>
+                  <StatusChip status={c.status} />
                   <button
                     onClick={() => c.status === 'approved' ? actions.undoApproval(c.id) : actions.undoRejection(c.id)}
-                    className="text-xs text-white/20 hover:text-cq-gold transition-all flex-shrink-0 ml-1"
+                    className="text-xs text-white/20 hover:text-cq-gold transition-all text-center w-6"
                     title="Undo"
                   >
                     ↩
@@ -161,17 +162,17 @@ export function ApprovalsTab({
               const curse = ci.curse as Curse | undefined
               if (!kid || !curse) return null
               return (
-                <div key={ci.id} className="flex items-center gap-3 py-2">
-                  <span className="text-lg">{kid.avatar}</span>
-                  <span className="text-white/50 text-sm">{kid.name}</span>
-                  <span className="text-white/35 text-sm flex-1 truncate flex items-center gap-1.5"><span>{curse.icon}</span> {curse.title}</span>
-                  <span className="text-white/25 text-xs flex-shrink-0">{ci.resolved_at ? formatQuestDate(ci.resolved_at.slice(0, 10)) : ''}</span>
-                  <span className="text-xs font-semibold flex-shrink-0 text-red-400">
-                    ☠️ -{ci.coins_deducted}🪙
+                <div key={ci.id} className="grid items-center gap-x-2 py-1.5" style={{ gridTemplateColumns: '1fr auto auto 1.5rem' }}>
+                  <span className="text-sm truncate flex items-center gap-1.5 min-w-0">
+                    <span className="text-base flex-shrink-0">{kid.avatar}</span>
+                    <span className="text-white/50 flex-shrink-0">{kid.name}</span>
+                    <span className="text-white/35 truncate flex items-center gap-1"><span>{curse.icon}</span>{curse.title}</span>
                   </span>
+                  <span className="text-white/25 text-xs whitespace-nowrap">{ci.resolved_at ? formatQuestDate(ci.resolved_at.slice(0, 10)) : ''}</span>
+                  <span className="text-xs font-semibold text-red-400 whitespace-nowrap">☠️ -{ci.coins_deducted}🪙</span>
                   <button
                     onClick={() => actions.undoResolvedCurse(ci.id)}
-                    className="text-xs text-white/20 hover:text-cq-gold transition-all flex-shrink-0 ml-1"
+                    className="text-xs text-white/20 hover:text-cq-gold transition-all text-center w-6"
                     title="Undo"
                   >
                     ↩
@@ -184,17 +185,17 @@ export function ApprovalsTab({
             const reward = r.reward as Reward | undefined
             if (!kid || !reward) return null
             return (
-              <div key={r.id} className="flex items-center gap-3 py-2">
-                <span className="text-lg">{kid.avatar}</span>
-                <span className="text-white/50 text-sm">{kid.name}</span>
-                <span className="text-white/35 text-sm flex-1 truncate flex items-center gap-1.5"><span>{reward.icon}</span> {reward.title}</span>
-                <span className="text-white/25 text-xs flex-shrink-0">{formatQuestDate(r.redeemed_at.slice(0, 10))}</span>
-                <span className="text-xs font-semibold flex-shrink-0 text-cq-gold">
-                  🎁 -{reward.cost}🪙
+              <div key={r.id} className="grid items-center gap-x-2 py-1.5" style={{ gridTemplateColumns: '1fr auto auto 1.5rem' }}>
+                <span className="text-sm truncate flex items-center gap-1.5 min-w-0">
+                  <span className="text-base flex-shrink-0">{kid.avatar}</span>
+                  <span className="text-white/50 flex-shrink-0">{kid.name}</span>
+                  <span className="text-white/35 truncate flex items-center gap-1"><span>{reward.icon}</span>{reward.title}</span>
                 </span>
+                <span className="text-white/25 text-xs whitespace-nowrap">{formatQuestDate(r.redeemed_at.slice(0, 10))}</span>
+                <span className="text-xs font-semibold text-cq-gold whitespace-nowrap">🎁 -{reward.cost}🪙</span>
                 <button
                   onClick={() => actions.undoRedemption(r.id)}
-                  className="text-xs text-white/20 hover:text-cq-gold transition-all flex-shrink-0 ml-1"
+                  className="text-xs text-white/20 hover:text-cq-gold transition-all text-center w-6"
                   title="Undo"
                 >
                   ↩

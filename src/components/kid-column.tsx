@@ -133,19 +133,21 @@ export function KidColumn({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {kid.streak > 1 && <StreakBadge streak={kid.streak} />}
-          {activeCurseCount > 0 && (
-            <motion.span
-              className="text-xs px-2 py-0.5 rounded-full font-bold"
-              style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171' }}
-              animate={{ scale: [1, 1.06, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              ☠️ {activeCurseCount} curse{activeCurseCount > 1 ? 's' : ''}
-            </motion.span>
-          )}
-        </div>
+        {(kid.streak > 1 || activeCurseCount > 0) && (
+          <div className="flex items-center gap-2">
+            {kid.streak > 1 && <StreakBadge streak={kid.streak} />}
+            {activeCurseCount > 0 && (
+              <motion.span
+                className="text-xs px-2 py-0.5 rounded-full font-bold"
+                style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171' }}
+                animate={{ scale: [1, 1.06, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                ☠️ {activeCurseCount} curse{activeCurseCount > 1 ? 's' : ''}
+              </motion.span>
+            )}
+          </div>
+        )}
 
         {/* Progress bar */}
         {totalCount > 0 && (

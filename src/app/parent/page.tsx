@@ -65,13 +65,13 @@ export default function ParentDashboard() {
     )
   }
 
-  const tabs: { id: Tab; label: string; badge?: number }[] = [
-    { id: 'approvals', label: '✓ Approvals', badge: pendingCompletions.length + pendingRedemptions.length },
-    { id: 'quests', label: '⚔️ Quests' },
-    { id: 'rewards', label: '🎁 Rewards' },
-    { id: 'curses', label: '☠️ Curses', badge: data.activeCurseInstances.length || undefined },
-    { id: 'dungeons', label: '🏰 Dungeons' },
-    { id: 'family', label: '👨‍👩‍👧 Family' },
+  const tabs: { id: Tab; icon: string; label: string; badge?: number }[] = [
+    { id: 'approvals', icon: '✓', label: 'Approvals', badge: pendingCompletions.length + pendingRedemptions.length },
+    { id: 'quests', icon: '⚔️', label: 'Quests' },
+    { id: 'rewards', icon: '🎁', label: 'Rewards' },
+    { id: 'curses', icon: '☠️', label: 'Curses', badge: data.activeCurseInstances.length || undefined },
+    { id: 'dungeons', icon: '🏰', label: 'Dungeons' },
+    { id: 'family', icon: '👨‍👩‍👧', label: 'Family' },
   ]
 
   const qrKid = qrKidId ? data.kids.find((k) => k.id === qrKidId) ?? null : null
@@ -117,21 +117,34 @@ export default function ParentDashboard() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className="flex-1 min-w-0 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+              className="relative flex-1 min-w-0 flex items-center justify-center gap-1.5 px-1 sm:px-3 py-2 rounded-xl text-sm font-semibold transition-all"
               style={{
                 background: tab === t.id ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.05)',
                 border: `1px solid ${tab === t.id ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.08)'}`,
                 color: tab === t.id ? '#fbbf24' : 'rgba(255,255,255,0.5)',
               }}
             >
-              {t.label}
+              {/* Mobile: icon only */}
+              <span className="sm:hidden">{t.icon}</span>
+              {/* Desktop: icon + label */}
+              <span className="hidden sm:inline">{t.icon} {t.label}</span>
+              {/* Desktop badge: inline pill */}
               {t.badge && t.badge > 0 ? (
-                <span
-                  className="px-1.5 py-0.5 rounded-full text-xs font-bold"
-                  style={{ background: '#fbbf24', color: '#0a0620' }}
-                >
-                  {t.badge}
-                </span>
+                <>
+                  <span
+                    className="hidden sm:inline px-1.5 py-0.5 rounded-full text-xs font-bold"
+                    style={{ background: '#fbbf24', color: '#0a0620' }}
+                  >
+                    {t.badge}
+                  </span>
+                  {/* Mobile badge: corner dot */}
+                  <span
+                    className="sm:hidden absolute top-0.5 right-0.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full text-[8px] font-bold leading-none px-0.5"
+                    style={{ background: '#fbbf24', color: '#0a0620' }}
+                  >
+                    {t.badge}
+                  </span>
+                </>
               ) : null}
             </button>
           ))}

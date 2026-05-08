@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Kid, Quest, QuestKind, QuestTier } from '@/lib/types'
-import { TIER_CONFIG } from '@/lib/constants'
 import { QuestFormFields, type QuestFormState } from './quest-form'
+import { TierBadge } from '@/components/ui/tier-badge'
+import { KindBadge } from '@/components/ui/kind-badge'
 
 interface Props {
   quest: Quest
@@ -12,12 +13,6 @@ interface Props {
   onToggle: (id: string, active: boolean) => void
   onDelete: (id: string) => void
   onSave: (id: string, updates: Partial<Quest>) => Promise<void>
-}
-
-const KIND_BADGE: Record<QuestKind, { label: string; color: string; bg: string; border: string } | null> = {
-  personal: null,
-  shared: { label: '⚡ Shared', color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.25)' },
-  oneoff: { label: '⭐ One-time', color: '#a78bfa', bg: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.2)' },
 }
 
 export function QuestRow({ quest, kids, onToggle, onDelete, onSave }: Props) {
@@ -38,8 +33,6 @@ export function QuestRow({ quest, kids, onToggle, onDelete, onSave }: Props) {
   const update = (patch: Partial<QuestFormState>) => setState((s) => ({ ...s, ...patch }))
 
   const assignedKid = kids.find((k) => k.id === quest.assigned_to)
-  const tierCfg = TIER_CONFIG[quest.tier ?? 'normal']
-  const kindBadge = KIND_BADGE[quest.kind]
 
   const handleSave = async () => {
     await onSave(quest.id, {
@@ -67,29 +60,15 @@ export function QuestRow({ quest, kids, onToggle, onDelete, onSave }: Props) {
       className="rounded-xl mb-2 overflow-hidden"
       style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
     >
-      <div className="flex items-center gap-3 p-3">
-        <span className="text-xl">{quest.icon}</span>
+      <div className="flex items-start gap-3 p-3">
+        <span className="text-xl mt-0.5 flex-shrink-0">{quest.icon}</span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <p className={`text-sm font-semibold ${quest.active ? 'text-white/90' : 'text-white/40 line-through'}`}>
               {quest.title}
             </p>
-            {(quest.tier ?? 'normal') !== 'normal' && (
-              <span
-                className="text-xs px-1.5 py-0.5 rounded-md flex-shrink-0"
-                style={{ background: `${tierCfg.color}18`, color: tierCfg.color, border: `1px solid ${tierCfg.border}` }}
-              >
-                {tierCfg.label}
-              </span>
-            )}
-            {kindBadge && (
-              <span
-                className="text-xs px-1.5 py-0.5 rounded-md flex-shrink-0"
-                style={{ background: kindBadge.bg, color: kindBadge.color, border: `1px solid ${kindBadge.border}` }}
-              >
-                {kindBadge.label}
-              </span>
-            )}
+            <TierBadge tier={quest.tier} />
+            <KindBadge kind={quest.kind} />
           </div>
           <p className="text-white/35 text-xs">
             🪙 {quest.coins} · {assignedKid ? assignedKid.name : 'All kids'} · {cadenceLabel}
@@ -98,32 +77,34 @@ export function QuestRow({ quest, kids, onToggle, onDelete, onSave }: Props) {
               : ''}
           </p>
         </div>
-        <button
-          onClick={() => setEditing((e) => !e)}
-          className="text-xs px-2.5 py-1 rounded-lg transition-all"
-          style={{
-            background: editing ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.05)',
-            color: editing ? '#fbbf24' : 'rgba(255,255,255,0.4)',
-          }}
-        >
-          ✏️
-        </button>
-        <button
-          onClick={() => onToggle(quest.id, quest.active)}
-          className="text-xs px-2.5 py-1 rounded-lg transition-all"
-          style={{
-            background: quest.active ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.05)',
-            color: quest.active ? '#4ade80' : 'rgba(255,255,255,0.35)',
-          }}
-        >
-          {quest.active ? 'On' : 'Off'}
-        </button>
-        <button
-          onClick={() => onDelete(quest.id)}
-          className="text-white/20 hover:text-red-400 transition-all text-xs ml-1"
-        >
-          ✕
-        </button>
+        <div className="flex gap-1 flex-shrink-0 self-start pt-0.5">
+          <button
+            onClick={() => setEditing((e) => !e)}
+            className="text-xs px-2.5 py-1 rounded-lg transition-all"
+            style={{
+              background: editing ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.05)',
+              color: editing ? '#fbbf24' : 'rgba(255,255,255,0.4)',
+            }}
+          >
+            ✏️
+          </button>
+          <button
+            onClick={() => onToggle(quest.id, quest.active)}
+            className="text-xs px-2.5 py-1 rounded-lg transition-all"
+            style={{
+              background: quest.active ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.05)',
+              color: quest.active ? '#4ade80' : 'rgba(255,255,255,0.35)',
+            }}
+          >
+            {quest.active ? 'On' : 'Off'}
+          </button>
+          <button
+            onClick={() => onDelete(quest.id)}
+            className="text-white/20 hover:text-red-400 transition-all text-xs ml-0.5"
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       <AnimatePresence>
