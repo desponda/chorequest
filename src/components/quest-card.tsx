@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import type { Quest, Completion, KidColor } from '@/lib/types'
 import { KID_COLORS, TIER_CONFIG } from '@/lib/constants'
 import { CoinBurst } from './coin-burst'
+import { StatusChip } from './ui/status-chip'
+import { TierBadge } from './ui/tier-badge'
 
 interface QuestCardProps {
   quest: Quest
@@ -57,6 +59,12 @@ export function QuestCard({
   const isPending = status === 'pending'
   const isApproved = status === 'approved'
   const isRejected = status === 'rejected'
+
+  const statusChipStatus = isPending ? 'pending'
+    : isApproved ? 'approved'
+    : isRejected ? 'rejected'
+    : isShareLocked ? 'locked'
+    : null
 
   const tier = TIER_CONFIG[quest.tier ?? 'normal']
   const isNormal = (quest.tier ?? 'normal') === 'normal'
@@ -157,8 +165,8 @@ export function QuestCard({
       )}
 
       <div className="p-4">
-        <div className="flex items-start gap-3">
-          <span className="text-2xl leading-none mt-0.5 flex-shrink-0">{quest.icon}</span>
+        <div className="flex items-center gap-3">
+          <span className="text-2xl leading-none flex-shrink-0">{quest.icon}</span>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -169,14 +177,7 @@ export function QuestCard({
               >
                 {quest.title}
               </p>
-              {!isNormal && (
-                <span
-                  className="text-xs px-1.5 py-0.5 rounded-md font-bold flex-shrink-0"
-                  style={{ background: `${tier.color}18`, color: tier.color, border: `1px solid ${tier.color}40` }}
-                >
-                  {tier.label}
-                </span>
-              )}
+              <TierBadge tier={quest.tier} />
             </div>
 
             {quest.description && (
@@ -216,31 +217,14 @@ export function QuestCard({
             )}
           </div>
 
-          <div className="flex-shrink-0 text-right">
-            <div className="flex items-center gap-1 justify-end">
+          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+            <div className="flex items-center gap-1">
               <span className="text-sm">🪙</span>
               <span className="font-heading font-bold text-sm" style={{ color: isNormal ? '#fbbf24' : tier.color }}>
                 {quest.coins}
               </span>
             </div>
-            {isPending && (
-              <motion.p
-                className="text-xs text-amber-400 mt-0.5"
-                animate={{ opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 1.6, repeat: Infinity }}
-              >
-                awaiting...
-              </motion.p>
-            )}
-            {isApproved && !isPending && (
-              <p className="text-xs text-cq-forest mt-0.5">✓ done!</p>
-            )}
-            {isRejected && (
-              <p className="text-xs text-red-400 mt-0.5">✗ retry</p>
-            )}
-            {isShareLocked && (
-              <p className="text-xs text-white/30 mt-0.5">claimed</p>
-            )}
+            {statusChipStatus && <StatusChip status={statusChipStatus} />}
           </div>
         </div>
 
