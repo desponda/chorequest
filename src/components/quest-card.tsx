@@ -219,10 +219,10 @@ export function QuestCard({
             )}
           </div>
 
-          {/* Right side: fixed-width action slot + fixed-width coins — keeps coins pinned */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Action slot: min-width matches Done button so coins never shift */}
-            <div className="flex items-center justify-end gap-1.5 min-w-[88px]">
+          {/* Right side: truly fixed columns — inline styles + flexShrink:0 bypass flex shrink bugs */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            {/* Action slot: fixed 96px, content right-aligned */}
+            <div style={{ width: '96px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
               {(isTodo || isRejected) && onComplete ? (
                 <motion.button
                   onClick={handleComplete}
@@ -257,8 +257,8 @@ export function QuestCard({
               ) : null}
             </div>
 
-            {/* Coins: fixed width so action state never affects position */}
-            <div className="flex items-center gap-0.5 w-12 justify-end">
+            {/* Coins: fixed 44px, right-aligned */}
+            <div style={{ width: '44px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px' }}>
               <span className="text-sm">🪙</span>
               <span className="font-heading font-bold text-sm" style={{ color: isNormal ? '#fbbf24' : tier.color }}>
                 {quest.coins}
