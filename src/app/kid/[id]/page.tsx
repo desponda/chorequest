@@ -15,6 +15,8 @@ import { KID_COLORS, getLockDurationMs } from '@/lib/constants'
 import { questDateString, questWeekKey } from '@/lib/utils'
 import { isQuestVisibleToKid, kidHasActiveCompletion, sharedClaimedCount, kidCompletionForPeriod } from '@/lib/quest-rules'
 import { toast } from 'sonner'
+import { CoinLedger } from '@/components/coin-ledger'
+import type { LedgerEntry } from '@/lib/ledger'
 
 const PIN_SESSION_KEY = 'cq_kid_pin_'
 
@@ -35,7 +37,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   const [data, setData] = useState<KidDataPayload | null>(null)
   const prevPendingIdsRef = useRef<string[]>([])
   const isFirstFetchRef = useRef(true)
-  const [tab, setTab] = useState<'quests' | 'bounty' | 'rewards'>('quests')
+  const [tab, setTab] = useState<'quests' | 'bounty' | 'rewards' | 'history'>('quests')
   const [pinVerified, setPinVerified] = useState(() =>
     typeof window !== 'undefined'
       ? sessionStorage.getItem(PIN_SESSION_KEY + id) === 'verified'
@@ -397,8 +399,8 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
         </motion.header>
 
         <div className="flex px-6 gap-2 mb-4 flex-shrink-0">
-          {(['quests', 'bounty', 'rewards'] as const).map((t) => {
-            const labels = { quests: '⚔️ Quests', bounty: '⚡ Bounty', rewards: '🎁 Rewards' }
+          {(['quests', 'bounty', 'rewards', 'history'] as const).map((t) => {
+            const labels = { quests: '⚔️ Quests', bounty: '⚡ Bounty', rewards: '🎁 Rewards', history: '📒 History' }
             const badge = t === 'quests' && pendingCompletions.length > 0
               ? pendingCompletions.length
               : t === 'bounty' && availableBountyCount > 0
@@ -528,6 +530,8 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                 onComplete={handleComplete}
                 onUndo={handleUndo}
               />
+            ) : tab === 'history' ? (
+              <HistoryTab key="history" kidId={id} kidColor={kid.color} />
             ) : (
               <RewardsTab
                 rewards={rewards}
@@ -870,4 +874,53 @@ function BountyTab({
 
 function kidColorRgb(color: string) {
   return color === 'azure' ? '56,189,248' : '167,139,250'
+}
+
+function HistoryTab({ kidId, kidColor }: { kidId: string; kidColor: 'azure' | 'mystic' }) {
+  const [ledger, setLedger] = useState<LedgerEntry[]>([])
+  const [balance, setBalance] = useState(0)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch(`/api/kid/${kidId}/ledger`)
+      .then(r => r.json())
+      .then(d => {
+        setLedger(d.ledger ?? [])
+        setBalance(d.currentBalance ?? 0)
+      })
+      .finally(() => setLoading(false))
+  }, [kidId])
+
+  if (loading) {
+    return (
+      <motion.div
+        key="history"
+        className="flex items-center justify-center py-16"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+      >
+        <motion.p
+          className="font-heading text-xl text-white/30"
+          animate={{ opacity: [0.3, 0.7, 0.3] }}
+          transition={{ duration: 1.6, repeat: Infinity }}
+        >
+          ✦ Loading ✦
+        </motion.p>
+      </motion.div>
+    )
+  }
+
+  return (
+    <motion.div
+      key="history"
+      initial={{ opacity: 0, x: 10 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -10 }}
+      transition={{ duration: 0.2 }}
+    >
+      <CoinLedger ledger={ledger} currentBalance={balance} kidColor={kidColor} />
+    </motion.div>
+  )
 }
