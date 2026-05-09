@@ -84,7 +84,7 @@ describe('ApprovalsTab — review history', () => {
       <ApprovalsTab
         pendingCompletions={[]}
         pendingRedemptions={[]}
-        approvedRedemptions={[]}
+        reviewedRedemptions={[]}
         reviewedCompletions={[todayCompletion, yesterdayCompletion]}
         resolvedCurseInstances={[]}
         actions={noActions}
@@ -105,7 +105,7 @@ describe('ApprovalsTab — review history', () => {
       <ApprovalsTab
         pendingCompletions={[]}
         pendingRedemptions={[]}
-        approvedRedemptions={[]}
+        reviewedRedemptions={[]}
         reviewedCompletions={[twoDaysAgo]}
         resolvedCurseInstances={[]}
         actions={noActions}
@@ -130,7 +130,7 @@ describe('ApprovalsTab — review history', () => {
       <ApprovalsTab
         pendingCompletions={[pendingItem]}
         pendingRedemptions={[]}
-        approvedRedemptions={[]}
+        reviewedRedemptions={[]}
         reviewedCompletions={[]}
         resolvedCurseInstances={[]}
         actions={noActions}

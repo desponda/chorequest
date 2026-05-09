@@ -248,33 +248,34 @@ export function useParentActions(deps: Deps): ParentActions {
     const reward = redemption.reward as Reward | undefined
     if (!kid || !reward) return
 
-    const { data: updated, error } = await supabase
-      .from('redemptions')
-      .update({ status: 'approved' })
-      .eq('id', redemptionId)
-      .eq('status', 'pending')
-      .select('id')
+    // Server-side route: authenticates parent, verifies family ownership,
+    // atomically fetches fresh coins before deducting, idempotency-guarded
+    const res = await fetch(`/api/parent/redemptions/${redemptionId}/approve`, { method: 'POST' })
 
-    if (error || !updated || updated.length === 0) {
-      toast.error('Request was already cancelled by the kid')
-      await refetch()
-      return
+    if (res.status === 409) {
+      toast.error('Request was already processed')
+    } else if (!res.ok) {
+      toast.error('Could not process — try again')
+    } else {
+      toast.success(`${kid.name} got ${reward.title}! 🎁 -${reward.cost} coins`)
     }
 
-    await supabase.from('kids').update({ coins: Math.max(0, kid.coins - reward.cost) }).eq('id', kid.id)
-    toast.success(`${kid.name} got ${reward.title}! 🎁 -${reward.cost} coins`)
     await refetch()
-  }, [redemptions, refetch, supabase])
+  }, [redemptions, refetch])
 
   const denyRedemption = useCallback(async (redemptionId: string) => {
-    const { count } = await supabase.from('redemptions').delete({ count: 'exact' }).eq('id', redemptionId)
-    if (count === 0) {
+    // Server-side route: soft-deletes with status='denied' to preserve audit trail
+    const res = await fetch(`/api/parent/redemptions/${redemptionId}/deny`, { method: 'POST' })
+
+    if (res.status === 409) {
       toast.success('Already cancelled by the kid')
+    } else if (!res.ok) {
+      toast.error('Could not deny — try again')
     } else {
       toast.success('Reward request denied')
     }
     await refetch()
-  }, [refetch, supabase])
+  }, [refetch])
 
   const undoRedemption = useCallback(async (redemptionId: string) => {
     const redemption = redemptions.find((r) => r.id === redemptionId)
