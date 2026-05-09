@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChoreQuest — Redemption State Machine</title>
+<style>
+  :root {
+    --bg: #050310;
+    --surface: #0d0920;
+    --surface2: #160d2e;
+    --gold: #fbbf24;
+    --gold-dim: rgba(251,191,36,0.15);
+    --gold-border: rgba(251,191,36,0.3);
+    --azure: #38bdf8;
+    --mystic: #a78bfa;
+    --green: #4ade80;
+    --red: #f87171;
+    --amber: #fb923c;
+    --text: rgba(255,255,255,0.88);
+    --text-dim: rgba(255,255,255,0.4);
+    --border: rgba(255,255,255,0.08);
+    --bug-red: rgba(239,68,68,0.15);
+    --bug-border: rgba(239,68,68,0.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    padding: 32px 24px;
+  }
+  h1 { font-size: 24px; font-weight: 800; color: var(--gold); letter-spacing: 0.05em; margin-bottom: 4px; }
+  .subtitle { color: var(--text-dim); font-size: 13px; margin-bottom: 40px; }
+
+  /* ── TABS ── */
+  .tabs { display: flex; gap: 8px; margin-bottom: 32px; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+  .tab {
+    padding: 10px 20px; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 600;
+    cursor: pointer; color: var(--text-dim); border: 1px solid transparent; border-bottom: none;
+    background: transparent; transition: all .15s;
+  }
+  .tab.active { background: var(--surface); color: var(--gold); border-color: var(--border); border-bottom-color: var(--surface); margin-bottom: -1px; }
+  .tab:hover:not(.active) { color: var(--text); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── STATE MACHINE DIAGRAM ── */
+  .diagram-wrap { overflow-x: auto; padding-bottom: 16px; }
+  svg.diagram { min-width: 900px; }
+
+  /* ── FLOW CARDS ── */
+  .flows { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
+  .flow-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 20px; position: relative; overflow: hidden;
+  }
+  .flow-card.bug { border-color: var(--bug-border); background: linear-gradient(135deg, var(--bug-red), var(--surface)); }
+  .flow-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .badge {
+    font-size: 10px; padding: 2px 8px; border-radius: 999px; font-weight: 700; letter-spacing: .05em;
+  }
+  .badge.critical { background: rgba(239,68,68,0.25); color: #f87171; border: 1px solid rgba(239,68,68,0.4); }
+  .badge.high { background: rgba(251,146,60,0.2); color: #fb923c; border: 1px solid rgba(251,146,60,0.35); }
+  .badge.info { background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); }
+  .badge.ok { background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
+
+  /* ── STEP TRACE ── */
+  .steps { display: flex; flex-direction: column; gap: 6px; }
+  .step {
+    display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: start;
+    font-size: 12px; padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+  }
+  .step.bug-step { background: var(--bug-red); border-color: var(--bug-border); }
+  .step .num { width: 18px; height: 18px; border-radius: 50%; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: var(--text-dim); flex-shrink: 0; }
+  .step .actor { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
+  .step .desc { color: var(--text); line-height: 1.4; }
+  .step .coin-effect { font-size: 11px; font-weight: 700; white-space: nowrap; padding: 2px 8px; border-radius: 6px; }
+  .coin-plus { color: var(--green); background: rgba(74,222,128,0.1); }
+  .coin-minus { color: var(--red); background: rgba(239,68,68,0.12); }
+  .coin-none { color: var(--text-dim); background: rgba(255,255,255,0.05); }
+  .coin-virtual { color: var(--amber); background: rgba(251,146,60,0.12); }
+  .bug-note { font-size: 11px; color: #fca5a5; margin-top: 4px; padding: 6px 10px; background: rgba(239,68,68,0.1); border-radius: 6px; border-left: 2px solid var(--red); }
+
+  /* ── AUDIT TABLE ── */
+  .audit-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .audit-table th { text-align: left; color: var(--text-dim); padding: 8px 12px; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  .audit-table td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: top; }
+  .audit-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .audit-table tr.bug-row td { background: var(--bug-red); }
+  .db-field { font-family: monospace; font-size: 11px; color: var(--mystic); background: rgba(167,139,250,0.08); padding: 1px 5px; border-radius: 4px; }
+  .action-kid { color: var(--azure); }
+  .action-parent { color: var(--gold); }
+  .action-system { color: var(--mystic); }
+
+  /* ── BUG LIST ── */
+  .bug-list { display: flex; flex-direction: column; gap: 16px; }
+  .bug-item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .bug-item.critical { border-color: var(--bug-border); }
+  .bug-item.high { border-color: rgba(251,146,60,0.4); }
+  .bug-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
+  .bug-location { font-family: monospace; font-size: 11px; color: var(--text-dim); margin-bottom: 10px; }
+  .bug-desc { font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.6; margin-bottom: 12px; }
+  .bug-fix { font-size: 12px; color: var(--green); background: rgba(74,222,128,0.06); border: 1px solid rgba(74,222,128,0.2); border-radius: 8px; padding: 10px 14px; line-height: 1.5; }
+  .bug-fix::before { content: "Fix: "; font-weight: 700; }
+
+  /* ── LEGEND ── */
+  .legend { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; font-size: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-dim); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+</style>
+</head>
+<body>
+
+<h1>⚡ ChoreQuest — Redemption State Machine</h1>
+<p class="subtitle">Full lifecycle audit · 7 bugs identified · coin flow at every step</p>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('diagram')">State Diagram</div>
+  <div class="tab" onclick="showTab('flows')">All Flows</div>
+  <div class="tab" onclick="showTab('audit')">Coin Audit Trail</div>
+  <div class="tab" onclick="showTab('bugs')">Bug Report</div>
+</div>
+
+<!-- ═══ TAB 1: STATE DIAGRAM ═══ -->
+<div id="tab-diagram" class="panel active">
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div> Kid action</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fbbf24"></div> Parent action</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f87171"></div> Bug / race condition</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#4ade80"></div> Coin deducted</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fb923c"></div> Coin refunded / virtual reserve</div>
+  </div>
+  <div class="diagram-wrap">
+  <svg class="diagram" viewBox="0 0 960 620" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#38bdf8" opacity="0.8"/>
+      </marker>
+      <marker id="arrow-gold" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24" opacity="0.8"/>
+      </marker>
+      <marker id="arrow-red" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#f87171" opacity="0.8"/>
+      </marker>
+      <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#4ade80" opacity="0.8"/>
+      </marker>
+      <filter id="glow-gold">
+        <feGaussianBlur stdDeviation="3" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="glow-green">
+        <feGaussianBlur stdDeviation="4" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="glow-red">
+        <feGaussianBlur stdDeviation="4" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+
+    <!-- ── Background grid ── -->
+    <rect width="960" height="620" fill="#050310"/>
+    <g opacity="0.04">
+      <line x1="0" y1="60" x2="960" y2="60" stroke="white"/>
+      <line x1="0" y1="120" x2="960" y2="120" stroke="white"/>
+      <line x1="0" y1="180" x2="960" y2="180" stroke="white"/>
+      <line x1="0" y1="240" x2="960" y2="240" stroke="white"/>
+      <line x1="0" y1="300" x2="960" y2="300" stroke="white"/>
+      <line x1="0" y1="360" x2="960" y2="360" stroke="white"/>
+      <line x1="0" y1="420" x2="960" y2="420" stroke="white"/>
+      <line x1="0" y1="480" x2="960" y2="480" stroke="white"/>
+      <line x1="0" y1="540" x2="960" y2="540" stroke="white"/>
+    </g>
+
+    <!-- ── STATE: [INIT] ── -->
+    <circle cx="100" cy="80" r="22" fill="#160d2e" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+    <circle cx="100" cy="80" r="14" fill="rgba(255,255,255,0.25)"/>
+    <text x="100" y="116" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="11">start</text>
+
+    <!-- ── STATE: PENDING ── -->
+    <rect x="260" y="44" width="160" height="72" rx="14" fill="#160d2e" stroke="#fbbf24" stroke-width="1.5" filter="url(#glow-gold)" stroke-opacity="0.6"/>
+    <text x="340" y="72" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="700">PENDING</text>
+    <text x="340" y="90" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="10">redemption exists</text>
+    <text x="340" y="104" text-anchor="middle" fill="rgba(251,146,60,0.8)" font-size="10">coins: NOT deducted ⚠</text>
+
+    <!-- ── STATE: APPROVED ── -->
+    <rect x="620" y="44" width="160" height="72" rx="14" fill="#160d2e" stroke="#4ade80" stroke-width="1.5" filter="url(#glow-green)" stroke-opacity="0.6"/>
+    <text x="700" y="72" text-anchor="middle" fill="#4ade80" font-size="13" font-weight="700">APPROVED</text>
+    <text x="700" y="90" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="10">terminal state</text>
+    <text x="700" y="104" text-anchor="middle" fill="#4ade80" font-size="10">kid.coins -= cost ✓</text>
+
+    <!-- ── STATE: CANCELLED ── -->
+    <rect x="260" y="420" width="160" height="72" rx="14" fill="#160d2e" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-dasharray="6 3"/>
+    <text x="340" y="448" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="13" font-weight="700">CANCELLED</text>
+    <text x="340" y="466" text-anchor="middle" fill="rgba(255,255,255,0.35)" font-size="10">row deleted</text>
+    <text x="340" y="480" text-anchor="middle" fill="rgba(255,255,255,0.35)" font-size="10">no coin effect</text>
+
+    <!-- ── STATE: DENIED ── -->
+    <rect x="620" y="420" width="160" height="72" rx="14" fill="#160d2e" stroke="rgba(239,68,68,0.35)" stroke-width="1.5" stroke-dasharray="6 3"/>
+    <text x="700" y="448" text-anchor="middle" fill="rgba(239,68,68,0.6)" font-size="13" font-weight="700">DENIED</text>
+    <text x="700" y="466" text-anchor="middle" fill="rgba(255,255,255,0.35)" font-size="10">row deleted ⚠</text>
+    <text x="700" y="480" text-anchor="middle" fill="rgba(239,68,68,0.6)" font-size="10">BUG: no audit trail</text>
+
+    <!-- ── TRANSITION: start → PENDING ── -->
+    <line x1="122" y1="80" x2="258" y2="80" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+    <text x="190" y="68" text-anchor="middle" fill="#38bdf8" font-size="10" font-weight="600">Kid submits</text>
+    <text x="190" y="80" text-anchor="middle" fill="rgba(56,189,248,0.6)" font-size="9">POST /redeem</text>
+    <rect x="140" y="85" width="100" height="14" rx="4" fill="rgba(251,146,60,0.15)"/>
+    <text x="190" y="95" text-anchor="middle" fill="#fb923c" font-size="9">coins unchanged ⚠</text>
+
+    <!-- ── TRANSITION: PENDING → APPROVED ── -->
+    <line x1="422" y1="80" x2="618" y2="80" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-gold)"/>
+    <text x="520" y="68" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="600">Parent approves</text>
+    <text x="520" y="80" text-anchor="middle" fill="rgba(251,191,36,0.6)" font-size="9">fulfillRedemption()</text>
+    <rect x="462" y="85" width="116" height="14" rx="4" fill="rgba(74,222,128,0.12)"/>
+    <text x="520" y="95" text-anchor="middle" fill="#4ade80" font-size="9">kid.coins -= cost</text>
+
+    <!-- ── TRANSITION: APPROVED → PENDING (undo) ── -->
+    <path d="M 700 44 C 700 10, 340 10, 340 42" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="5 3" fill="none" marker-end="url(#arrow-gold)"/>
+    <text x="520" y="12" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="600">Parent undoes approval</text>
+    <text x="520" y="24" text-anchor="middle" fill="rgba(251,191,36,0.6)" font-size="9">undoRedemption()</text>
+    <rect x="462" y="28" width="116" height="14" rx="4" fill="rgba(251,146,60,0.15)"/>
+    <text x="520" y="38" text-anchor="middle" fill="#fb923c" font-size="9">kid.coins += cost</text>
+
+    <!-- ── BUG ANNOTATION: Double deduction ── -->
+    <rect x="430" y="130" width="220" height="68" rx="10" fill="rgba(239,68,68,0.1)" stroke="rgba(239,68,68,0.4)" stroke-width="1.5"/>
+    <text x="540" y="150" text-anchor="middle" fill="#f87171" font-size="11" font-weight="700">⚠ BUG: Double Deduction</text>
+    <text x="540" y="166" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-size="10">PENDING→APPROVED→PENDING</text>
+    <text x="540" y="180" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-size="10">→APPROVED deducts coins TWICE</text>
+    <text x="540" y="193" text-anchor="middle" fill="#f87171" font-size="9">also: stale kid.coins on concurrent approvals</text>
+    <!-- arrow from bug to approve transition -->
+    <line x1="540" y1="130" x2="520" y2="100" stroke="#f87171" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arrow-red)"/>
+
+    <!-- ── TRANSITION: PENDING → CANCELLED ── -->
+    <path d="M 340 116 L 340 418" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+    <text x="302" y="280" text-anchor="middle" fill="#38bdf8" font-size="10" font-weight="600">Kid cancels</text>
+    <text x="302" y="292" text-anchor="middle" fill="rgba(56,189,248,0.6)" font-size="9">DELETE /redeem/:id</text>
+    <rect x="252" y="298" width="100" height="14" rx="4" fill="rgba(74,222,128,0.08)"/>
+    <text x="302" y="308" text-anchor="middle" fill="rgba(74,222,128,0.6)" font-size="9">no coin effect ✓</text>
+
+    <!-- ── TRANSITION: PENDING → DENIED ── -->
+    <path d="M 420 116 C 420 200, 620 300, 620 418" stroke="rgba(239,68,68,0.5)" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arrow-red)"/>
+    <text x="565" y="260" text-anchor="middle" fill="rgba(239,68,68,0.7)" font-size="10" font-weight="600">Parent denies</text>
+    <text x="565" y="272" text-anchor="middle" fill="rgba(239,68,68,0.5)" font-size="9">denyRedemption()</text>
+    <rect x="517" y="278" width="96" height="14" rx="4" fill="rgba(239,68,68,0.12)"/>
+    <text x="565" y="288" text-anchor="middle" fill="#f87171" font-size="9">row deleted ⚠ no audit</text>
+
+    <!-- ── TRANSITION: APPROVED → (reverse deny, missing) ── -->
+    <rect x="680" y="180" width="200" height="56" rx="10" fill="rgba(239,68,68,0.08)" stroke="rgba(239,68,68,0.3)" stroke-width="1" stroke-dasharray="4 2"/>
+    <text x="780" y="200" text-anchor="middle" fill="rgba(239,68,68,0.6)" font-size="10" font-weight="700">⚠ MISSING FLOW</text>
+    <text x="780" y="216" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="10">No way to undo</text>
+    <text x="780" y="228" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="10">approved redemption</text>
+    <line x1="780" y1="118" x2="780" y2="178" stroke="rgba(239,68,68,0.4)" stroke-width="1" stroke-dasharray="4 2"/>
+
+    <!-- ── Race condition label ── -->
+    <rect x="60" y="200" width="200" height="88" rx="10" fill="rgba(239,68,68,0.08)" stroke="rgba(239,68,68,0.3)" stroke-width="1" stroke-dasharray="4 2"/>
+    <text x="160" y="222" text-anchor="middle" fill="rgba(239,68,68,0.7)" font-size="11" font-weight="700">⚠ Race Condition</text>
+    <text x="160" y="238" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="10">Kid requests reward</text>
+    <text x="160" y="252" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="10">without immediate</text>
+    <text x="160" y="266" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="10">coin deduction →</text>
+    <text x="160" y="280" text-anchor="middle" fill="#f87171" font-size="10">can over-request</text>
+
+    <!-- ── DB label PENDING ── -->
+    <rect x="260" y="140" width="160" height="58" rx="8" fill="rgba(167,139,250,0.06)" stroke="rgba(167,139,250,0.2)" stroke-width="1"/>
+    <text x="340" y="158" text-anchor="middle" fill="#a78bfa" font-size="9" font-weight="600">DB: redemptions</text>
+    <text x="340" y="172" text-anchor="middle" fill="rgba(167,139,250,0.7)" font-size="9">status = 'pending'</text>
+    <text x="340" y="186" text-anchor="middle" fill="rgba(167,139,250,0.7)" font-size="9">kid.coins: unchanged</text>
+    <line x1="340" y1="116" x2="340" y2="138" stroke="rgba(167,139,250,0.3)" stroke-width="1" stroke-dasharray="3 2"/>
+
+    <!-- ── DB label APPROVED ── -->
+    <rect x="620" y="140" width="160" height="58" rx="8" fill="rgba(74,222,128,0.06)" stroke="rgba(74,222,128,0.2)" stroke-width="1"/>
+    <text x="700" y="158" text-anchor="middle" fill="#4ade80" font-size="9" font-weight="600">DB: redemptions</text>
+    <text x="700" y="172" text-anchor="middle" fill="rgba(74,222,128,0.7)" font-size="9">status = 'approved'</text>
+    <text x="700" y="186" text-anchor="middle" fill="rgba(74,222,128,0.7)" font-size="9">kid.coins -= cost</text>
+    <line x1="700" y1="116" x2="700" y2="138" stroke="rgba(74,222,128,0.3)" stroke-width="1" stroke-dasharray="3 2"/>
+
+    <!-- ── Coin reserve annotation ── -->
+    <rect x="60" y="360" width="200" height="100" rx="10" fill="rgba(251,191,36,0.05)" stroke="rgba(251,191,36,0.2)" stroke-width="1"/>
+    <text x="160" y="382" text-anchor="middle" fill="#fbbf24" font-size="11" font-weight="700">Available Coins (UI)</text>
+    <text x="160" y="398" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="10">kid.coins - pendingTotal</text>
+    <text x="160" y="412" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="9">computed client-side only</text>
+    <text x="160" y="426" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="9">not enforced server-side ⚠</text>
+    <text x="160" y="442" text-anchor="middle" fill="#fb923c" font-size="9">Bug: server re-check missing</text>
+
+    <!-- ── Footer note ── -->
+    <text x="480" y="600" text-anchor="middle" fill="rgba(255,255,255,0.2)" font-size="10">Dashed borders = deleted/missing states  ·  ⚠ = known bug  ·  Arrows colored by actor</text>
+  </svg>
+  </div>
+</div>
+
+<!-- ═══ TAB 2: ALL FLOWS ═══ -->
+<div id="tab-flows" class="panel">
+  <div class="flows">
+
+    <!-- Happy path -->
+    <div class="flow-card">
+      <h3>🟢 Happy Path <span class="badge ok">CORRECT</span></h3>
+      <div class="steps">
+        <div class="step">
+          <div class="num">1</div>
+          <div class="desc">Kid taps reward (50 coins), submits request</div>
+          <div class="coin-effect coin-virtual">virtual -50</div>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <div class="desc"><code>POST /api/kid/:id/redeem</code> — creates <code>redemptions</code> row <code>status:'pending'</code></div>
+          <div class="actor">Kid</div>
+        </div>
+        <div class="step">
+          <div class="num">3</div>
+          <div class="desc">Kid UI shows <code>availableCoins = kid.coins - pendingTotal</code></div>
+          <div class="coin-effect coin-virtual">display only</div>
+        </div>
+        <div class="step">
+          <div class="num">4</div>
+          <div class="desc">Parent sees pending redemption, approves</div>
+          <div class="actor">Parent</div>
+        </div>
+        <div class="step">
+          <div class="num">5</div>
+          <div class="desc"><code>fulfillRedemption()</code> — sets <code>status:'approved'</code>, deducts <code>kid.coins -= 50</code></div>
+          <div class="coin-effect coin-minus">-50 coins</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bug: double deduction -->
+    <div class="flow-card bug">
+      <h3>🔴 Double Deduction Bug <span class="badge critical">CRITICAL</span></h3>
+      <div class="steps">
+        <div class="step">
+          <div class="num">1</div>
+          <div class="desc">Parent approves redemption (50 coins)</div>
+          <div class="coin-effect coin-minus">-50 coins</div>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <div class="desc">Parent undoes approval — <code>undoRedemption()</code> refunds coins</div>
+          <div class="coin-effect coin-plus">+50 coins</div>
+        </div>
+        <div class="step bug-step">
+          <div class="num">3</div>
+          <div class="desc">Redemption is back to <code>pending</code> — appears in approval queue again</div>
+          <div class="actor">System</div>
+        </div>
+        <div class="step bug-step">
+          <div class="num">4</div>
+          <div class="desc">Parent approves again — <code>fulfillRedemption()</code> fires a SECOND time</div>
+          <div class="coin-effect coin-minus">-50 coins again</div>
+        </div>
+      </div>
+      <div class="bug-note">Result: kid loses 100 coins for a 50-coin reward. This is the bug you experienced.</div>
+    </div>
+
+    <!-- Stale read race -->
+    <div class="flow-card bug">
+      <h3>🔴 Concurrent Approval Race <span class="badge critical">CRITICAL</span></h3>
+      <div class="steps">
+        <div class="step">
+          <div class="num">1</div>
+          <div class="desc">Kid has 100 coins, 2 pending requests (50 each). Two devices open parent dashboard</div>
+          <div class="actor">Both</div>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <div class="desc">Parent A approves request 1: reads stale <code>kid.coins=100</code>, sets to 50</div>
+          <div class="coin-effect coin-minus">100→50</div>
+        </div>
+        <div class="step bug-step">
+          <div class="num">3</div>
+          <div class="desc">Parent B approves request 2: also read stale <code>kid.coins=100</code>, sets to 50</div>
+          <div class="coin-effect coin-minus">100→50 (wrong!)</div>
+        </div>
+      </div>
+      <div class="bug-note">Result: kid should have 0 coins but has 50. <br>Fix: atomic SQL <code>UPDATE kids SET coins = coins - cost WHERE coins &gt;= cost</code></div>
+    </div>
+
+    <!-- Over-request -->
+    <div class="flow-card bug">
+      <h3>🟠 Over-Request Race <span class="badge high">HIGH</span></h3>
+      <div class="steps">
+        <div class="step">
+          <div class="num">1</div>
+          <div class="desc">Kid has 100 coins. Server: coins not deducted on request</div>
+          <div class="actor">Kid</div>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <div class="desc">Kid rapidly taps 3 different rewards (40+40+40). Server processes all 3 before any <code>pendingTotal</code> check catches up</div>
+          <div class="coin-effect coin-virtual">120 "reserved"</div>
+        </div>
+        <div class="step bug-step">
+          <div class="num">3</div>
+          <div class="desc">All 3 land in parent queue. Parent approves all 3 → kid ends at <code>-20</code> coins (clamped to 0)</div>
+          <div class="coin-effect coin-minus">-120 total</div>
+        </div>
+      </div>
+      <div class="bug-note">Fix: deduct coins immediately on request, or use a DB transaction with <code>coins &gt;= cost</code> guard.</div>
+    </div>
+
+    <!-- Kid cancel -->
+    <div class="flow-card">
+      <h3>✅ Kid Cancels Pending <span class="badge ok">SAFE</span></h3>
+      <div class="steps">
+        <div class="step">
+          <div class="num">1</div>
+          <div class="desc">Kid submits redemption — row created, no coin deduction</div>
+          <div class="coin-effect coin-virtual">virtual -50</div>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <div class="desc">Kid cancels — <code>DELETE /redeem/:id</code> with <code>.eq('status','pending')</code> guard</div>
+          <div class="coin-effect coin-none">no change</div>
+        </div>
+        <div class="step">
+          <div class="num">3</div>
+          <div class="desc">Row deleted, pending total drops, available coins return to full</div>
+          <div class="coin-effect coin-plus">virtual +50</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Denial no audit -->
+    <div class="flow-card bug">
+      <h3>🟠 Parent Denial — No Audit <span class="badge high">HIGH</span></h3>
+      <div class="steps">
+        <div class="step">
+          <div class="num">1</div>
+          <div class="desc">Kid submits redemption</div>
+          <div class="actor">Kid</div>
+        </div>
+        <div class="step bug-step">
+          <div class="num">2</div>
+          <div class="desc"><code>denyRedemption()</code> — row is <strong>deleted</strong>, not set to <code>status:'denied'</code></div>
+          <div class="actor">Parent</div>
+        </div>
+        <div class="step bug-step">
+          <div class="num">3</div>
+          <div class="desc">No record exists. Kid sees request disappear silently. Parent can't see they denied it</div>
+          <div class="coin-effect coin-none">no audit</div>
+        </div>
+      </div>
+      <div class="bug-note">Fix: use <code>status:'denied'</code> + <code>denied_at</code> timestamp instead of deletion.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ TAB 3: COIN AUDIT TRAIL ═══ -->
+<div id="tab-audit" class="panel">
+  <p style="color:var(--text-dim);font-size:13px;margin-bottom:20px">
+    Complete trace of every operation that touches <code style="color:var(--mystic)">kid.coins</code> or the <code style="color:var(--mystic)">redemptions</code> table.
+    Red rows indicate the bug you reported.
+  </p>
+  <div style="overflow-x:auto">
+  <table class="audit-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Event</th>
+        <th>Actor</th>
+        <th>API / Function</th>
+        <th>DB Change</th>
+        <th>kid.coins</th>
+        <th>UI Available</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Kid requests reward (cost: N)</td>
+        <td class="action-kid">👧 Kid</td>
+        <td><span class="db-field">POST /api/kid/:id/redeem</span></td>
+        <td>INSERT redemptions<br><span class="db-field">status='pending'</span></td>
+        <td style="color:var(--amber)">Unchanged ⚠</td>
+        <td style="color:var(--amber)">coins - pending</td>
+        <td style="color:var(--amber);font-size:11px">Bug: server doesn't enforce pending guard atomically</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Kid cancels pending request</td>
+        <td class="action-kid">👧 Kid</td>
+        <td><span class="db-field">DELETE /redeem/:id</span></td>
+        <td>DELETE redemptions<br><span class="db-field">where status='pending'</span></td>
+        <td style="color:var(--green)">Unchanged ✓</td>
+        <td style="color:var(--green)">coins restored ✓</td>
+        <td style="color:rgba(74,222,128,0.7);font-size:11px">Safe — coins never moved</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Parent approves</td>
+        <td class="action-parent">👨 Parent</td>
+        <td><span class="db-field">fulfillRedemption()</span></td>
+        <td>UPDATE redemptions<br><span class="db-field">status='approved'</span></td>
+        <td style="color:var(--red)">-= cost ⚠ stale read</td>
+        <td style="color:var(--green)">decreases ✓</td>
+        <td style="color:var(--red);font-size:11px">Bug: reads kid.coins from component state, not DB</td>
+      </tr>
+      <tr class="bug-row">
+        <td>4</td>
+        <td>Parent undoes approval</td>
+        <td class="action-parent">👨 Parent</td>
+        <td><span class="db-field">undoRedemption()</span></td>
+        <td>UPDATE redemptions<br><span class="db-field">status='pending'</span></td>
+        <td style="color:var(--amber)">+= cost (refund)</td>
+        <td style="color:var(--amber)">increases</td>
+        <td style="color:var(--red);font-size:11px">Redemption re-appears in approval queue!</td>
+      </tr>
+      <tr class="bug-row">
+        <td>5</td>
+        <td>Parent approves AGAIN (after undo)</td>
+        <td class="action-parent">👨 Parent</td>
+        <td><span class="db-field">fulfillRedemption()</span></td>
+        <td>UPDATE redemptions<br><span class="db-field">status='approved'</span></td>
+        <td style="color:var(--red)">-= cost AGAIN 🐛</td>
+        <td style="color:var(--red)">double deducted</td>
+        <td style="color:var(--red);font-size:11px">THIS IS THE BUG — coins deducted twice for one reward</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>Parent denies request</td>
+        <td class="action-parent">👨 Parent</td>
+        <td><span class="db-field">denyRedemption()</span></td>
+        <td>DELETE redemptions<br>(no status change)</td>
+        <td style="color:var(--green)">Unchanged ✓</td>
+        <td style="color:var(--green)">restores ✓</td>
+        <td style="color:var(--amber);font-size:11px">Coins fine, but no audit trail — row vanishes</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td>Concurrent approvals (2 parents)</td>
+        <td class="action-parent">👨👨 Both</td>
+        <td><span class="db-field">fulfillRedemption() x2</span></td>
+        <td>Both read stale coins,<br>both update</td>
+        <td style="color:var(--red)">Wrong final value</td>
+        <td style="color:var(--red)">inconsistent</td>
+        <td style="color:var(--red);font-size:11px">Race: both see old kid.coins, last write wins at wrong value</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div style="margin-top:28px;padding:20px;background:var(--surface);border-radius:12px;border:1px solid var(--border)">
+    <h3 style="font-size:14px;color:var(--gold);margin-bottom:12px">Proposed Coin Audit Log Schema</h3>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Add a <code style="color:var(--mystic)">coin_transactions</code> table to power the audit history you want:</p>
+    <pre style="font-size:11px;color:rgba(255,255,255,0.7);background:#0a0618;padding:16px;border-radius:8px;border:1px solid var(--border);overflow-x:auto">CREATE TABLE coin_transactions (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  kid_id       uuid REFERENCES kids(id),
+  family_id    uuid REFERENCES families(id),
+  amount       integer NOT NULL,       -- positive = credit, negative = debit
+  kind         text NOT NULL,          -- 'quest_approved' | 'reward_approved' | 'reward_denied'
+                                       -- | 'reward_cancelled' | 'quest_rejected' | 'curse'
+  reference_id uuid,                   -- quest completion or redemption id
+  balance_after integer NOT NULL,      -- kid.coins after this transaction
+  created_at   timestamptz DEFAULT now()
+);</pre>
+    <p style="font-size:11px;color:var(--text-dim);margin-top:10px">Every approval triggers an INSERT here. The UI reads this table to show each kid's full coin history.</p>
+  </div>
+</div>
+
+<!-- ═══ TAB 4: BUG REPORT ═══ -->
+<div id="tab-bugs" class="panel">
+  <div class="bug-list">
+
+    <div class="bug-item critical">
+      <div class="bug-title"><span class="badge critical">CRITICAL</span> Bug #1 — Double Deduction on Undo + Re-Approve</div>
+      <div class="bug-location">use-parent-actions.ts · fulfillRedemption() + undoRedemption()</div>
+      <div class="bug-desc">
+        When a parent approves a redemption, then undoes it, the redemption goes back to <code>pending</code> and
+        re-appears in the approval queue. If the parent approves it again, coins are deducted a second time.
+        Kid loses 100 coins for a 50-coin reward. <strong>This is the bug you reported.</strong>
+      </div>
+      <div class="bug-fix">
+        Track a <code>fulfilled_at</code> timestamp on the redemption. Before deducting coins in <code>fulfillRedemption()</code>,
+        check that <code>fulfilled_at IS NULL</code>. If already fulfilled, refuse and show a toast.
+        Alternatively, don't allow undoing an approval — instead add a "deny after approval" flow that refunds coins
+        with an explicit audit entry.
+      </div>
+    </div>
+
+    <div class="bug-item critical">
+      <div class="bug-title"><span class="badge critical">CRITICAL</span> Bug #2 — Stale Coin Read on Approval</div>
+      <div class="bug-location">use-parent-actions.ts · fulfillRedemption() line ~255</div>
+      <div class="bug-desc">
+        <code>kid.coins</code> is read from in-memory component state (loaded at page open), not from a fresh DB fetch.
+        If another approval happened since the parent opened the dashboard, this parent approves with the wrong balance,
+        and the atomic deduction produces an incorrect final value.
+      </div>
+      <div class="bug-fix">
+        Change the coin deduction to an atomic SQL operation:
+        <code>UPDATE kids SET coins = GREATEST(0, coins - {cost}) WHERE id = {id}</code>.
+        This is safe regardless of concurrent updates because it operates on the current DB value, not a cached one.
+      </div>
+    </div>
+
+    <div class="bug-item high">
+      <div class="bug-title"><span class="badge high">HIGH</span> Bug #3 — No Server-Side Coin Guard on Request</div>
+      <div class="bug-location">api/kid/[id]/redeem/route.ts · POST handler</div>
+      <div class="bug-desc">
+        When a kid submits a redemption, the server checks available coins at that moment. But coins are not
+        immediately deducted server-side. If a kid submits multiple requests in rapid succession before any
+        <code>pendingTotal</code> is counted, all requests are accepted, potentially totalling more than the kid's balance.
+      </div>
+      <div class="bug-fix">
+        Use a DB transaction: <code>SELECT coins FROM kids WHERE id=? FOR UPDATE</code>, sum existing pending costs,
+        verify <code>coins - pendingTotal &gt;= newCost</code>, then INSERT the redemption — all in one atomic operation.
+      </div>
+    </div>
+
+    <div class="bug-item high">
+      <div class="bug-title"><span class="badge high">HIGH</span> Bug #4 — Denial Deletes Row, No Audit Trail</div>
+      <div class="bug-location">use-parent-actions.ts · denyRedemption()</div>
+      <div class="bug-desc">
+        When a parent denies a redemption, the row is hard-deleted. The kid's request silently disappears with no
+        explanation. The parent also loses the record — they can't see what they denied. No history exists.
+      </div>
+      <div class="bug-fix">
+        Change to soft-delete: <code>UPDATE redemptions SET status='denied', denied_at=NOW() WHERE id=?</code>.
+        Show denied redemptions in history for both kid and parent, greyed out with a "✗ denied" label.
+      </div>
+    </div>
+
+    <div class="bug-item">
+      <div class="bug-title"><span class="badge info">MEDIUM</span> Bug #5 — No Kid Notification of Approval</div>
+      <div class="bug-location">api/kid/[id]/data/route.ts · redemptions fetch</div>
+      <div class="bug-desc">
+        The kid data endpoint only fetches <code>status='pending'</code> redemptions. When a parent approves,
+        the item disappears from the kid's list without any notification. Kid sees their request vanish silently
+        and doesn't know it was approved unless they notice coins decreased.
+      </div>
+      <div class="bug-fix">
+        Fetch both <code>'pending'</code> and recent <code>'approved'</code> redemptions (last 7 days).
+        Show approved ones as completed with a "✓ approved" badge. The existing toast on the kid page only
+        fires when the kid's app is open during the approval — silent otherwise.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const tabs = ['diagram','flows','audit','bugs'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+}
+</script>
+</body>
+</html>

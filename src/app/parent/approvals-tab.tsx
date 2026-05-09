@@ -22,7 +22,7 @@ function formatQuestDate(date: string): string {
 interface Props {
   pendingCompletions: Completion[]
   pendingRedemptions: Redemption[]
-  approvedRedemptions: Redemption[]
+  reviewedRedemptions: Redemption[]
   reviewedCompletions: Completion[]
   resolvedCurseInstances: CurseInstance[]
   actions: ParentActions
@@ -31,7 +31,7 @@ interface Props {
 export function ApprovalsTab({
   pendingCompletions,
   pendingRedemptions,
-  approvedRedemptions,
+  reviewedRedemptions,
   reviewedCompletions,
   resolvedCurseInstances,
   actions,
@@ -43,7 +43,7 @@ export function ApprovalsTab({
 
   const reviewed: ReviewedItem[] = [
     ...reviewedCompletions.map((c) => ({ kind: 'completion' as const, ts: c.completed_at, item: c })),
-    ...approvedRedemptions.map((r) => ({ kind: 'redemption' as const, ts: r.redeemed_at, item: r })),
+    ...reviewedRedemptions.map((r) => ({ kind: 'redemption' as const, ts: r.redeemed_at, item: r })),
     ...resolvedCurseInstances.map((ci) => ({ kind: 'curse' as const, ts: ci.resolved_at ?? ci.cast_at, item: ci })),
   ].sort((a, b) => b.ts.localeCompare(a.ts))
 
@@ -192,14 +192,11 @@ export function ApprovalsTab({
                   <span className="text-white/35 truncate flex items-center gap-1"><span>{reward.icon}</span>{reward.title}</span>
                 </span>
                 <span className="text-white/25 text-xs whitespace-nowrap">{formatQuestDate(r.redeemed_at.slice(0, 10))}</span>
-                <span className="text-xs font-semibold text-cq-gold whitespace-nowrap">🎁 -{reward.cost}🪙</span>
-                <button
-                  onClick={() => actions.undoRedemption(r.id)}
-                  className="text-xs text-white/20 hover:text-cq-gold transition-all text-center w-6"
-                  title="Undo"
-                >
-                  ↩
-                </button>
+                {r.status === 'approved'
+                  ? <span className="text-xs font-semibold text-cq-gold whitespace-nowrap">🎁 -{reward.cost}🪙</span>
+                  : <span className="text-xs font-semibold text-red-400 whitespace-nowrap">✗ denied</span>
+                }
+                <div className="w-6" />
               </div>
             )
           })}

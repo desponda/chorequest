@@ -178,7 +178,8 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
       const reward = data.rewards.find((r) => r.id === rewardId)
       if (!reward) return
 
-      const pendingTotal = data.pendingRedemptions.reduce((sum, r) => sum + (r.reward?.cost ?? 0), 0)
+      // Only count pending (not denied) against available coins
+      const pendingTotal = (data.pendingRedemptions ?? []).filter(r => r.status === 'pending').reduce((sum, r) => sum + (r.reward?.cost ?? 0), 0)
       const available = Math.max(0, data.kid.coins - pendingTotal)
 
       if (available < reward.cost) {
@@ -245,7 +246,10 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
     )
   }
 
-  const { kid, resetHour, quests, completions, rewards, activeCurses, familySharedCompletions, pendingRedemptions } = data
+  const { kid, resetHour, quests, completions, rewards, activeCurses, familySharedCompletions } = data
+  // Split by status: only pending counts against available coins; denied shown as history
+  const pendingRedemptions = (data.pendingRedemptions ?? []).filter((r) => r.status === 'pending')
+  const deniedRedemptions = (data.pendingRedemptions ?? []).filter((r) => r.status === 'denied')
   const today = questDateString(resetHour)
   const weekStart = questWeekKey(resetHour)
   const colors = KID_COLORS[kid.color]
@@ -529,6 +533,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                 rewards={rewards}
                 kid={kid}
                 pendingRedemptions={pendingRedemptions}
+                deniedRedemptions={deniedRedemptions}
                 pendingTotal={pendingTotal}
                 availableCoins={availableCoins}
                 onRedeem={handleRedeem}
@@ -615,11 +620,12 @@ function ActiveCursesSection({ curses }: { curses: CurseInstance[] }) {
 }
 
 function RewardsTab({
-  rewards, kid, pendingRedemptions, pendingTotal, availableCoins, onRedeem, onCancel,
+  rewards, kid, pendingRedemptions, deniedRedemptions, pendingTotal, availableCoins, onRedeem, onCancel,
 }: {
   rewards: Reward[]
   kid: Kid
   pendingRedemptions: Redemption[]
+  deniedRedemptions: Redemption[]
   pendingTotal: number
   availableCoins: number
   onRedeem: (rewardId: string) => Promise<void>
@@ -668,6 +674,22 @@ function RewardsTab({
               >
                 ✕
               </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {deniedRedemptions.length > 0 && (
+        <div
+          className="rounded-2xl p-4 mb-2 flex flex-col gap-2"
+          style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)' }}
+        >
+          <p className="text-xs font-bold uppercase tracking-widest text-red-400/55">✗ Not approved</p>
+          {deniedRedemptions.map((r) => (
+            <div key={r.id} className="flex items-center gap-3 opacity-60">
+              <span className="text-lg">{r.reward?.icon ?? '🎁'}</span>
+              <p className="flex-1 text-sm text-white/50 line-through">{r.reward?.title ?? 'Reward'}</p>
+              <span className="text-xs text-red-400/60">✗ denied</span>
             </div>
           ))}
         </div>

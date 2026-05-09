@@ -32,7 +32,7 @@ export default function ParentDashboard() {
   const pendingCompletions = data.completions.filter((c) => c.status === 'pending')
   const reviewedCompletions = data.completions.filter((c) => c.status !== 'pending')
   const pendingRedemptions = data.redemptions.filter((r) => r.status === 'pending')
-  const approvedRedemptions = data.redemptions.filter((r) => r.status === 'approved')
+  const reviewedRedemptions = data.redemptions.filter((r) => r.status === 'approved' || r.status === 'denied')
 
   if (data.loading) {
     return (
@@ -156,7 +156,7 @@ export default function ParentDashboard() {
               <ApprovalsTab
                 pendingCompletions={pendingCompletions}
                 pendingRedemptions={pendingRedemptions}
-                approvedRedemptions={approvedRedemptions}
+                reviewedRedemptions={reviewedRedemptions}
                 reviewedCompletions={reviewedCompletions}
                 resolvedCurseInstances={data.resolvedCurseInstances}
                 actions={actions}

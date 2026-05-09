@@ -39,7 +39,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       .from('redemptions')
       .select('id, reward_id, status, redeemed_at, reward:rewards(id, title, icon, cost)')
       .eq('kid_id', id)
-      .eq('status', 'pending'),
+      .in('status', ['pending', 'denied'])
+      .order('redeemed_at', { ascending: false }),
   ])
 
   return Response.json({

@@ -144,7 +144,7 @@ export interface Redemption {
   id: string
   reward_id: string
   kid_id: string
-  status: 'pending' | 'approved'
+  status: 'pending' | 'approved' | 'denied'
   redeemed_at: string
   reward?: Reward
   kid?: Kid
