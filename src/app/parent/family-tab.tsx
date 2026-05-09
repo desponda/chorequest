@@ -8,6 +8,8 @@ import { KID_AVATARS, KID_COLORS } from '@/lib/constants'
 import { PLAN_LABELS, PLAN_LIMITS } from '@/lib/plans'
 import { ActionButton, Empty, FormInput, Section, fadeSlide } from './_ui'
 import type { ParentActions } from './use-parent-actions'
+import { CoinLedger } from '@/components/coin-ledger'
+import type { LedgerEntry } from '@/lib/ledger'
 
 const RESET_HOUR_PRESETS = [0, 3, 5, 6] as const
 
@@ -278,6 +280,24 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
   const [editingCoinsKidId, setEditingCoinsKidId] = useState<string | null>(null)
   const [editCoinsValue, setEditCoinsValue] = useState('')
   const [revealPinKidId, setRevealPinKidId] = useState<string | null>(null)
+  const [ledgerKid, setLedgerKid] = useState<Kid | null>(null)
+  const [ledger, setLedger] = useState<LedgerEntry[]>([])
+  const [ledgerBalance, setLedgerBalance] = useState(0)
+  const [ledgerLoading, setLedgerLoading] = useState(false)
+
+  const openLedger = async (kid: Kid) => {
+    setLedgerKid(kid)
+    setLedgerLoading(true)
+    setLedger([])
+    try {
+      const res = await fetch(`/api/parent/kids/${kid.id}/ledger`)
+      const data = await res.json()
+      setLedger(data.ledger ?? [])
+      setLedgerBalance(data.currentBalance ?? kid.coins)
+    } finally {
+      setLedgerLoading(false)
+    }
+  }
 
   const handleSaveCoins = async (kidId: string) => {
     const val = parseInt(editCoinsValue, 10)
@@ -352,6 +372,13 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
                     {revealPinKidId === kid.id ? `PIN: ${kid.pin}` : 'PIN: ····'}
                   </button>
                   <button
+                    onClick={() => openLedger(kid)}
+                    className="text-lg hover:scale-110 transition-all"
+                    title="View coin ledger"
+                  >
+                    📒
+                  </button>
+                  <button
                     onClick={() => onShowQr(kid.id)}
                     className="text-lg hover:scale-110 transition-all"
                     title="Show QR code"
@@ -363,6 +390,69 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
             )
           })}
         </div>
+      )}
+
+      {/* Per-kid ledger modal */}
+      {ledgerKid && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setLedgerKid(null)}
+        >
+          <motion.div
+            className="rounded-3xl mx-4 w-full max-w-md overflow-hidden"
+            style={{
+              background: 'rgba(10,6,28,0.98)',
+              border: '1px solid rgba(251,191,36,0.18)',
+              boxShadow: '0 0 80px rgba(0,0,0,0.7)',
+              maxHeight: '80vh',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+            initial={{ scale: 0.88, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.88, opacity: 0, y: 20 }}
+            transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 pt-5 pb-4 flex-shrink-0 flex items-center justify-between"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <div>
+                <h2 className="font-heading text-lg font-bold text-white/90">
+                  {ledgerKid.avatar} {ledgerKid.name}&apos;s Ledger
+                </h2>
+                <p className="text-white/35 text-xs mt-0.5">Full coin transaction history</p>
+              </div>
+              <button
+                onClick={() => setLedgerKid(null)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white/30 hover:text-white/60 transition-all"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="overflow-y-auto px-6 py-4 flex-1">
+              {ledgerLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <motion.p
+                    className="font-heading text-xl text-white/30"
+                    animate={{ opacity: [0.3, 0.7, 0.3] }}
+                    transition={{ duration: 1.6, repeat: Infinity }}
+                  >
+                    ✦ Loading ✦
+                  </motion.p>
+                </div>
+              ) : (
+                <CoinLedger ledger={ledger} currentBalance={ledgerBalance} kidColor={ledgerKid.color} />
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
       )}
     </Section>
   )
