@@ -392,40 +392,45 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
         </div>
       )}
 
-      {/* Per-kid ledger modal */}
+      {/* Per-kid ledger — full-height bottom sheet */}
       {ledgerKid && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)' }}
+          className="fixed inset-0 z-50"
+          style={{ background: 'rgba(0,0,0,0.6)' }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={() => setLedgerKid(null)}
         >
           <motion.div
-            className="rounded-3xl mx-4 w-full max-w-md overflow-hidden"
+            className="absolute inset-x-0 bottom-0 flex flex-col"
             style={{
-              background: 'rgba(10,6,28,0.98)',
-              border: '1px solid rgba(251,191,36,0.18)',
-              boxShadow: '0 0 80px rgba(0,0,0,0.7)',
-              maxHeight: '80vh',
-              display: 'flex',
-              flexDirection: 'column',
+              background: 'rgba(10,6,28,0.99)',
+              borderTop: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '24px 24px 0 0',
+              maxHeight: '92vh',
             }}
-            initial={{ scale: 0.88, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.88, opacity: 0, y: 20 }}
-            transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', stiffness: 320, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-6 pt-5 pb-4 flex-shrink-0 flex items-center justify-between"
+            {/* drag handle */}
+            <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+              <div className="w-10 h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.15)' }} />
+            </div>
+
+            <div
+              className="flex items-center gap-4 px-6 py-4 flex-shrink-0"
               style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
             >
-              <div>
-                <h2 className="font-heading text-lg font-bold text-white/90">
-                  {ledgerKid.avatar} {ledgerKid.name}&apos;s Ledger
-                </h2>
-                <p className="text-white/35 text-xs mt-0.5">Full coin transaction history</p>
+              <div className="flex-1 flex items-center gap-3">
+                <span className="text-2xl">{ledgerKid.avatar}</span>
+                <div>
+                  <h2 className="font-heading text-lg font-bold text-white/90">{ledgerKid.name}&apos;s History</h2>
+                  <p className="text-white/35 text-xs">Full coin transaction history</p>
+                </div>
               </div>
               <button
                 onClick={() => setLedgerKid(null)}
