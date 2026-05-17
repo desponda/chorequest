@@ -22,17 +22,10 @@ export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
 
+  const [showPassword, setShowPassword] = useState(false)
   const inputStyle = {
     background: 'rgba(255, 255, 255, 0.06)',
     border: '1px solid rgba(255, 255, 255, 0.1)',
-  }
-  const inputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.style.borderColor = 'rgba(251, 191, 36, 0.45)'
-    e.target.style.boxShadow = '0 0 0 3px rgba(251, 191, 36, 0.1)'
-  }
-  const inputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)'
-    e.target.style.boxShadow = 'none'
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -164,14 +157,13 @@ export default function LoginPage() {
                       <label className="block text-xs font-semibold text-white/50 uppercase tracking-widest mb-1.5">Email</label>
                       <input
                         type="email"
+                        autoComplete="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="parent@family.com"
                         required
                         className="w-full px-4 py-3 rounded-xl text-sm text-white/90 placeholder:text-white/25 outline-none transition-all"
                         style={inputStyle}
-                        onFocus={inputFocus}
-                        onBlur={inputBlur}
                       />
                     </div>
                     <motion.button
@@ -210,12 +202,15 @@ export default function LoginPage() {
                 <div
                   className="flex rounded-xl p-1 mb-8"
                   style={{ background: 'rgba(255, 255, 255, 0.05)' }}
+                  role="tablist"
                 >
                   {(['login', 'signup'] as const).map((m) => (
                     <button
                       key={m}
                       onClick={() => setMode(m)}
-                      className="flex-1 py-2 rounded-lg text-sm font-semibold capitalize transition-all"
+                      role="tab"
+                      aria-selected={mode === m}
+                      className="flex-1 min-h-[44px] py-2.5 rounded-lg text-sm font-semibold capitalize transition-all"
                       style={{
                         background: mode === m ? 'rgba(255, 255, 255, 0.09)' : 'transparent',
                         color: mode === m ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.38)',
@@ -228,45 +223,55 @@ export default function LoginPage() {
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-white/50 uppercase tracking-widest mb-1.5">Email</label>
+                    <label htmlFor="login-email" className="block text-xs font-semibold text-white/50 uppercase tracking-widest mb-1.5">Email</label>
                     <input
+                      id="login-email"
                       type="email"
+                      autoComplete="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="parent@family.com"
                       required
                       className="w-full px-4 py-3 rounded-xl text-sm text-white/90 placeholder:text-white/25 outline-none transition-all"
                       style={inputStyle}
-                      onFocus={inputFocus}
-                      onBlur={inputBlur}
                     />
                   </div>
 
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-semibold text-white/50 uppercase tracking-widest">Password</label>
+                      <label htmlFor="login-password" className="block text-xs font-semibold text-white/50 uppercase tracking-widest">Password</label>
                       {mode === 'login' && (
                         <button
                           type="button"
                           onClick={() => setMode('forgot')}
-                          className="text-xs text-white/30 hover:text-cq-gold/70 transition-colors"
+                          className="text-xs text-white/35 hover:text-cq-gold/70 transition-colors px-1 py-1"
                         >
                           Forgot password?
                         </button>
                       )}
                     </div>
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      required
-                      minLength={6}
-                      className="w-full px-4 py-3 rounded-xl text-sm text-white/90 placeholder:text-white/25 outline-none transition-all"
-                      style={inputStyle}
-                      onFocus={inputFocus}
-                      onBlur={inputBlur}
-                    />
+                    <div className="relative">
+                      <input
+                        id="login-password"
+                        type={showPassword ? 'text' : 'password'}
+                        autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        minLength={6}
+                        className="w-full px-4 py-3 pr-12 rounded-xl text-sm text-white/90 placeholder:text-white/25 outline-none transition-all"
+                        style={inputStyle}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((s) => !s)}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-lg text-white/35 hover:text-white/70 transition-colors"
+                      >
+                        {showPassword ? '🙈' : '👁️'}
+                      </button>
+                    </div>
                   </div>
 
                   <motion.button

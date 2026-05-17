@@ -81,6 +81,7 @@
   html {
     @apply antialiased;
     color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
   }
   body {
     background-color: #050310;
@@ -88,6 +89,47 @@
   }
   button:not(:disabled) {
     cursor: pointer;
+  }
+  /* Prevent iOS Safari auto-zoom on focus by ensuring the rendered size is >= 16px.
+     On sm+ we let Tailwind's text-sm (14px) apply for compact desktop forms. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+  @media (min-width: 640px) {
+    input,
+    select,
+    textarea {
+      font-size: inherit;
+    }
+  }
+  /* Unified focus state for form fields — replaces ad-hoc onFocus/onBlur handlers. */
+  input:not([type='checkbox']):not([type='radio']):focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    border-color: rgba(251, 191, 36, 0.45);
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.12);
+    outline: none;
+  }
+  /* Visible keyboard focus on interactive elements — accessibility baseline. */
+  button:focus-visible,
+  a:focus-visible,
+  [role='button']:focus-visible {
+    outline: 2px solid rgba(251, 191, 36, 0.55);
+    outline-offset: 2px;
+    border-radius: inherit;
+  }
+  /* Honor user motion preference — kills heavy framer/animations for sensitive users. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 

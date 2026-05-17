@@ -76,14 +76,14 @@ export function KidColumn({
       >
         {/* Avatar — links to kid's personal view */}
         {linkToKidView ? (
-          <Link href={`/kid/${kid.id}`}>
+          <Link href={`/kid/${kid.id}`} aria-label={`Open ${kid.name}'s quest board`}>
             <motion.div
               className="relative cursor-pointer"
               whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.95 }}
             >
               <motion.span
-                className="block"
+                className="text-5xl block"
                 animate={{ y: [0, -5, 0] }}
                 transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
               >

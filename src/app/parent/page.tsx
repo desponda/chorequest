@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { StarField } from '@/components/star-field'
+import { LoadingScreen } from '@/components/loading-screen'
 
 import { useParentData } from './use-parent-data'
 import { useParentActions } from './use-parent-actions'
@@ -35,18 +36,7 @@ export default function ParentDashboard() {
   const reviewedRedemptions = data.redemptions.filter((r) => r.status === 'approved' || r.status === 'denied')
 
   if (data.loading) {
-    return (
-      <div className="min-h-screen bg-quest-void flex items-center justify-center">
-        <StarField />
-        <motion.p
-          className="relative z-10 font-heading text-2xl text-white/40"
-          animate={{ opacity: [0.3, 0.8, 0.3] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          ✦ Loading ✦
-        </motion.p>
-      </div>
-    )
+    return <LoadingScreen />
   }
 
   if (lock.parentLocked) {

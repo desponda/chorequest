@@ -10,6 +10,7 @@ import { StarField } from '@/components/star-field'
 import { QuestCard } from '@/components/quest-card'
 import { CoinCounter } from '@/components/coin-counter'
 import { StreakBadge } from '@/components/streak-badge'
+import { LoadingScreen } from '@/components/loading-screen'
 import type { Kid, Quest, Completion, Reward, CurseInstance, Redemption } from '@/lib/types'
 import { KID_COLORS, getLockDurationMs } from '@/lib/constants'
 import { questDateString, questWeekKey } from '@/lib/utils'
@@ -234,18 +235,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   )
 
   if (loading || !data) {
-    return (
-      <div className="min-h-screen bg-quest-void flex items-center justify-center">
-        <StarField />
-        <motion.p
-          className="relative z-10 font-heading text-2xl text-white/40"
-          animate={{ opacity: [0.3, 0.8, 0.3] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          ✦ Loading ✦
-        </motion.p>
-      </div>
-    )
+    return <LoadingScreen />
   }
 
   const { kid, resetHour, quests, completions, rewards, activeCurses, familySharedCompletions } = data

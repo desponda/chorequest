@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { StarField } from '@/components/star-field'
+import { LoadingScreen } from '@/components/loading-screen'
 import { KidColumn } from '@/components/kid-column'
 import type { Kid, Quest, Completion, Family, Reward, DungeonRun, DungeonClear, RaidBoss } from '@/lib/types'
 import { KID_COLORS, TIER_CONFIG } from '@/lib/constants'
@@ -207,18 +208,7 @@ export default function WallDisplay() {
   })
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-quest-void flex items-center justify-center">
-        <StarField />
-        <motion.p
-          className="relative z-10 font-heading text-3xl text-white/40"
-          animate={{ opacity: [0.3, 0.8, 0.3] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          ✦ Loading the realm ✦
-        </motion.p>
-      </div>
-    )
+    return <LoadingScreen label="Loading the realm" size="lg" />
   }
 
   if (kids.length === 0) {
