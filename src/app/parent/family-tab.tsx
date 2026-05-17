@@ -308,7 +308,11 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
   return (
     <Section title="Your Adventurers">
       {kids.length === 0 ? (
-        <Empty icon="🧙" message="No adventurers yet" />
+        <Empty
+          icon="🧙"
+          message="No adventurers yet"
+          hint="Use the form above to add your first kid — they'll need a name, avatar, and a 4-digit PIN."
+        />
       ) : (
         <div className="flex flex-col gap-3">
           {kids.map((kid) => {
@@ -401,6 +405,9 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={() => setLedgerKid(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="ledger-modal-title"
         >
           <motion.div
             className="rounded-3xl mx-4 w-full max-w-md overflow-hidden"
@@ -418,18 +425,19 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
             transition={{ type: 'spring', stiffness: 340, damping: 28 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-6 pt-5 pb-4 flex-shrink-0 flex items-center justify-between"
+            <div className="px-6 pt-5 pb-4 flex-shrink-0 flex items-center justify-between gap-3"
               style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
             >
-              <div>
-                <h2 className="font-heading text-lg font-bold text-white/90">
+              <div className="min-w-0">
+                <h2 id="ledger-modal-title" className="font-heading text-lg font-bold text-white/90 truncate">
                   {ledgerKid.avatar} {ledgerKid.name}&apos;s Ledger
                 </h2>
                 <p className="text-white/35 text-xs mt-0.5">Full coin transaction history</p>
               </div>
               <button
                 onClick={() => setLedgerKid(null)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-white/30 hover:text-white/60 transition-all"
+                aria-label="Close ledger"
+                className="w-11 h-11 rounded-full flex items-center justify-center text-white/35 hover:text-white/70 transition-all flex-shrink-0"
                 style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
               >
                 ✕
@@ -438,7 +446,12 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
 
             <div className="overflow-y-auto px-6 py-4 flex-1">
               {ledgerLoading ? (
-                <div className="flex items-center justify-center py-16">
+                <div
+                  className="flex items-center justify-center py-16"
+                  role="status"
+                  aria-live="polite"
+                  aria-label="Loading ledger"
+                >
                   <motion.p
                     className="font-heading text-xl text-white/30"
                     animate={{ opacity: [0.3, 0.7, 0.3] }}

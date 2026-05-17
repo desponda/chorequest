@@ -195,7 +195,11 @@ export function RewardsTab({ rewards, actions, plan }: Props) {
 
       <Section title="Reward Store">
         {rewards.length === 0 ? (
-          <Empty icon="🎁" message="No rewards yet" />
+          <Empty
+            icon="🎁"
+            message="No rewards yet"
+            hint="Add a reward above so kids can spend the coins they earn."
+          />
         ) : (
           <div className="flex flex-col gap-2">
             {rewards.map((r) => (

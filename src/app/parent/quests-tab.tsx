@@ -78,7 +78,11 @@ export function QuestsTab({ kids, quests, actions, plan }: Props) {
 
       <Section title="Active Quests">
         {active.length === 0 ? (
-          <Empty icon="⚔️" message="No active quests" />
+          <Empty
+            icon="⚔️"
+            message="No active quests yet"
+            hint="Use the form above to create one, or tap “Or add default starter quests” below."
+          />
         ) : (
           active.map((q) => (
             <QuestRow

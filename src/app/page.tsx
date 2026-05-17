@@ -627,7 +627,7 @@ export default function MarketingPage() {
       <section className="relative z-10 py-24 px-6">
         <Reveal>
           <div
-            className="max-w-2xl mx-auto rounded-3xl p-12 text-center relative overflow-hidden"
+            className="max-w-2xl mx-auto rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden"
             style={{
               background: 'linear-gradient(135deg, rgba(251,191,36,0.1) 0%, rgba(167,139,250,0.08) 100%)',
               border: '1px solid rgba(251,191,36,0.25)',

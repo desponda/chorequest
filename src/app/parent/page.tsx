@@ -72,30 +72,34 @@ export default function ParentDashboard() {
 
       <div className="relative z-10 flex flex-col flex-1 w-full max-w-2xl mx-auto">
         <motion.header
-          className="flex items-center gap-4 px-6 py-4 flex-shrink-0"
+          className="flex items-center gap-3 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0"
           style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Link href="/display" className="text-white/40 hover:text-white/70 transition-all text-sm flex-shrink-0">
+          <Link
+            href="/display"
+            className="text-white/45 hover:text-white/80 transition-all text-sm flex-shrink-0 min-h-[44px] flex items-center px-1"
+          >
             ← Realm
           </Link>
-          <div className="flex-1 text-center">
+          <div className="flex-1 text-center min-w-0">
             <span className="font-heading text-lg font-bold text-white/80">Parent Command</span>
           </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-1 flex-shrink-0">
             {data.family?.has_parent_pin && (
               <button
                 onClick={lock.handleLock}
-                className="text-white/30 hover:text-cq-gold transition-all text-lg"
+                className="w-11 h-11 flex items-center justify-center text-white/40 hover:text-cq-gold transition-all text-lg rounded-lg"
                 title="Lock parent area"
+                aria-label="Lock parent area"
               >
                 🔒
               </button>
             )}
             <button
               onClick={actions.signOut}
-              className="text-white/30 hover:text-white/60 transition-all text-sm"
+              className="text-white/40 hover:text-white/70 transition-all text-sm min-h-[44px] px-2"
             >
               Sign out
             </button>

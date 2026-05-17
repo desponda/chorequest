@@ -265,11 +265,12 @@ export default function WallDisplay() {
           )}
         </div>
 
-        <div className="flex-1 flex justify-end items-center gap-2 sm:gap-3">
+        <div className="flex-1 flex justify-end items-center gap-1.5 sm:gap-3">
           {bountyQuests.length > 0 && (
             <button
               onClick={() => setShowBounty(true)}
-              className="relative flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+              aria-label="Open bounty board"
+              className="relative flex items-center justify-center gap-1.5 min-w-11 min-h-11 px-2.5 sm:px-4 py-2 rounded-xl text-sm font-semibold transition-all"
               style={{
                 background: 'rgba(251,191,36,0.12)',
                 border: '1px solid rgba(251,191,36,0.35)',
@@ -281,13 +282,15 @@ export default function WallDisplay() {
                 <span
                   className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full"
                   style={{ background: '#fbbf24' }}
+                  aria-hidden="true"
                 />
               )}
             </button>
           )}
           <button
             onClick={() => setShowRewards(true)}
-            className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+            aria-label="View rewards"
+            className="flex items-center justify-center gap-1.5 min-w-11 min-h-11 px-2.5 sm:px-4 py-2 rounded-xl text-sm font-semibold transition-all"
             style={{
               background: 'rgba(251,191,36,0.08)',
               border: '1px solid rgba(251,191,36,0.2)',
@@ -303,24 +306,27 @@ export default function WallDisplay() {
             >
               <Link
                 href="/parent"
-                className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                aria-label={`${pendingCount} pending approvals`}
+                className="flex items-center justify-center gap-1.5 min-w-11 min-h-11 px-2.5 sm:px-4 py-2 rounded-xl text-sm font-semibold transition-all"
                 style={{
                   background: 'rgba(251, 191, 36, 0.14)',
                   border: '1px solid rgba(251, 191, 36, 0.32)',
                   color: '#fbbf24',
                 }}
               >
-                <span className="relative flex h-2 w-2 flex-shrink-0">
+                <span className="relative flex h-2 w-2 flex-shrink-0" aria-hidden="true">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cq-gold opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-cq-gold" />
                 </span>
                 <span className="hidden sm:inline">{pendingCount} pending</span>
+                <span className="sm:hidden text-xs font-bold">{pendingCount}</span>
               </Link>
             </motion.div>
           )}
           <Link
             href="/parent"
-            className="px-2.5 sm:px-4 py-2 rounded-xl text-sm text-white/50 hover:text-white/80 transition-all glass border-glass"
+            aria-label="Parent dashboard"
+            className="flex items-center justify-center min-w-11 min-h-11 px-2.5 sm:px-4 py-2 rounded-xl text-sm text-white/50 hover:text-white/80 transition-all glass border-glass"
           >
             ⚙️<span className="hidden sm:inline"> Parent</span>
           </Link>

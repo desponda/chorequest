@@ -97,6 +97,11 @@ export function ApprovalsTab({
         <Empty
           icon="✅"
           message={pendingRedemptions.length === 0 ? 'All clear — nothing pending!' : 'No pending quests'}
+          hint={
+            pendingRedemptions.length === 0
+              ? 'Submissions from kids will show up here for you to approve or reject.'
+              : undefined
+          }
         />
       ) : (
         pendingCompletions.map((c) => {
