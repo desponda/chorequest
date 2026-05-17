@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import QRCode from 'react-qr-code'
 import { toast } from 'sonner'
 import type { Kid } from '@/lib/types'
+import { useEscapeToClose } from '@/lib/use-escape-to-close'
 
 interface Props {
   kid: Kid | null
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function QrModal({ kid, onClose }: Props) {
+  useEscapeToClose(kid !== null, onClose)
   return (
     <AnimatePresence>
       {kid && (() => {

@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { StarField } from '@/components/star-field'
-import { LoadingScreen } from '@/components/loading-screen'
+import { ParentSkeleton } from '@/components/parent-skeleton'
 
 import { useParentData } from './use-parent-data'
 import { useParentActions } from './use-parent-actions'
@@ -36,7 +36,7 @@ export default function ParentDashboard() {
   const reviewedRedemptions = data.redemptions.filter((r) => r.status === 'approved' || r.status === 'denied')
 
   if (data.loading) {
-    return <LoadingScreen />
+    return <ParentSkeleton />
   }
 
   if (lock.parentLocked) {

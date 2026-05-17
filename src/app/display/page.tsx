@@ -15,6 +15,7 @@ import { questDateString, questWeekKey } from '@/lib/utils'
 import { sharedQuestPeriodFilter } from '@/lib/quest-rules'
 import { getWeekMonday } from '@/lib/xp'
 import { toast } from 'sonner'
+import { useEscapeToClose } from '@/lib/use-escape-to-close'
 
 export default function WallDisplay() {
   const [family, setFamily] = useState<Family | null>(null)
@@ -34,6 +35,10 @@ export default function WallDisplay() {
   const [weeklyCompletions, setWeeklyCompletions] = useState<Completion[]>([])
   const [activeBoss, setActiveBoss] = useState<RaidBoss | null>(null)
   const [supabase] = useState(createClient)
+
+  useEscapeToClose(showBounty, () => setShowBounty(false))
+  useEscapeToClose(showRewards, () => setShowRewards(false))
+  useEscapeToClose(claimingBounty !== null, () => setClaimingBounty(null))
 
   const fetchData = useCallback(async () => {
     const { data: profile } = await supabase
@@ -552,6 +557,9 @@ export default function WallDisplay() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setShowBounty(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bounty-modal-title"
           >
             <motion.div
               className="rounded-3xl mx-4 w-full max-w-sm sm:max-w-lg overflow-hidden"
@@ -569,15 +577,16 @@ export default function WallDisplay() {
               transition={{ type: 'spring', stiffness: 340, damping: 28 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="px-7 pt-6 pb-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="font-heading text-xl font-bold text-white/90 tracking-wide">⚡ Bounty Board</h2>
+              <div className="px-6 sm:px-7 pt-5 sm:pt-6 pb-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 id="bounty-modal-title" className="font-heading text-lg sm:text-xl font-bold text-white/90 tracking-wide">⚡ Bounty Board</h2>
                     <p className="text-white/35 text-xs mt-0.5">First to claim earns the coins</p>
                   </div>
                   <button
                     onClick={() => setShowBounty(false)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-white/30 hover:text-white/60 transition-all"
+                    aria-label="Close bounty board"
+                    className="w-11 h-11 rounded-full flex items-center justify-center text-white/35 hover:text-white/70 transition-all flex-shrink-0"
                     style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
                   >
                     ✕
@@ -644,6 +653,9 @@ export default function WallDisplay() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setShowRewards(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rewards-modal-title"
           >
             <motion.div
               className="rounded-3xl mx-4 w-full max-w-sm sm:max-w-lg overflow-hidden"
@@ -663,19 +675,20 @@ export default function WallDisplay() {
             >
               {/* Modal header */}
               <div
-                className="px-7 pt-6 pb-4 flex-shrink-0"
+                className="px-6 sm:px-7 pt-5 sm:pt-6 pb-4 flex-shrink-0"
                 style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="font-heading text-xl font-bold text-white/90 tracking-wide">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 id="rewards-modal-title" className="font-heading text-lg sm:text-xl font-bold text-white/90 tracking-wide">
                       🏆 Reward Vault
                     </h2>
                     <p className="text-white/35 text-xs mt-0.5">Spend your coins wisely, adventurer</p>
                   </div>
                   <button
                     onClick={() => setShowRewards(false)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-white/30 hover:text-white/60 transition-all"
+                    aria-label="Close reward vault"
+                    className="w-11 h-11 rounded-full flex items-center justify-center text-white/35 hover:text-white/70 transition-all flex-shrink-0"
                     style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
                   >
                     ✕
@@ -750,6 +763,9 @@ export default function WallDisplay() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setClaimingBounty(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Choose adventurer for bounty"
           >
             <motion.div
               className="rounded-3xl p-7 mx-4 max-w-sm w-full"
