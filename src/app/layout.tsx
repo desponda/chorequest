@@ -20,14 +20,44 @@ const nunito = Nunito({
 })
 
 export const metadata: Metadata = {
-  title: 'ChoreQuest — The Family Realm',
-  description: 'Transform chores into epic quests for your young adventurers',
+  metadataBase: new URL('https://chorequest.dresponda.com'),
+  title: {
+    default: 'ChoreQuest — The Family Realm',
+    template: '%s — ChoreQuest',
+  },
+  description:
+    'A fantasy quest board that makes kids compete to help around the house — with real-time family displays, coin rewards, and streak bonuses.',
+  applicationName: 'ChoreQuest',
+  keywords: ['chore app', 'kids chores', 'family chores', 'allowance app', 'chore chart', 'reward chart', 'gamified chores'],
+  authors: [{ name: 'ChoreQuest' }],
+  openGraph: {
+    type: 'website',
+    siteName: 'ChoreQuest',
+    title: 'ChoreQuest — Turn chores into legendary quests',
+    description:
+      'The fantasy chore app kids actually want to use. Quest tiers, streak multipliers, family bounty board, and a live wall display.',
+    url: 'https://chorequest.dresponda.com',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ChoreQuest — Turn chores into legendary quests',
+    description:
+      'The fantasy chore app kids actually want to use. Live wall display, streak bonuses, real-world rewards.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  icons: {
+    icon: '/favicon.ico',
+  },
 }
 
 export const viewport: Viewport = {
   themeColor: '#050310',
   width: 'device-width',
   initialScale: 1,
+  colorScheme: 'dark',
 }
 
 export default function RootLayout({

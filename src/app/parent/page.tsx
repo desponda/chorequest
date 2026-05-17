@@ -6,7 +6,8 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { StarField } from '@/components/star-field'
-import { ParentSkeleton } from '@/components/parent-skeleton'
+import { ParentSkeleton } from '@/components/skeletons'
+import { ConfirmDelete } from '@/components/ui/confirm-delete'
 
 import { useParentData } from './use-parent-data'
 import { useParentActions } from './use-parent-actions'
@@ -97,12 +98,14 @@ export default function ParentDashboard() {
                 🔒
               </button>
             )}
-            <button
-              onClick={actions.signOut}
-              className="text-white/40 hover:text-white/70 transition-all text-sm min-h-[44px] px-2"
-            >
-              Sign out
-            </button>
+            <ConfirmDelete
+              onConfirm={actions.signOut}
+              trigger="Sign out"
+              prompt="Sign out?"
+              confirmLabel="Yes"
+              ariaLabel="Sign out of the realm"
+              className="text-sm text-white/45 hover:text-white/70 min-h-[44px] flex items-center px-2"
+            />
           </div>
         </motion.header>
 
