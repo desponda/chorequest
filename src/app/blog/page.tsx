@@ -51,19 +51,20 @@ export default async function BlogListingPage() {
 
       {/* Nav */}
       <header
-        className="sticky top-0 z-50 flex items-center justify-between px-6 py-4"
+        className="sticky top-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 gap-3"
         style={{ background: 'rgba(5,3,16,0.8)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
       >
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-xl">⚔️</span>
-          <span className="font-heading font-bold text-lg tracking-widest text-white/90">ChoreQuest</span>
+        <Link href="/" className="flex items-center gap-2 min-w-0">
+          <span className="text-xl flex-shrink-0">⚔️</span>
+          <span className="font-heading font-bold text-base sm:text-lg tracking-widest text-white/90 truncate">ChoreQuest</span>
         </Link>
-        <nav className="flex items-center gap-6 text-sm text-white/45">
-          <Link href="/#features" className="hover:text-white/80 transition-colors hidden sm:block">Features</Link>
-          <Link href="/blog" className="text-white/80 font-medium">Blog</Link>
+        <nav className="flex items-center gap-4 sm:gap-6 text-sm text-white/45">
+          <Link href="/" className="hidden sm:block hover:text-white/80 transition-colors">Home</Link>
+          <Link href="/#features" className="hidden sm:block hover:text-white/80 transition-colors">Features</Link>
+          <Link href="/blog" className="text-white/80 font-medium hidden sm:block">Blog</Link>
           <Link
             href="/login"
-            className="px-4 py-2 rounded-xl font-bold transition-all"
+            className="px-3 sm:px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap text-sm"
             style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)', color: '#fbbf24' }}
           >
             Sign in

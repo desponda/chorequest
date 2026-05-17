@@ -8,6 +8,7 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { StarField } from '@/components/star-field'
+import { LoadingScreen } from '@/components/loading-screen'
 import { KID_COLORS } from '@/lib/constants'
 import type { KidColor } from '@/lib/types'
 
@@ -37,18 +38,7 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
   }, [token, supabase])
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-quest-void flex items-center justify-center">
-        <StarField />
-        <motion.p
-          className="relative z-10 font-heading text-2xl text-white/40"
-          animate={{ opacity: [0.3, 0.8, 0.3] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          ✦ Loading ✦
-        </motion.p>
-      </div>
-    )
+    return <LoadingScreen />
   }
 
   if (notFound || !family) {

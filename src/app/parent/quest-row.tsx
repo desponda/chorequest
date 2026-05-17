@@ -6,6 +6,7 @@ import type { Kid, Quest, QuestKind, QuestTier } from '@/lib/types'
 import { QuestFormFields, type QuestFormState } from './quest-form'
 import { TierBadge } from '@/components/ui/tier-badge'
 import { KindBadge } from '@/components/ui/kind-badge'
+import { ConfirmDelete } from '@/components/ui/confirm-delete'
 
 interface Props {
   quest: Quest
@@ -98,12 +99,12 @@ export function QuestRow({ quest, kids, onToggle, onDelete, onSave }: Props) {
           >
             {quest.active ? 'On' : 'Off'}
           </button>
-          <button
-            onClick={() => onDelete(quest.id)}
-            className="text-white/20 hover:text-red-400 transition-all text-xs ml-0.5"
-          >
-            ✕
-          </button>
+          <ConfirmDelete
+            onConfirm={() => onDelete(quest.id)}
+            ariaLabel={`Delete quest ${quest.title}`}
+            confirmLabel="Delete quest"
+            className="ml-0.5 px-1 py-1"
+          />
         </div>
       </div>
 

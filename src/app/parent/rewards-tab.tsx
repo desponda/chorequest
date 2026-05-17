@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import type { Plan, Reward } from '@/lib/types'
 import { PLAN_LABELS, PLAN_LIMITS } from '@/lib/plans'
 import { ActionButton, Empty, FormInput, Section, fadeSlide } from './_ui'
+import { ConfirmDelete } from '@/components/ui/confirm-delete'
 import type { ParentActions } from './use-parent-actions'
 
 const REWARD_ICONS = ['🎁', '🎮', '📱', '🍕', '🎬', '🎡', '🎪', '🛒', '💤', '🎯', '🎨', '🎵']
@@ -57,12 +58,12 @@ function RewardRow({ reward, onSave, onDelete }: RewardRowProps) {
         >
           ✏️
         </button>
-        <button
-          onClick={() => onDelete(reward.id)}
-          className="text-white/20 hover:text-red-400 transition-all text-xs ml-1"
-        >
-          ✕
-        </button>
+        <ConfirmDelete
+          onConfirm={() => onDelete(reward.id)}
+          ariaLabel={`Delete reward ${reward.title}`}
+          confirmLabel="Delete reward"
+          className="ml-1 px-1 py-1"
+        />
       </div>
 
       <AnimatePresence>
@@ -194,7 +195,11 @@ export function RewardsTab({ rewards, actions, plan }: Props) {
 
       <Section title="Reward Store">
         {rewards.length === 0 ? (
-          <Empty icon="🎁" message="No rewards yet" />
+          <Empty
+            icon="🎁"
+            message="No rewards yet"
+            hint="Add a reward above so kids can spend the coins they earn."
+          />
         ) : (
           <div className="flex flex-col gap-2">
             {rewards.map((r) => (

@@ -73,18 +73,18 @@ export default async function BlogPostPage({ params }: Props) {
 
       {/* Nav */}
       <header
-        className="sticky top-0 z-50 flex items-center justify-between px-6 py-4"
+        className="sticky top-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 gap-3"
         style={{ background: 'rgba(5,3,16,0.8)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
       >
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-xl">⚔️</span>
-          <span className="font-heading font-bold text-lg tracking-widest text-white/90">ChoreQuest</span>
+        <Link href="/" className="flex items-center gap-2 min-w-0">
+          <span className="text-xl flex-shrink-0">⚔️</span>
+          <span className="font-heading font-bold text-base sm:text-lg tracking-widest text-white/90 truncate">ChoreQuest</span>
         </Link>
-        <div className="flex items-center gap-4">
-          <Link href="/blog" className="text-sm text-white/45 hover:text-white/70 transition-colors">← All posts</Link>
+        <div className="flex items-center gap-3 sm:gap-4">
+          <Link href="/blog" className="text-sm text-white/45 hover:text-white/70 transition-colors whitespace-nowrap">← All posts</Link>
           <Link
             href="/login"
-            className="px-4 py-2 rounded-xl text-sm font-bold transition-all hidden sm:block"
+            className="px-3 sm:px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap"
             style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)', color: '#fbbf24' }}
           >
             Sign in

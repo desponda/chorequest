@@ -1,7 +1,7 @@
 'use client'
 
-import { useRef } from 'react'
-import { motion, useInView } from 'framer-motion'
+import { useRef, useState } from 'react'
+import { motion, useInView, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { StarField } from '@/components/star-field'
 
@@ -223,13 +223,16 @@ const HOW_IT_WORKS = [
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function MarketingPage() {
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const closeNav = () => setMobileNavOpen(false)
+
   return (
     <div className="min-h-screen bg-quest-void text-white overflow-x-hidden">
       <StarField />
 
       {/* ── Nav ── */}
       <header
-        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4"
+        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4"
         style={{ background: 'rgba(5,3,16,0.8)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
       >
         <div className="flex items-center gap-2">
@@ -242,14 +245,81 @@ export default function MarketingPage() {
           <a href="#pricing" className="hover:text-white/80 transition-colors">Pricing</a>
           <Link href="/blog" className="hover:text-white/80 transition-colors">Blog</Link>
         </nav>
-        <Link
-          href="/login"
-          className="px-5 py-2 rounded-xl text-sm font-bold transition-all"
-          style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.35)', color: '#fbbf24' }}
-        >
-          Start Free →
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/login"
+            className="px-4 sm:px-5 py-2 rounded-xl text-sm font-bold transition-all"
+            style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.35)', color: '#fbbf24' }}
+          >
+            Start Free →
+          </Link>
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen((o) => !o)}
+            className="md:hidden w-11 h-11 flex flex-col items-center justify-center gap-1.5 rounded-xl"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+            aria-label={mobileNavOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileNavOpen}
+            aria-controls="mobile-nav-panel"
+          >
+            <span
+              className="block w-4 h-px bg-white/70 transition-transform"
+              style={mobileNavOpen ? { transform: 'translateY(3px) rotate(45deg)' } : undefined}
+            />
+            <span
+              className="block w-4 h-px bg-white/70 transition-transform"
+              style={mobileNavOpen ? { transform: 'translateY(-3px) rotate(-45deg)' } : undefined}
+            />
+          </button>
+        </div>
       </header>
+
+      {/* Mobile nav panel */}
+      <AnimatePresence>
+        {mobileNavOpen && (
+          <motion.div
+            id="mobile-nav-panel"
+            className="fixed inset-x-0 top-[56px] z-40 md:hidden px-4"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18 }}
+          >
+            <nav
+              className="rounded-2xl overflow-hidden flex flex-col"
+              style={{
+                background: 'rgba(10,6,28,0.96)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                backdropFilter: 'blur(16px)',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+              }}
+            >
+              {[
+                { href: '#how-it-works', label: 'How It Works' },
+                { href: '#features', label: 'Features' },
+                { href: '#pricing', label: 'Pricing' },
+              ].map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  onClick={closeNav}
+                  className="px-5 py-4 text-white/75 hover:bg-white/[0.04] active:bg-white/[0.06] transition-colors text-base font-medium"
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                >
+                  {item.label}
+                </a>
+              ))}
+              <Link
+                href="/blog"
+                onClick={closeNav}
+                className="px-5 py-4 text-white/75 hover:bg-white/[0.04] active:bg-white/[0.06] transition-colors text-base font-medium"
+              >
+                Blog
+              </Link>
+            </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Hero ── */}
       <section className="relative z-10 pt-32 pb-20 px-6 text-center">
@@ -557,7 +627,7 @@ export default function MarketingPage() {
       <section className="relative z-10 py-24 px-6">
         <Reveal>
           <div
-            className="max-w-2xl mx-auto rounded-3xl p-12 text-center relative overflow-hidden"
+            className="max-w-2xl mx-auto rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden"
             style={{
               background: 'linear-gradient(135deg, rgba(251,191,36,0.1) 0%, rgba(167,139,250,0.08) 100%)',
               border: '1px solid rgba(251,191,36,0.25)',

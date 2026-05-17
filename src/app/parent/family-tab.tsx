@@ -10,6 +10,8 @@ import { ActionButton, Empty, FormInput, Section, fadeSlide } from './_ui'
 import type { ParentActions } from './use-parent-actions'
 import { CoinLedger } from '@/components/coin-ledger'
 import type { LedgerEntry } from '@/lib/ledger'
+import { useEscapeToClose } from '@/lib/use-escape-to-close'
+import { ConfirmDelete } from '@/components/ui/confirm-delete'
 
 const RESET_HOUR_PRESETS = [0, 3, 5, 6] as const
 
@@ -150,12 +152,16 @@ function ParentLockSettings({ family, actions }: { family: Family | null; action
               className="flex-shrink-0 px-5"
             />
           </div>
-          <button
-            onClick={actions.removeParentPin}
-            className="text-xs text-white/30 hover:text-red-400 transition-all text-center"
-          >
-            Remove parent lock
-          </button>
+          <div className="flex justify-center">
+            <ConfirmDelete
+              onConfirm={actions.removeParentPin}
+              trigger="Remove parent lock"
+              prompt="Remove?"
+              confirmLabel="Yes, remove"
+              ariaLabel="Remove parent lock"
+              className="text-xs text-white/35 px-1"
+            />
+          </div>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -285,6 +291,8 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
   const [ledgerBalance, setLedgerBalance] = useState(0)
   const [ledgerLoading, setLedgerLoading] = useState(false)
 
+  useEscapeToClose(ledgerKid !== null, () => setLedgerKid(null))
+
   const openLedger = async (kid: Kid) => {
     setLedgerKid(kid)
     setLedgerLoading(true)
@@ -308,7 +316,11 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
   return (
     <Section title="Your Adventurers">
       {kids.length === 0 ? (
-        <Empty icon="🧙" message="No adventurers yet" />
+        <Empty
+          icon="🧙"
+          message="No adventurers yet"
+          hint="Use the form above to add your first kid — they'll need a name, avatar, and a 4-digit PIN."
+        />
       ) : (
         <div className="flex flex-col gap-3">
           {kids.map((kid) => {
@@ -401,6 +413,9 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={() => setLedgerKid(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="ledger-modal-title"
         >
           <motion.div
             className="rounded-3xl mx-4 w-full max-w-md overflow-hidden"
@@ -418,18 +433,19 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
             transition={{ type: 'spring', stiffness: 340, damping: 28 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-6 pt-5 pb-4 flex-shrink-0 flex items-center justify-between"
+            <div className="px-6 pt-5 pb-4 flex-shrink-0 flex items-center justify-between gap-3"
               style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
             >
-              <div>
-                <h2 className="font-heading text-lg font-bold text-white/90">
+              <div className="min-w-0">
+                <h2 id="ledger-modal-title" className="font-heading text-lg font-bold text-white/90 truncate">
                   {ledgerKid.avatar} {ledgerKid.name}&apos;s Ledger
                 </h2>
                 <p className="text-white/35 text-xs mt-0.5">Full coin transaction history</p>
               </div>
               <button
                 onClick={() => setLedgerKid(null)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-white/30 hover:text-white/60 transition-all"
+                aria-label="Close ledger"
+                className="w-11 h-11 rounded-full flex items-center justify-center text-white/35 hover:text-white/70 transition-all flex-shrink-0"
                 style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
               >
                 ✕
@@ -438,7 +454,12 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
 
             <div className="overflow-y-auto px-6 py-4 flex-1">
               {ledgerLoading ? (
-                <div className="flex items-center justify-center py-16">
+                <div
+                  className="flex items-center justify-center py-16"
+                  role="status"
+                  aria-live="polite"
+                  aria-label="Loading ledger"
+                >
                   <motion.p
                     className="font-heading text-xl text-white/30"
                     animate={{ opacity: [0.3, 0.7, 0.3] }}
@@ -471,26 +492,26 @@ function InviteLink({ family, actions }: { family: Family; actions: ParentAction
         >
           {typeof window !== 'undefined' ? `${window.location.origin}/join/${family.invite_token}` : `/join/${family.invite_token}`}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           <button
             onClick={() => {
               const url = `${window.location.origin}/join/${family.invite_token}`
               navigator.clipboard.writeText(url)
               toast.success('Invite link copied!')
             }}
-            className="flex-1 py-2 rounded-xl text-sm font-semibold transition-all"
+            className="flex-1 min-h-[44px] py-2 rounded-xl text-sm font-semibold transition-all"
             style={{ background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.25)', color: '#38bdf8' }}
           >
             Copy Link
           </button>
-          <button
-            onClick={actions.regenerateInviteToken}
-            className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}
-            title="Regenerate to invalidate old link"
-          >
-            ↻
-          </button>
+          <ConfirmDelete
+            onConfirm={actions.regenerateInviteToken}
+            trigger="↻"
+            prompt="Replace?"
+            confirmLabel="Yes, replace"
+            ariaLabel="Regenerate invite link (invalidates the current one)"
+            className="px-3 py-2 rounded-xl text-sm"
+          />
         </div>
       </div>
     </Section>
@@ -518,12 +539,16 @@ function ApiKey({ family, actions }: { family: Family; actions: ParentActions })
             Copy
           </button>
         </div>
-        <button
-          onClick={actions.regenerateApiKey}
-          className="text-xs text-white/25 hover:text-red-400 transition-all text-center"
-        >
-          Regenerate key (invalidates current key)
-        </button>
+        <div className="flex justify-center">
+          <ConfirmDelete
+            onConfirm={actions.regenerateApiKey}
+            trigger="Regenerate key (invalidates current key)"
+            prompt="Regenerate?"
+            confirmLabel="Yes, regenerate"
+            ariaLabel="Regenerate API key (invalidates the current key)"
+            className="text-xs text-white/30 px-1"
+          />
+        </div>
       </div>
     </Section>
   )

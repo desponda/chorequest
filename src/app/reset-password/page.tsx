@@ -12,22 +12,18 @@ import { toast } from 'sonner'
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
+  const mismatch = confirm.length > 0 && password !== confirm
+  const tooShort = password.length > 0 && password.length < 6
+
   const inputStyle = {
     background: 'rgba(255, 255, 255, 0.06)',
     border: '1px solid rgba(255, 255, 255, 0.1)',
-  }
-  const inputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.style.borderColor = 'rgba(251, 191, 36, 0.45)'
-    e.target.style.boxShadow = '0 0 0 3px rgba(251, 191, 36, 0.1)'
-  }
-  const inputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)'
-    e.target.style.boxShadow = 'none'
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -101,44 +97,68 @@ export default function ResetPasswordPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-white/50 uppercase tracking-widest mb-1.5">
+                <label htmlFor="rp-password" className="block text-xs font-semibold text-white/50 uppercase tracking-widest mb-1.5">
                   New password
                 </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 6 characters"
-                  required
-                  minLength={6}
-                  className="w-full px-4 py-3 rounded-xl text-sm text-white/90 placeholder:text-white/25 outline-none transition-all"
-                  style={inputStyle}
-                  onFocus={inputFocus}
-                  onBlur={inputBlur}
-                />
+                <div className="relative">
+                  <input
+                    id="rp-password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    required
+                    minLength={6}
+                    aria-invalid={tooShort}
+                    aria-describedby={tooShort ? 'rp-password-error' : undefined}
+                    className="w-full px-4 py-3 pr-12 rounded-xl text-sm text-white/90 placeholder:text-white/25 outline-none transition-all"
+                    style={inputStyle}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-lg text-white/35 hover:text-white/70 transition-colors"
+                  >
+                    {showPassword ? '🙈' : '👁️'}
+                  </button>
+                </div>
+                {tooShort && (
+                  <p id="rp-password-error" className="mt-1.5 text-xs text-red-400/80">
+                    Must be at least 6 characters
+                  </p>
+                )}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-white/50 uppercase tracking-widest mb-1.5">
+                <label htmlFor="rp-confirm" className="block text-xs font-semibold text-white/50 uppercase tracking-widest mb-1.5">
                   Confirm password
                 </label>
                 <input
-                  type="password"
+                  id="rp-confirm"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   placeholder="Same as above"
                   required
+                  aria-invalid={mismatch}
+                  aria-describedby={mismatch ? 'rp-confirm-error' : undefined}
                   className="w-full px-4 py-3 rounded-xl text-sm text-white/90 placeholder:text-white/25 outline-none transition-all"
                   style={inputStyle}
-                  onFocus={inputFocus}
-                  onBlur={inputBlur}
                 />
+                {mismatch && (
+                  <p id="rp-confirm-error" className="mt-1.5 text-xs text-red-400/80">
+                    Passwords don&apos;t match yet
+                  </p>
+                )}
               </div>
 
               <motion.button
                 type="submit"
-                disabled={loading}
-                className="mt-2 w-full py-3.5 rounded-xl font-heading font-bold tracking-widest text-sm uppercase transition-all disabled:opacity-50"
+                disabled={loading || mismatch || tooShort || password.length === 0}
+                className="mt-2 w-full py-3.5 rounded-xl font-heading font-bold tracking-widest text-sm uppercase transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                   background: 'linear-gradient(135deg, rgba(251,191,36,0.25), rgba(251,191,36,0.12))',
                   border: '1px solid rgba(251, 191, 36, 0.4)',

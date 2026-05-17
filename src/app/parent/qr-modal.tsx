@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import QRCode from 'react-qr-code'
 import { toast } from 'sonner'
 import type { Kid } from '@/lib/types'
+import { useEscapeToClose } from '@/lib/use-escape-to-close'
 
 interface Props {
   kid: Kid | null
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function QrModal({ kid, onClose }: Props) {
+  useEscapeToClose(kid !== null, onClose)
   return (
     <AnimatePresence>
       {kid && (() => {
@@ -25,6 +27,9 @@ export function QrModal({ kid, onClose }: Props) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="qr-modal-title"
           >
             <motion.div
               className="relative w-full max-w-xs rounded-3xl p-6 text-center"
@@ -36,12 +41,13 @@ export function QrModal({ kid, onClose }: Props) {
             >
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 text-white/30 hover:text-white/70 transition-all text-lg"
+                aria-label="Close QR code"
+                className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-lg text-white/35 hover:text-white/70 transition-all text-lg"
               >
                 ✕
               </button>
-              <span className="text-4xl block mb-2">{kid.avatar}</span>
-              <h3 className="font-heading font-bold text-white text-xl mb-4">{kid.name}</h3>
+              <span className="text-4xl block mb-2" aria-hidden="true">{kid.avatar}</span>
+              <h3 id="qr-modal-title" className="font-heading font-bold text-white text-xl mb-4">{kid.name}</h3>
               <div className="bg-white p-4 rounded-2xl inline-block mb-4">
                 <QRCode value={kidUrl} size={160} />
               </div>

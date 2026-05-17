@@ -10,6 +10,7 @@ import { StarField } from '@/components/star-field'
 import { QuestCard } from '@/components/quest-card'
 import { CoinCounter } from '@/components/coin-counter'
 import { StreakBadge } from '@/components/streak-badge'
+import { LoadingScreen } from '@/components/loading-screen'
 import type { Kid, Quest, Completion, Reward, CurseInstance, Redemption } from '@/lib/types'
 import { KID_COLORS, getLockDurationMs } from '@/lib/constants'
 import { questDateString, questWeekKey } from '@/lib/utils'
@@ -234,18 +235,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   )
 
   if (loading || !data) {
-    return (
-      <div className="min-h-screen bg-quest-void flex items-center justify-center">
-        <StarField />
-        <motion.p
-          className="relative z-10 font-heading text-2xl text-white/40"
-          animate={{ opacity: [0.3, 0.8, 0.3] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          ✦ Loading ✦
-        </motion.p>
-      </div>
-    )
+    return <LoadingScreen />
   }
 
   const { kid, resetHour, quests, completions, rewards, activeCurses, familySharedCompletions } = data
@@ -376,11 +366,14 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
 
       <div className="relative z-10 flex flex-col flex-1 w-full max-w-md mx-auto">
         <motion.header
-          className="flex items-center gap-4 px-6 py-5 flex-shrink-0"
+          className="flex items-center gap-3 px-4 sm:px-6 py-4 sm:py-5 flex-shrink-0"
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Link href="/display" className="text-white/40 hover:text-white/70 transition-all text-sm">
+          <Link
+            href="/display"
+            className="text-white/45 hover:text-white/80 transition-all text-sm min-h-[44px] flex items-center px-1"
+          >
             ← Realm
           </Link>
 
@@ -398,7 +391,11 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
           </div>
         </motion.header>
 
-        <div className="flex px-6 gap-2 mb-4 flex-shrink-0">
+        <div
+          className="flex px-4 sm:px-6 gap-1.5 sm:gap-2 mb-4 flex-shrink-0"
+          role="tablist"
+          aria-label="Adventurer sections"
+        >
           {(['quests', 'bounty', 'rewards', 'history'] as const).map((t) => {
             const labels = { quests: '⚔️ Quests', bounty: '⚡ Bounty', rewards: '🎁 Rewards', history: '📒 History' }
             const badge = t === 'quests' && pendingCompletions.length > 0
@@ -406,12 +403,13 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
               : t === 'bounty' && availableBountyCount > 0
               ? availableBountyCount
               : null
-            const isBountyActive = t === 'bounty' && tab === 'bounty'
             return (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className="relative flex-1 py-2 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1.5"
+                role="tab"
+                aria-selected={tab === t}
+                className="relative flex-1 min-h-[44px] py-2 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1.5"
                 style={{
                   background: tab === t
                     ? (t === 'bounty' ? 'rgba(251,191,36,0.12)' : colors.bg)
@@ -429,6 +427,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                   <span
                     className="px-1.5 py-0.5 rounded-full text-[10px] font-bold leading-none"
                     style={{ background: 'rgba(251,191,36,0.9)', color: '#0a0620' }}
+                    aria-label={`${badge} new`}
                   >
                     {badge}
                   </span>

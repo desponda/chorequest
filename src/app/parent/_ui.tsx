@@ -16,11 +16,20 @@ export function Section({ title, children }: { title: string; children: React.Re
   )
 }
 
-export function Empty({ icon, message }: { icon: string; message: string }) {
+export function Empty({
+  icon,
+  message,
+  hint,
+}: {
+  icon: string
+  message: string
+  hint?: string
+}) {
   return (
     <div className="text-center py-8 text-white/30">
-      <p className="text-3xl mb-2">{icon}</p>
-      <p className="text-sm">{message}</p>
+      <p className="text-3xl mb-2" aria-hidden="true">{icon}</p>
+      <p className="text-sm text-white/45">{message}</p>
+      {hint && <p className="text-xs text-white/30 mt-1.5">{hint}</p>}
     </div>
   )
 }

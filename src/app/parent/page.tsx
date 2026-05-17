@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { StarField } from '@/components/star-field'
+import { ParentSkeleton } from '@/components/parent-skeleton'
 
 import { useParentData } from './use-parent-data'
 import { useParentActions } from './use-parent-actions'
@@ -35,18 +36,7 @@ export default function ParentDashboard() {
   const reviewedRedemptions = data.redemptions.filter((r) => r.status === 'approved' || r.status === 'denied')
 
   if (data.loading) {
-    return (
-      <div className="min-h-screen bg-quest-void flex items-center justify-center">
-        <StarField />
-        <motion.p
-          className="relative z-10 font-heading text-2xl text-white/40"
-          animate={{ opacity: [0.3, 0.8, 0.3] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          ✦ Loading ✦
-        </motion.p>
-      </div>
-    )
+    return <ParentSkeleton />
   }
 
   if (lock.parentLocked) {
@@ -82,51 +72,65 @@ export default function ParentDashboard() {
 
       <div className="relative z-10 flex flex-col flex-1 w-full max-w-2xl mx-auto">
         <motion.header
-          className="flex items-center gap-4 px-6 py-4 flex-shrink-0"
+          className="flex items-center gap-3 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0"
           style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Link href="/display" className="text-white/40 hover:text-white/70 transition-all text-sm flex-shrink-0">
+          <Link
+            href="/display"
+            className="text-white/45 hover:text-white/80 transition-all text-sm flex-shrink-0 min-h-[44px] flex items-center px-1"
+          >
             ← Realm
           </Link>
-          <div className="flex-1 text-center">
+          <div className="flex-1 text-center min-w-0">
             <span className="font-heading text-lg font-bold text-white/80">Parent Command</span>
           </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-1 flex-shrink-0">
             {data.family?.has_parent_pin && (
               <button
                 onClick={lock.handleLock}
-                className="text-white/30 hover:text-cq-gold transition-all text-lg"
+                className="w-11 h-11 flex items-center justify-center text-white/40 hover:text-cq-gold transition-all text-lg rounded-lg"
                 title="Lock parent area"
+                aria-label="Lock parent area"
               >
                 🔒
               </button>
             )}
             <button
               onClick={actions.signOut}
-              className="text-white/30 hover:text-white/60 transition-all text-sm"
+              className="text-white/40 hover:text-white/70 transition-all text-sm min-h-[44px] px-2"
             >
               Sign out
             </button>
           </div>
         </motion.header>
 
-        <div className="flex gap-1.5 px-6 py-4 flex-shrink-0">
+        <div
+          className="flex gap-1.5 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0"
+          role="tablist"
+          aria-label="Parent dashboard sections"
+        >
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className="relative flex-1 min-w-0 flex items-center justify-center gap-1.5 px-1 sm:px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+              role="tab"
+              aria-selected={tab === t.id}
+              aria-label={t.label}
+              className="relative flex-1 min-w-0 min-h-[48px] sm:min-h-0 flex sm:flex-row flex-col items-center justify-center gap-0.5 sm:gap-1.5 px-1 sm:px-3 py-1.5 sm:py-2 rounded-xl text-sm font-semibold transition-all"
               style={{
                 background: tab === t.id ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.05)',
                 border: `1px solid ${tab === t.id ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.08)'}`,
                 color: tab === t.id ? '#fbbf24' : 'rgba(255,255,255,0.5)',
               }}
             >
-              {/* Mobile: icon only */}
-              <span className="sm:hidden">{t.icon}</span>
-              {/* Desktop: icon + label */}
+              {/* Mobile: icon + tiny label stacked */}
+              <span className="sm:hidden text-base leading-none">{t.icon}</span>
+              <span className="sm:hidden text-[9px] font-bold tracking-wide uppercase leading-none mt-0.5">
+                {t.label}
+              </span>
+              {/* Desktop: icon + full label inline */}
               <span className="hidden sm:inline">{t.icon} {t.label}</span>
               {/* Desktop badge: inline pill */}
               {t.badge && t.badge > 0 ? (
@@ -141,6 +145,7 @@ export default function ParentDashboard() {
                   <span
                     className="sm:hidden absolute top-0.5 right-0.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full text-[8px] font-bold leading-none px-0.5"
                     style={{ background: '#fbbf24', color: '#0a0620' }}
+                    aria-label={`${t.badge} pending`}
                   >
                     {t.badge}
                   </span>
