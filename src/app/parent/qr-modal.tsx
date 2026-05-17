@@ -5,6 +5,7 @@ import QRCode from 'react-qr-code'
 import { toast } from 'sonner'
 import type { Kid } from '@/lib/types'
 import { useEscapeToClose } from '@/lib/use-escape-to-close'
+import { useFocusTrap } from '@/lib/use-focus-trap'
 
 interface Props {
   kid: Kid | null
@@ -13,6 +14,7 @@ interface Props {
 
 export function QrModal({ kid, onClose }: Props) {
   useEscapeToClose(kid !== null, onClose)
+  const trapRef = useFocusTrap<HTMLDivElement>(kid !== null)
   return (
     <AnimatePresence>
       {kid && (() => {
@@ -32,7 +34,8 @@ export function QrModal({ kid, onClose }: Props) {
             aria-labelledby="qr-modal-title"
           >
             <motion.div
-              className="relative w-full max-w-xs rounded-3xl p-6 text-center"
+              ref={trapRef}
+              className="relative w-full max-w-xs rounded-3xl p-6 text-center print-only-card"
               style={{ background: '#0e0b24', border: '1px solid rgba(255,255,255,0.12)' }}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -42,7 +45,7 @@ export function QrModal({ kid, onClose }: Props) {
               <button
                 onClick={onClose}
                 aria-label="Close QR code"
-                className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-lg text-white/35 hover:text-white/70 transition-all text-lg"
+                className="no-print absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-lg text-white/35 hover:text-white/70 transition-all text-lg"
               >
                 ✕
               </button>
@@ -52,17 +55,17 @@ export function QrModal({ kid, onClose }: Props) {
                 <QRCode value={kidUrl} size={160} />
               </div>
               <p className="text-white/40 text-xs mb-4">Scan to go straight to {kid.name}&apos;s PIN screen</p>
-              <div className="flex gap-2">
+              <div className="no-print flex gap-2">
                 <button
                   onClick={() => { navigator.clipboard.writeText(kidUrl); toast.success('Link copied!') }}
-                  className="flex-1 py-2 rounded-xl text-sm font-semibold transition-all"
+                  className="flex-1 min-h-[44px] py-2 rounded-xl text-sm font-semibold transition-all"
                   style={{ background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.25)', color: '#38bdf8' }}
                 >
                   Copy Link
                 </button>
                 <button
                   onClick={() => window.print()}
-                  className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                  className="min-h-[44px] px-4 py-2 rounded-xl text-sm font-semibold transition-all"
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}
                 >
                   Print

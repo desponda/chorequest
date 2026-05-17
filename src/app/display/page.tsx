@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { StarField } from '@/components/star-field'
-import { LoadingScreen } from '@/components/loading-screen'
+import { DisplaySkeleton } from '@/components/skeletons'
 import { KidColumn } from '@/components/kid-column'
 import type { Kid, Quest, Completion, Family, Reward, DungeonRun, DungeonClear, RaidBoss } from '@/lib/types'
 import { KID_COLORS, TIER_CONFIG } from '@/lib/constants'
@@ -16,6 +16,7 @@ import { sharedQuestPeriodFilter } from '@/lib/quest-rules'
 import { getWeekMonday } from '@/lib/xp'
 import { toast } from 'sonner'
 import { useEscapeToClose } from '@/lib/use-escape-to-close'
+import { useFocusTrap } from '@/lib/use-focus-trap'
 
 export default function WallDisplay() {
   const [family, setFamily] = useState<Family | null>(null)
@@ -39,6 +40,9 @@ export default function WallDisplay() {
   useEscapeToClose(showBounty, () => setShowBounty(false))
   useEscapeToClose(showRewards, () => setShowRewards(false))
   useEscapeToClose(claimingBounty !== null, () => setClaimingBounty(null))
+  const bountyTrapRef = useFocusTrap<HTMLDivElement>(showBounty)
+  const rewardsTrapRef = useFocusTrap<HTMLDivElement>(showRewards)
+  const claimTrapRef = useFocusTrap<HTMLDivElement>(claimingBounty !== null)
 
   const fetchData = useCallback(async () => {
     const { data: profile } = await supabase
@@ -213,7 +217,7 @@ export default function WallDisplay() {
   })
 
   if (loading) {
-    return <LoadingScreen label="Loading the realm" size="lg" />
+    return <DisplaySkeleton />
   }
 
   if (kids.length === 0) {
@@ -562,6 +566,7 @@ export default function WallDisplay() {
             aria-labelledby="bounty-modal-title"
           >
             <motion.div
+              ref={bountyTrapRef}
               className="rounded-3xl mx-4 w-full max-w-sm sm:max-w-lg overflow-hidden"
               style={{
                 background: 'rgba(10,6,28,0.98)',
@@ -658,6 +663,7 @@ export default function WallDisplay() {
             aria-labelledby="rewards-modal-title"
           >
             <motion.div
+              ref={rewardsTrapRef}
               className="rounded-3xl mx-4 w-full max-w-sm sm:max-w-lg overflow-hidden"
               style={{
                 background: 'rgba(10,6,28,0.98)',
@@ -768,6 +774,7 @@ export default function WallDisplay() {
             aria-label="Choose adventurer for bounty"
           >
             <motion.div
+              ref={claimTrapRef}
               className="rounded-3xl p-7 mx-4 max-w-sm w-full"
               style={{
                 background: 'rgba(12,8,32,0.97)',

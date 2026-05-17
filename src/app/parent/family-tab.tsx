@@ -11,6 +11,7 @@ import type { ParentActions } from './use-parent-actions'
 import { CoinLedger } from '@/components/coin-ledger'
 import type { LedgerEntry } from '@/lib/ledger'
 import { useEscapeToClose } from '@/lib/use-escape-to-close'
+import { useFocusTrap } from '@/lib/use-focus-trap'
 import { ConfirmDelete } from '@/components/ui/confirm-delete'
 
 const RESET_HOUR_PRESETS = [0, 3, 5, 6] as const
@@ -292,6 +293,7 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
   const [ledgerLoading, setLedgerLoading] = useState(false)
 
   useEscapeToClose(ledgerKid !== null, () => setLedgerKid(null))
+  const ledgerTrapRef = useFocusTrap<HTMLDivElement>(ledgerKid !== null)
 
   const openLedger = async (kid: Kid) => {
     setLedgerKid(kid)
@@ -418,6 +420,7 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
           aria-labelledby="ledger-modal-title"
         >
           <motion.div
+            ref={ledgerTrapRef}
             className="rounded-3xl mx-4 w-full max-w-md overflow-hidden"
             style={{
               background: 'rgba(10,6,28,0.98)',

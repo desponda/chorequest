@@ -133,6 +133,42 @@
   }
 }
 
+/* Print: when a parent prints a QR code for a kid's device, we want a clean
+   white-on-paper page with only the modal contents. Mark non-essentials with
+   .no-print and the QR modal's content with .print-only — handled by the
+   QR modal itself. */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only-card {
+    position: static !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+    page-break-inside: avoid;
+  }
+  .print-only-card * {
+    color: #000000 !important;
+  }
+  /* Disable backdrop blur, glow effects, etc. in print */
+  *,
+  *::before,
+  *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 @layer utilities {
   .font-heading {
     font-family: var(--font-cinzel), 'Cinzel', serif;
@@ -142,12 +178,6 @@
     background: rgba(255, 255, 255, 0.04);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-  }
-
-  .glass-strong {
-    background: rgba(255, 255, 255, 0.07);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
   }
 
   .border-glass {
