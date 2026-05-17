@@ -367,12 +367,16 @@ export function useParentActions(deps: Deps): ParentActions {
   }, [family, quests, refetch, supabase])
 
   const toggleQuest = useCallback(async (id: string, active: boolean) => {
-    await supabase.from('quests').update({ active: !active }).eq('id', id)
+    const { error } = await supabase.from('quests').update({ active: !active }).eq('id', id)
+    if (error) toast.error('Failed to update quest')
+    else toast.success(active ? 'Quest paused' : 'Quest reactivated')
     await refetch()
   }, [refetch, supabase])
 
   const deleteQuest = useCallback(async (id: string) => {
-    await supabase.from('quests').delete().eq('id', id)
+    const { error } = await supabase.from('quests').delete().eq('id', id)
+    if (error) toast.error('Failed to delete quest')
+    else toast.success('Quest deleted')
     await refetch()
   }, [refetch, supabase])
 
@@ -436,7 +440,9 @@ export function useParentActions(deps: Deps): ParentActions {
   }, [family, rewards, refetch, supabase])
 
   const deleteReward = useCallback(async (id: string) => {
-    await supabase.from('rewards').delete().eq('id', id)
+    const { error } = await supabase.from('rewards').delete().eq('id', id)
+    if (error) toast.error('Failed to delete reward')
+    else toast.success('Reward removed')
     await refetch()
   }, [refetch, supabase])
 
@@ -528,7 +534,9 @@ export function useParentActions(deps: Deps): ParentActions {
   }, [family, refetch, supabase])
 
   const deleteCurse = useCallback(async (id: string) => {
-    await supabase.from('curses').delete().eq('id', id)
+    const { error } = await supabase.from('curses').delete().eq('id', id)
+    if (error) toast.error('Failed to delete curse')
+    else toast.success('Curse removed from arsenal')
     await refetch()
   }, [refetch, supabase])
 
@@ -637,7 +645,9 @@ export function useParentActions(deps: Deps): ParentActions {
   }, [family, refetch, supabase])
 
   const deleteDungeonRun = useCallback(async (id: string) => {
-    await supabase.from('dungeon_runs').delete().eq('id', id)
+    const { error } = await supabase.from('dungeon_runs').delete().eq('id', id)
+    if (error) toast.error('Failed to delete dungeon')
+    else toast.success('Dungeon dismissed')
     await refetch()
   }, [refetch, supabase])
 
@@ -662,7 +672,9 @@ export function useParentActions(deps: Deps): ParentActions {
   }, [family, kids, refetch, supabase])
 
   const deleteRaidBoss = useCallback(async (id: string) => {
-    await supabase.from('raid_bosses').delete().eq('id', id)
+    const { error } = await supabase.from('raid_bosses').delete().eq('id', id)
+    if (error) toast.error('Failed to dismiss raid boss')
+    else toast.success('Raid boss dismissed')
     await refetch()
   }, [refetch, supabase])
 

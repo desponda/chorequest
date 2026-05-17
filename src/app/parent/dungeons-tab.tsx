@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import type { DungeonRun, DungeonClear, RaidBoss, Kid, Completion } from '@/lib/types'
 import { Section, FormInput, Empty, fadeSlide } from './_ui'
+import { ConfirmDelete } from '@/components/ui/confirm-delete'
 import type { ParentActions } from './use-parent-actions'
 
 const DUNGEON_ICONS = ['🏰', '⚔️', '🗡️', '🛡️', '🔮', '🌋', '🕳️', '🐲']
@@ -86,13 +87,13 @@ export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, k
                 <p className="text-white/90 font-semibold">{activeDungeon.title}</p>
                 <p className="text-white/40 text-xs">Goal: {activeDungeon.hp} coins each · Loot: +{activeDungeon.reward_coins} coins · +{activeDungeon.reward_xp} XP</p>
               </div>
-              <button
-                onClick={() => actions.deleteDungeonRun(activeDungeon.id)}
-                className="text-white/20 hover:text-red-400 transition-all text-xs"
-                title="Cancel dungeon"
-              >
-                ✕
-              </button>
+              <ConfirmDelete
+                onConfirm={() => actions.deleteDungeonRun(activeDungeon.id)}
+                ariaLabel="Cancel this dungeon"
+                prompt="Cancel?"
+                confirmLabel="Yes, cancel"
+                className="px-1 py-1"
+              />
             </div>
             {kids.length === 0 && (
               <p className="text-white/30 text-xs text-center">Add kids to track progress</p>
@@ -193,13 +194,13 @@ export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, k
                 <p className="text-white/90 font-semibold font-heading">{activeBoss.title}</p>
                 <p className="text-white/40 text-xs">Bounty: {activeBoss.bounty_coins} coins split among all kids</p>
               </div>
-              <button
-                onClick={() => actions.deleteRaidBoss(activeBoss.id)}
-                className="text-white/20 hover:text-red-400 transition-all text-xs"
-                title="Dismiss boss"
-              >
-                ✕
-              </button>
+              <ConfirmDelete
+                onConfirm={() => actions.deleteRaidBoss(activeBoss.id)}
+                ariaLabel="Dismiss raid boss"
+                prompt="Dismiss?"
+                confirmLabel="Yes, dismiss"
+                className="px-1 py-1"
+              />
             </div>
             <HpBar
               current={activeBoss.current_hp}

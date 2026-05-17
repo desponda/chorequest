@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import type { Kid, Plan, Curse, CurseInstance } from '@/lib/types'
 import { PLAN_LIMITS } from '@/lib/plans'
 import { Empty, FormInput, Section, fadeSlide } from './_ui'
+import { ConfirmDelete } from '@/components/ui/confirm-delete'
 import type { ParentActions } from './use-parent-actions'
 
 const CURSE_ICONS = ['☠️','😈','🌩️','🔥','💀','👿','🦂','🕸️']
@@ -201,12 +202,12 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                       >
                         Cast ⚡
                       </button>
-                      <button
-                        onClick={() => actions.deleteCurse(curse.id)}
-                        className="text-white/20 hover:text-red-400 transition-all text-xs"
-                      >
-                        ✕
-                      </button>
+                      <ConfirmDelete
+                        onConfirm={() => actions.deleteCurse(curse.id)}
+                        ariaLabel={`Delete curse ${curse.title}`}
+                        confirmLabel="Delete curse"
+                        className="px-1 py-1"
+                      />
                     </div>
                   )}
                 </div>

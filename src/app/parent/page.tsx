@@ -102,21 +102,31 @@ export default function ParentDashboard() {
           </div>
         </motion.header>
 
-        <div className="flex gap-1.5 px-6 py-4 flex-shrink-0">
+        <div
+          className="flex gap-1.5 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0"
+          role="tablist"
+          aria-label="Parent dashboard sections"
+        >
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className="relative flex-1 min-w-0 flex items-center justify-center gap-1.5 px-1 sm:px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+              role="tab"
+              aria-selected={tab === t.id}
+              aria-label={t.label}
+              className="relative flex-1 min-w-0 min-h-[48px] sm:min-h-0 flex sm:flex-row flex-col items-center justify-center gap-0.5 sm:gap-1.5 px-1 sm:px-3 py-1.5 sm:py-2 rounded-xl text-sm font-semibold transition-all"
               style={{
                 background: tab === t.id ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.05)',
                 border: `1px solid ${tab === t.id ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.08)'}`,
                 color: tab === t.id ? '#fbbf24' : 'rgba(255,255,255,0.5)',
               }}
             >
-              {/* Mobile: icon only */}
-              <span className="sm:hidden">{t.icon}</span>
-              {/* Desktop: icon + label */}
+              {/* Mobile: icon + tiny label stacked */}
+              <span className="sm:hidden text-base leading-none">{t.icon}</span>
+              <span className="sm:hidden text-[9px] font-bold tracking-wide uppercase leading-none mt-0.5">
+                {t.label}
+              </span>
+              {/* Desktop: icon + full label inline */}
               <span className="hidden sm:inline">{t.icon} {t.label}</span>
               {/* Desktop badge: inline pill */}
               {t.badge && t.badge > 0 ? (
@@ -131,6 +141,7 @@ export default function ParentDashboard() {
                   <span
                     className="sm:hidden absolute top-0.5 right-0.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full text-[8px] font-bold leading-none px-0.5"
                     style={{ background: '#fbbf24', color: '#0a0620' }}
+                    aria-label={`${t.badge} pending`}
                   >
                     {t.badge}
                   </span>
