@@ -11,9 +11,8 @@ import { DisplaySkeleton } from '@/components/skeletons'
 import { KidColumn } from '@/components/kid-column'
 import type { Kid, Quest, Completion, Family, Reward, DungeonRun, DungeonClear, RaidBoss } from '@/lib/types'
 import { KID_COLORS, TIER_CONFIG } from '@/lib/constants'
-import { questDateString, questWeekKey } from '@/lib/utils'
+import { dateKeyDayOfWeek, questDateStringForZone, questWeekKeyForZone } from '@/lib/utils'
 import { sharedQuestPeriodFilter } from '@/lib/quest-rules'
-import { getWeekMonday } from '@/lib/xp'
 import { toast } from 'sonner'
 import { useEscapeToClose } from '@/lib/use-escape-to-close'
 import { useFocusTrap } from '@/lib/use-focus-trap'
@@ -53,24 +52,23 @@ export default function WallDisplay() {
     if (!profile) return
 
     const [familyRes, kidsRes, questsRes, rewardsRes] = await Promise.all([
-      supabase.from('families').select('id, name, invite_token, daily_reset_hour, created_at, plan').eq('id', profile.family_id).single(),
+      supabase.from('families').select('id, name, invite_token, daily_reset_hour, timezone, created_at, plan').eq('id', profile.family_id).single(),
       supabase.from('kids').select('id, name, avatar, color, coins, streak, last_completed_date, xp, level, family_id, created_at').eq('family_id', profile.family_id).order('created_at'),
-      supabase.from('quests').select('*').eq('family_id', profile.family_id).eq('active', true).order('created_at'),
-      supabase.from('rewards').select('*').eq('available', true).order('cost'),
+      supabase.from('quests').select('*').eq('family_id', profile.family_id).eq('active', true).eq('archived', false).order('created_at'),
+      supabase.from('rewards').select('*').eq('available', true).eq('archived', false).order('cost'),
     ])
 
     const resetHour = familyRes.data?.daily_reset_hour ?? 0
-    const today = questDateString(resetHour)
-    const weekStart = questWeekKey(resetHour)
-
-    const monday = getWeekMonday()
+    const timeZone = familyRes.data?.timezone ?? 'UTC'
+    const today = questDateStringForZone(resetHour, timeZone)
+    const weekStart = questWeekKeyForZone(resetHour, timeZone)
 
     const [completionsRes, cursesRes, dungeonRes, bossRes, weeklyCompletionsRes] = await Promise.all([
       supabase.from('completions').select('*').gte('date', weekStart).lte('date', today),
       supabase.from('curse_instances').select('kid_id').eq('status', 'active'),
-      supabase.from('dungeon_runs').select('*').eq('family_id', profile.family_id).eq('week_start', monday).maybeSingle(),
-      supabase.from('raid_bosses').select('*').eq('family_id', profile.family_id).eq('status', 'active').maybeSingle(),
-      supabase.from('completions').select('kid_id, coins_awarded').eq('status', 'approved').gte('date', monday),
+      supabase.from('dungeon_runs').select('*').eq('family_id', profile.family_id).eq('week_start', weekStart).eq('archived', false).maybeSingle(),
+      supabase.from('raid_bosses').select('*').eq('family_id', profile.family_id).eq('status', 'active').eq('archived', false).maybeSingle(),
+      supabase.from('completions').select('kid_id, coins_awarded').eq('status', 'approved').gte('date', weekStart).lte('date', today),
     ])
 
     if (familyRes.data) setFamily({ ...familyRes.data, has_parent_pin: false, plan: (familyRes.data.plan as import('@/lib/types').Plan) ?? 'free' })
@@ -136,10 +134,10 @@ export default function WallDisplay() {
       const quest = quests.find((q) => q.id === questId)
       if (!quest) return
 
-      const today = questDateString(family?.daily_reset_hour ?? 0)
+      const today = questDateStringForZone(family?.daily_reset_hour ?? 0, family?.timezone ?? 'UTC')
 
       if (quest.kind === 'shared') {
-        const weekStartNow = questWeekKey(family?.daily_reset_hour ?? 0)
+        const weekStartNow = questWeekKeyForZone(family?.daily_reset_hour ?? 0, family?.timezone ?? 'UTC')
         const inPeriod = sharedQuestPeriodFilter(quest, today, weekStartNow)
         const familyCount = completions.filter(c =>
           c.quest_id === questId &&
@@ -152,15 +150,15 @@ export default function WallDisplay() {
         }
       }
 
-      const { error } = await supabase.from('completions').insert({
-        quest_id: questId,
-        kid_id: kidId,
-        status: 'pending',
-        date: today,
+      const { data: submission, error } = await supabase.rpc('submit_quest', {
+        p_kid_id: kidId,
+        p_quest_id: questId,
+        p_date: today,
       })
 
-      if (error) {
-        toast.error(error.code === '23505' ? 'Already completed today!' : 'Something went wrong')
+      const result = submission as { success?: boolean; reason?: string } | null
+      if (error || !result?.success) {
+        toast.error(result?.reason === 'slots_full' ? 'All slots claimed!' : result?.reason === 'already_submitted' ? 'Already completed!' : 'Something went wrong')
         return
       }
 
@@ -170,7 +168,7 @@ export default function WallDisplay() {
 
       await fetchData()
     },
-    [quests, supabase, fetchData, family?.daily_reset_hour, completions]
+    [quests, supabase, fetchData, family?.daily_reset_hour, family?.timezone, completions]
   )
 
   const handleClaimBounty = useCallback(
@@ -181,9 +179,9 @@ export default function WallDisplay() {
     [handleComplete]
   )
 
-  const today = questDateString(family?.daily_reset_hour ?? 0)
-  const weekStart = questWeekKey(family?.daily_reset_hour ?? 0)
-  const dayOfWeek = new Date().getDay()
+  const today = questDateStringForZone(family?.daily_reset_hour ?? 0, family?.timezone ?? 'UTC')
+  const weekStart = questWeekKeyForZone(family?.daily_reset_hour ?? 0, family?.timezone ?? 'UTC')
+  const dayOfWeek = dateKeyDayOfWeek(today)
 
   const getKidPersonalQuests = (kid: Kid) =>
     quests.filter(q => {

@@ -27,6 +27,7 @@ const baseQuest: Quest = {
   tier: 'normal',
   slots: 1,
   active: true,
+  archived: false,
   active_days: null,
   created_at: new Date().toISOString(),
 }
@@ -70,7 +71,7 @@ describe('isQuestVisibleToKid', () => {
   })
 
   it('respects active_days filter', () => {
-    const dow = new Date(TODAY).getDay()
+    const dow = 2 // 2026-05-05 is Tuesday, independent of the machine timezone
     const otherDay = (dow + 1) % 7
     const q = { ...baseQuest, active_days: [otherDay] }
     expect(isQuestVisibleToKid(q, 'kid-a', TODAY, new Set())).toBe(false)

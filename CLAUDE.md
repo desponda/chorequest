@@ -99,7 +99,7 @@ Always use CI/CD:
 
 ## Security Model
 
-- **Kid PIN**: Never fetched to the browser. Verification goes through `/api/kid/[id]/verify-pin` (service client, server-side). Client enforces 5-attempt lockout.
+- **Kid PIN**: Never fetched to the browser. Verification goes through `/api/kid/[id]/verify-pin` (service client, server-side) and issues a signed, HttpOnly session required by kid data and mutation routes. Client enforces 5-attempt lockout.
 - **Parent PIN**: Not stored in React state — only `has_parent_pin: boolean` is kept. Verification goes through `/api/parent/verify-pin` (requires active auth session).
 - **Public routes**: `/login`, `/api/*`, `/join/*` — no Supabase session required. All others redirect to login.
 - **RLS**: All tables use `get_user_family_id()` — authenticated users only see their own family's data.
@@ -172,6 +172,7 @@ vercel --prod        # Deploy to production (CI/CD via GitHub is preferred)
 NEXT_PUBLIC_SUPABASE_URL       # https://xdidpzzsfoxijugvrjvc.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY  # Supabase anon key (publishable, safe for browser)
 SUPABASE_SERVICE_ROLE_KEY      # Service role key — server-side only (API routes, verify-pin endpoints)
+KID_SESSION_SECRET             # Optional HMAC secret for kid sessions; falls back to service role key
 NEXT_PUBLIC_SENTRY_DSN         # Sentry DSN for error tracking
 SENTRY_ORG                     # Sentry org slug (build-time source map upload)
 SENTRY_PROJECT                 # Sentry project slug

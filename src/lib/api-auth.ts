@@ -6,19 +6,25 @@ type AuthError = Response
 export async function authenticate(req: Request): Promise<AuthSuccess | AuthError> {
   const auth = req.headers.get('authorization')
   if (!auth?.startsWith('Bearer ')) {
-    return Response.json({ error: 'Missing Authorization: Bearer <api_key> header' }, { status: 401 })
+    return Response.json({ error: 'Missing Authorization: Bearer <api_key> header' }, { status: 401, headers: cors() })
   }
 
   const key = auth.slice(7).trim()
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(key)) {
+    return Response.json({ error: 'Invalid API key' }, { status: 401, headers: cors() })
+  }
   const supabase = createServiceClient()
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('families')
     .select('id')
     .eq('api_key', key)
     .single()
 
+  if (error && error.code !== 'PGRST116') {
+    return Response.json({ error: 'Authentication service unavailable' }, { status: 500, headers: cors() })
+  }
   if (!data) {
-    return Response.json({ error: 'Invalid API key' }, { status: 401 })
+    return Response.json({ error: 'Invalid API key' }, { status: 401, headers: cors() })
   }
 
   return { familyId: data.id }

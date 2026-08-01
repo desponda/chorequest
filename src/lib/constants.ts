@@ -92,6 +92,7 @@ export function getStreakBonus(streak: number): number {
 }
 
 export function getStreakLabel(_streak: number): string | null {
+  void _streak
   return null
 }
 

@@ -67,7 +67,7 @@ export function ApprovalsTab({
                   <div className="flex-1 min-w-0">
                     <p className="text-white/90 text-sm font-semibold truncate">{reward.title}</p>
                     <p className="text-white/45 text-xs">
-                      <span>{kid.avatar}</span> {kid.name} · 🪙 {reward.cost} coins
+                      <span>{kid.avatar}</span> {kid.name} · 🪙 {r.cost_charged ?? reward.cost} coins
                     </p>
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
@@ -198,7 +198,7 @@ export function ApprovalsTab({
                 </span>
                 <span className="text-white/25 text-xs whitespace-nowrap">{formatQuestDate(r.redeemed_at.slice(0, 10))}</span>
                 {r.status === 'approved'
-                  ? <span className="text-xs font-semibold text-cq-gold whitespace-nowrap">🎁 -{reward.cost}🪙</span>
+                  ? <span className="text-xs font-semibold text-cq-gold whitespace-nowrap">🎁 -{r.cost_charged ?? reward.cost}🪙</span>
                   : <span className="text-xs font-semibold text-red-400 whitespace-nowrap">✗ denied</span>
                 }
                 <div className="w-6" />

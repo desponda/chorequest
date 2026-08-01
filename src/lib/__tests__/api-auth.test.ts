@@ -1,5 +1,25 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { isAuthError, cors } from '../api-auth'
+import { authenticate, isAuthError, cors } from '../api-auth'
+
+describe('authenticate request validation', () => {
+  it('adds CORS headers to missing and malformed credential errors', async () => {
+    const missing = await authenticate(new Request('https://example.test/api/family'))
+    expect(isAuthError(missing)).toBe(true)
+    if (isAuthError(missing)) {
+      expect(missing.status).toBe(401)
+      expect(missing.headers.get('Access-Control-Allow-Origin')).toBeTruthy()
+    }
+
+    const malformed = await authenticate(new Request('https://example.test/api/family', {
+      headers: { Authorization: 'Bearer definitely-not-a-uuid' },
+    }))
+    expect(isAuthError(malformed)).toBe(true)
+    if (isAuthError(malformed)) {
+      expect(malformed.status).toBe(401)
+      expect(malformed.headers.get('Access-Control-Allow-Origin')).toBeTruthy()
+    }
+  })
+})
 
 describe('isAuthError', () => {
   it('returns true for a Response object', () => {

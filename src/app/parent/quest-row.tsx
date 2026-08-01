@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { Kid, Quest, QuestKind, QuestTier } from '@/lib/types'
+import type { Kid, Quest, QuestTier } from '@/lib/types'
 import { QuestFormFields, type QuestFormState } from './quest-form'
 import { TierBadge } from '@/components/ui/tier-badge'
 import { KindBadge } from '@/components/ui/kind-badge'

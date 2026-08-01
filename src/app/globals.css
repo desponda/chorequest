@@ -92,16 +92,13 @@
   }
   /* Prevent iOS Safari auto-zoom on focus by ensuring the rendered size is >= 16px.
      On sm+ we let Tailwind's text-sm (14px) apply for compact desktop forms. */
-  input,
-  select,
-  textarea {
-    font-size: 16px;
-  }
-  @media (min-width: 640px) {
+  @media (max-width: 639px) {
     input,
     select,
     textarea {
-      font-size: inherit;
+      /* Tailwind text-size utilities have class specificity, so this guard must
+         win on small screens to prevent iOS from zooming focused controls. */
+      font-size: 16px !important;
     }
   }
   /* Unified focus state for form fields — replaces ad-hoc onFocus/onBlur handlers. */

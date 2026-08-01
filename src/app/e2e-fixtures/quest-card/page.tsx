@@ -21,6 +21,7 @@ const BASE_QUEST: Quest = {
   tier: 'normal',
   slots: 1,
   active: true,
+  archived: false,
   active_days: null,
   created_at: '2026-01-01T00:00:00Z',
 }

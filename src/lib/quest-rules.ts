@@ -1,4 +1,5 @@
 import type { Completion, Quest } from './types'
+import { dateKeyDayOfWeek } from './utils'
 
 /**
  * Returns true if `quest` is currently visible to a given kid on a given date.
@@ -13,7 +14,7 @@ export function isQuestVisibleToKid(
   if (quest.assigned_to && quest.assigned_to !== kidId) return false
   if (quest.kind === 'oneoff' && approvedQuestIdsAcrossFamily.has(quest.id)) return false
   if (quest.active_days?.length) {
-    const dayOfWeek = new Date(todayIso).getDay()
+    const dayOfWeek = dateKeyDayOfWeek(todayIso)
     if (!quest.active_days.includes(dayOfWeek)) return false
   }
   return true

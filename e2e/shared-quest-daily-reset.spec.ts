@@ -5,31 +5,22 @@ import type { Quest, Completion, Kid, Reward } from '../src/lib/types'
 
 function localDate(offset = 0): string {
   const d = new Date()
-  d.setDate(d.getDate() + offset)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  d.setUTCDate(d.getUTCDate() + offset)
+  return d.toISOString().slice(0, 10)
 }
 
 function mondayOfWeek(): string {
   const d = new Date()
-  const dow = d.getDay() // 0=Sun
-  d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1))
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  const dow = d.getUTCDay() // 0=Sun
+  d.setUTCDate(d.getUTCDate() - (dow === 0 ? 6 : dow - 1))
+  return d.toISOString().slice(0, 10)
 }
 
 function lastMonday(): string {
   const d = new Date()
-  const dow = d.getDay()
-  d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1) - 7)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  const dow = d.getUTCDay()
+  d.setUTCDate(d.getUTCDate() - (dow === 0 ? 6 : dow - 1) - 7)
+  return d.toISOString().slice(0, 10)
 }
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -66,6 +57,7 @@ const baseQuest: Quest = {
   tier: 'normal',
   slots: 1,
   active: true,
+  archived: false,
   active_days: null,
   created_at: new Date().toISOString(),
 }
@@ -78,6 +70,7 @@ function makePayload(overrides: {
   return {
     kid: baseKid,
     resetHour: 0,
+    timeZone: 'UTC',
     quests: overrides.quests ?? [baseQuest],
     completions: overrides.completions ?? [],
     rewards: [] as Reward[],
@@ -117,6 +110,12 @@ async function setupPage(
   )
 }
 
+async function openBountyBoard(page: import('@playwright/test').Page) {
+  await page.goto(`/kid/${KID_ID}`)
+  await page.waitForLoadState('networkidle')
+  await page.getByRole('tab', { name: /Bounty/ }).click()
+}
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 test.describe('Shared quest — daily reset', () => {
@@ -134,8 +133,12 @@ test.describe('Shared quest — daily reset', () => {
     await page.goto(`/kid/${KID_ID}`)
     await page.waitForLoadState('networkidle')
 
+    // The default tab must not be blank when only bounties are available.
+    await expect(page.getByText('No personal quests right now.')).toBeVisible()
+    await page.getByRole('button', { name: 'View Bounty' }).click()
+
     // Quest should be claimable — not locked
-    await expect(page.getByText('⚡ Claim & Complete')).toBeVisible()
+    await expect(page.getByText('⚡ Claim')).toBeVisible()
 
     // Slot count shows 0/1, not 1/1
     await expect(page.getByText('0/1 claimed')).toBeVisible()
@@ -151,11 +154,10 @@ test.describe('Shared quest — daily reset', () => {
       ],
     }))
 
-    await page.goto(`/kid/${KID_ID}`)
-    await page.waitForLoadState('networkidle')
+    await openBountyBoard(page)
 
     // Claim button should NOT be present
-    await expect(page.getByText('⚡ Claim & Complete')).not.toBeVisible()
+    await expect(page.getByText('⚡ Claim')).not.toBeVisible()
 
     // Slot count shows 1/1 (all taken)
     await expect(page.getByText('1/1 claimed')).toBeVisible()
@@ -186,14 +188,13 @@ test.describe('Shared quest — daily reset', () => {
       ],
     }))
 
-    await page.goto(`/kid/${KID_ID}`)
-    await page.waitForLoadState('networkidle')
+    await openBountyBoard(page)
 
-    // Not locked — pending shows "awaiting..."
-    await expect(page.getByText('awaiting...')).toBeVisible()
+    // Not locked — pending status is announced accessibly.
+    await expect(page.getByRole('status', { name: 'Awaiting approval' })).toBeVisible()
 
     // Claim button should not be shown (quest already submitted)
-    await expect(page.getByText('⚡ Claim & Complete')).not.toBeVisible()
+    await expect(page.getByText('⚡ Claim')).not.toBeVisible()
   })
 })
 
@@ -210,10 +211,9 @@ test.describe('Shared quest — weekly reset', () => {
       ],
     }))
 
-    await page.goto(`/kid/${KID_ID}`)
-    await page.waitForLoadState('networkidle')
+    await openBountyBoard(page)
 
-    await expect(page.getByText('⚡ Claim & Complete')).not.toBeVisible()
+    await expect(page.getByText('⚡ Claim')).not.toBeVisible()
     await expect(page.getByText('claimed', { exact: true })).toBeVisible()
   })
 
@@ -229,10 +229,9 @@ test.describe('Shared quest — weekly reset', () => {
       ],
     }))
 
-    await page.goto(`/kid/${KID_ID}`)
-    await page.waitForLoadState('networkidle')
+    await openBountyBoard(page)
 
-    await expect(page.getByText('⚡ Claim & Complete')).toBeVisible()
+    await expect(page.getByText('⚡ Claim')).toBeVisible()
     await expect(page.getByText('0/1 claimed')).toBeVisible()
   })
 
@@ -248,10 +247,9 @@ test.describe('Shared quest — weekly reset', () => {
       ],
     }))
 
-    await page.goto(`/kid/${KID_ID}`)
-    await page.waitForLoadState('networkidle')
+    await openBountyBoard(page)
 
-    await expect(page.getByText('⚡ Claim & Complete')).toBeVisible()
+    await expect(page.getByText('⚡ Claim')).toBeVisible()
     await expect(page.getByText('1/3 claimed')).toBeVisible()
   })
 })

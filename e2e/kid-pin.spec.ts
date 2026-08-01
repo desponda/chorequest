@@ -5,6 +5,12 @@ test.describe('Kid PIN screen', () => {
   // but the PIN screen UI is testable if we mock or have a real kid ID
   // These tests cover the UI structure and navigation
 
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/api/kid/*/profile', (route) =>
+      route.fulfill({ status: 404, contentType: 'application/json', body: '{"error":"Kid not found"}' }),
+    )
+  })
+
   test('loading state renders without crashing', async ({ page }) => {
     await page.goto('/kid/00000000-0000-0000-0000-000000000000')
     await page.waitForLoadState('networkidle')

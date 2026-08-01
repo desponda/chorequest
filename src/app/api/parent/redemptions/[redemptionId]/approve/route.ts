@@ -25,7 +25,7 @@ export async function POST(
 
   const { data: redemption } = await supabase
     .from('redemptions')
-    .select('id, status, kid_id, reward:rewards(id, cost), kid:kids(id, coins, family_id)')
+    .select('id, status, kid_id, cost_charged, reward:rewards(id, cost), kid:kids(id, coins, family_id)')
     .eq('id', redemptionId)
     .single()
 
@@ -34,16 +34,35 @@ export async function POST(
   const kid = redemption.kid as unknown as { id: string; coins: number; family_id: string } | null
   const reward = redemption.reward as unknown as { id: string; cost: number } | null
   if (!kid || !reward) return Response.json({ error: 'Invalid redemption' }, { status: 422 })
+  const cost = redemption.cost_charged ?? reward.cost
 
   // Ensure this kid belongs to the parent's family
   if (kid.family_id !== profile.family_id) {
     return Response.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  if (!Number.isInteger(cost) || cost <= 0) {
+    return Response.json({ error: 'Reward has an invalid cost' }, { status: 422 })
+  }
+
+  // Validate against a fresh balance before changing the redemption state.
+  const { data: freshKid, error: freshKidError } = await supabase
+    .from('kids')
+    .select('coins')
+    .eq('id', kid.id)
+    .single()
+
+  if (freshKidError || !freshKid) {
+    return Response.json({ error: 'Could not read the current balance' }, { status: 500 })
+  }
+  if (freshKid.coins < cost) {
+    return Response.json({ error: 'Insufficient coins; deny the request or adjust the balance' }, { status: 409 })
+  }
+
   // Idempotency: only process pending redemptions — prevents double-deduction
   const { data: updated } = await supabase
     .from('redemptions')
-    .update({ status: 'approved' })
+    .update({ status: 'approved', cost_charged: cost })
     .eq('id', redemptionId)
     .eq('status', 'pending')
     .select('id')
@@ -52,18 +71,29 @@ export async function POST(
     return Response.json({ error: 'Already processed' }, { status: 409 })
   }
 
-  // Fetch fresh coin balance from DB — never trust caller-supplied value
-  const { data: freshKid } = await supabase
+  const balanceAfter = freshKid.coins - cost
+  const { data: charged, error: chargeError } = await supabase
     .from('kids')
-    .select('coins')
+    .update({ coins: balanceAfter })
     .eq('id', kid.id)
-    .single()
+    .eq('coins', freshKid.coins)
+    .select('id')
+    .maybeSingle()
 
-  const currentCoins = freshKid?.coins ?? kid.coins
-  await supabase
-    .from('kids')
-    .update({ coins: Math.max(0, currentCoins - reward.cost) })
-    .eq('id', kid.id)
+  if (chargeError || !charged) {
+    // A concurrent balance change invalidated the approval. Return it to the
+    // pending queue so a parent can retry against the new balance.
+    const { error: rollbackError } = await supabase
+      .from('redemptions')
+      .update({ status: 'pending' })
+      .eq('id', redemptionId)
+      .eq('status', 'approved')
 
-  return Response.json({ success: true, coinsDeducted: reward.cost, balanceAfter: Math.max(0, currentCoins - reward.cost) })
+    return Response.json(
+      { error: rollbackError ? 'Balance changed and approval rollback failed' : 'Balance changed; try again' },
+      { status: rollbackError ? 500 : 409 },
+    )
+  }
+
+  return Response.json({ success: true, coinsDeducted: cost, balanceAfter })
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
+import { createKidSessionToken, KID_SESSION_COOKIE } from '@/lib/kid-session'
 
 vi.mock('@/lib/supabase/service', () => ({
   createServiceClient: vi.fn(),
@@ -12,7 +13,10 @@ function makeRequest(body: object) {
   return new NextRequest('http://localhost/api/kid/kid-1/redeem', {
     method: 'POST',
     body: JSON.stringify(body),
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Cookie: `${KID_SESSION_COOKIE}=${createKidSessionToken('kid-1')}`,
+    },
   })
 }
 
@@ -21,10 +25,11 @@ function makeParams(id = 'kid-1') {
 }
 
 type Opts = {
-  kid?: { id: string; coins: number } | null
-  reward?: { id: string; cost: number } | null
-  pendingRedemptions?: Array<{ reward: { cost: number } | null }>
+  kid?: { id: string; coins: number; family_id?: string } | null
+  reward?: { id: string; cost: number; family_id?: string } | null
+  pendingRedemptions?: Array<{ cost_charged?: number | null; reward: { cost: number } | null }>
   insertError?: object | null
+  insertSpy?: ReturnType<typeof vi.fn>
 }
 
 function makeClient(opts: Opts) {
@@ -33,6 +38,7 @@ function makeClient(opts: Opts) {
     reward = { id: 'reward-1', cost: 20 },
     pendingRedemptions = [],
     insertError = null,
+    insertSpy = vi.fn().mockResolvedValue({ error: insertError }),
   } = opts
 
   // The route calls from('redemptions') twice: first a select for pending, then an insert.
@@ -43,7 +49,7 @@ function makeClient(opts: Opts) {
       then: (resolve: (v: { data: typeof pendingRedemptions; error: null }) => void) =>
         resolve({ data: pendingRedemptions, error: null }),
     },
-    { insert: vi.fn().mockResolvedValue({ error: insertError }) },
+    { insert: insertSpy },
   ]
   let redemptionIdx = 0
 
@@ -57,7 +63,10 @@ function makeClient(opts: Opts) {
   }
 }
 
-beforeEach(() => { vi.clearAllMocks() })
+beforeEach(() => {
+  vi.clearAllMocks()
+  vi.stubEnv('KID_SESSION_SECRET', 'test-secret')
+})
 
 describe('POST /api/kid/[id]/redeem — available coins guard', () => {
   it('returns 400 when pending deductions leave insufficient coins', async () => {
@@ -111,6 +120,48 @@ describe('POST /api/kid/[id]/redeem — available coins guard', () => {
     )
     const res = await POST(makeRequest({ reward_id: 'nonexistent' }), makeParams())
     expect(res.status).toBe(404)
+  })
+
+  it('reserves each pending redemption at its request-time price', async () => {
+    // The catalog price later dropped to 1, but this request reserved 25 coins.
+    vi.mocked(createServiceClient).mockReturnValue(
+      makeClient({
+        kid: { id: 'kid-1', coins: 30 },
+        reward: { id: 'r', cost: 10 },
+        pendingRedemptions: [{ cost_charged: 25, reward: { cost: 1 } }],
+      }) as unknown as ReturnType<typeof createServiceClient>
+    )
+    const res = await POST(makeRequest({ reward_id: 'r' }), makeParams())
+    expect(res.status).toBe(400)
+  })
+
+  it('snapshots the current reward price on the new request', async () => {
+    const insertSpy = vi.fn().mockResolvedValue({ error: null })
+    vi.mocked(createServiceClient).mockReturnValue(
+      makeClient({ reward: { id: 'r', cost: 15 }, insertSpy }) as unknown as ReturnType<typeof createServiceClient>
+    )
+    const res = await POST(makeRequest({ reward_id: 'r' }), makeParams())
+    expect(res.status).toBe(200)
+    expect(insertSpy).toHaveBeenCalledWith(expect.objectContaining({ cost_charged: 15 }))
+  })
+
+  it('returns 404 when the reward belongs to another family', async () => {
+    vi.mocked(createServiceClient).mockReturnValue(
+      makeClient({
+        kid: { id: 'kid-1', coins: 100, family_id: 'family-1' },
+        reward: { id: 'r', cost: 10, family_id: 'family-2' },
+      }) as unknown as ReturnType<typeof createServiceClient>
+    )
+    const res = await POST(makeRequest({ reward_id: 'r' }), makeParams())
+    expect(res.status).toBe(404)
+  })
+
+  it('rejects zero or negative reward costs', async () => {
+    vi.mocked(createServiceClient).mockReturnValue(
+      makeClient({ reward: { id: 'r', cost: 0 } }) as unknown as ReturnType<typeof createServiceClient>
+    )
+    const res = await POST(makeRequest({ reward_id: 'r' }), makeParams())
+    expect(res.status).toBe(422)
   })
 
   it('treats pending redemptions with null reward join as 0 cost', async () => {

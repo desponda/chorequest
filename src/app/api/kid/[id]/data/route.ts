@@ -1,10 +1,13 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import { questWeekKey } from '@/lib/utils'
+import { questWeekKeyForZone } from '@/lib/utils'
 import type { Quest } from '@/lib/types'
+import { requireKidSession } from '@/lib/kid-session'
 import { NextRequest } from 'next/server'
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const authError = requireKidSession(req, id)
+  if (authError) return authError
   const supabase = createServiceClient()
 
   const { data: kid } = await supabase
@@ -18,13 +21,19 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const [familyRes, questsRes, rewardsRes] = await Promise.all([
-    supabase.from('families').select('daily_reset_hour').eq('id', kid.family_id).single(),
-    supabase.from('quests').select('*').eq('active', true).eq('family_id', kid.family_id).order('created_at'),
-    supabase.from('rewards').select('*').eq('available', true).eq('family_id', kid.family_id),
+    supabase.from('families').select('daily_reset_hour, timezone').eq('id', kid.family_id).single(),
+    supabase.from('quests').select('*').eq('active', true).eq('archived', false).eq('family_id', kid.family_id).order('created_at'),
+    supabase.from('rewards').select('*').eq('available', true).eq('archived', false).eq('family_id', kid.family_id),
   ])
 
   const resetHour = familyRes.data?.daily_reset_hour ?? 0
-  const weekStart = questWeekKey(resetHour)
+  const timeZone = familyRes.data?.timezone ?? 'UTC'
+  let weekStart: string
+  try {
+    weekStart = questWeekKeyForZone(resetHour, timeZone)
+  } catch {
+    return Response.json({ error: 'Family timezone is invalid' }, { status: 500 })
+  }
 
   const allQuests: Quest[] = (questsRes.data ?? []) as Quest[]
   const sharedQuestIds = allQuests.filter((q) => q.kind === 'shared' || q.kind === 'oneoff').map((q) => q.id)
@@ -37,7 +46,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       : Promise.resolve({ data: [] }),
     supabase
       .from('redemptions')
-      .select('id, reward_id, status, redeemed_at, reward:rewards(id, title, icon, cost)')
+      .select('id, reward_id, status, redeemed_at, cost_charged, reward:rewards(id, title, icon, cost)')
       .eq('kid_id', id)
       .in('status', ['pending', 'denied'])
       .order('redeemed_at', { ascending: false }),
@@ -46,6 +55,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   return Response.json({
     kid,
     resetHour,
+    timeZone,
     quests: allQuests,
     completions: completionsRes.data ?? [],
     rewards: rewardsRes.data ?? [],

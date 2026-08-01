@@ -12,6 +12,7 @@ export interface Family {
   invite_token: string
   api_key?: string
   daily_reset_hour: number
+  timezone: string | null
   plan: Plan
   created_at: string
 }
@@ -50,6 +51,7 @@ export interface Quest {
   tier: QuestTier
   slots: number
   active: boolean
+  archived: boolean
   active_days: number[] | null
   created_at: string
 }
@@ -60,6 +62,7 @@ export interface Curse {
   title: string
   icon: string
   penalty: number
+  archived: boolean
   created_at: string
 }
 
@@ -71,6 +74,7 @@ export interface CurseInstance {
   cast_at: string
   resolved_at: string | null
   coins_deducted: number
+  refunded: boolean
   curse?: Curse
   kid?: Kid
 }
@@ -96,6 +100,7 @@ export interface Reward {
   icon: string
   cost: number
   available: boolean
+  archived: boolean
   created_at: string
 }
 
@@ -108,6 +113,7 @@ export interface DungeonRun {
   reward_coins: number
   reward_xp: number
   week_start: string
+  archived: boolean
   created_at: string
 }
 
@@ -127,6 +133,7 @@ export interface RaidBoss {
   current_hp: number
   bounty_coins: number
   status: 'active' | 'defeated'
+  archived: boolean
   defeated_at: string | null
   created_at: string
 }
@@ -145,6 +152,7 @@ export interface Redemption {
   reward_id: string
   kid_id: string
   status: 'pending' | 'approved' | 'denied'
+  cost_charged: number | null
   redeemed_at: string
   reward?: Reward
   kid?: Kid
