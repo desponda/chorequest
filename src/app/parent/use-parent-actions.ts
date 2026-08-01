@@ -8,8 +8,6 @@ import type { Family, Kid, Quest, QuestKind, QuestFrequency, QuestTier, Completi
 import { DEFAULT_QUESTS } from '@/lib/constants'
 import { PLAN_LIMITS, PLAN_LABELS, PLAN_UPGRADE_HINT } from '@/lib/plans'
 import { isValidPin, questDateStringForZone, questWeekKeyForZone } from '@/lib/utils'
-import { getLevelFromXP } from '@/lib/xp'
-import { calculateStreak } from '@/lib/streak'
 import { boundedInteger } from '@/lib/validation'
 import type { DungeonRun, DungeonClear, RaidBoss } from '@/lib/types'
 
@@ -49,7 +47,7 @@ export interface ParentActions {
   saveReward: (id: string, updates: { title: string; description: string; icon: string; cost: number }) => Promise<void>
   saveResetHour: (hour: number) => Promise<void>
   saveFamilyName: (name: string) => Promise<void>
-  saveCoins: (kidId: string, value: number) => Promise<void>
+  saveCoins: (kidId: string, value: number, reason?: string) => Promise<void>
   setParentPin: (pin: string) => Promise<void>
   removeParentPin: () => Promise<void>
   regenerateApiKey: () => Promise<void>
@@ -87,68 +85,27 @@ export function useParentActions(deps: Deps): ParentActions {
     const completion = completions.find((c) => c.id === completionId)
     if (!completion) return
 
-    const coinsAwarded = completion.quest?.coins ?? 0
+    const { data: approved, error } = await supabase.rpc('approve_completion_with_ledger', {
+      p_completion_id: completionId,
+    })
+    const approval = approved as {
+      applied?: boolean
+      reason?: string
+      coins_awarded?: number
+      level?: number
+    } | null
 
-    const { data: updated, error } = await supabase
-      .from('completions')
-      .update({ status: 'approved', approved_at: new Date().toISOString(), coins_awarded: coinsAwarded })
-      .eq('id', completionId)
-      .eq('status', 'pending')
-      .select('id')
-
-    if (error || !updated || updated.length === 0) {
-      toast.error('Quest was already undone — nothing to approve')
+    if (error || !approval?.applied) {
+      toast.error(approval?.reason === 'already_processed' ? 'Quest was already reviewed' : 'Could not approve quest')
       await refetch()
       return
     }
 
-    // Award coins + XP to the completing kid
-    const [{ data: freshKid }, { data: approvedDates }] = await Promise.all([
-      supabase
-      .from('kids')
-      .select('coins, xp, level')
-      .eq('id', completion.kid_id)
-      .single(),
-      supabase
-        .from('completions')
-        .select('date')
-        .eq('kid_id', completion.kid_id)
-        .eq('status', 'approved'),
-    ])
-
-    if (!freshKid) {
-      await supabase.from('completions').update({ status: 'pending', approved_at: null, coins_awarded: null }).eq('id', completionId).eq('status', 'approved')
-      toast.error('Could not read the adventurer balance')
-      await refetch()
-      return
-    }
-
-    const newXP = freshKid.xp + coinsAwarded
-    const newLevel = getLevelFromXP(newXP)
-    const streakState = calculateStreak((approvedDates ?? []).map((row) => row.date))
-
-    const { data: awarded, error: awardError } = await supabase.from('kids').update({
-      coins: freshKid.coins + coinsAwarded,
-      xp: newXP,
-      level: newLevel,
-      streak: streakState.streak,
-      last_completed_date: streakState.lastCompletedDate,
-    }).eq('id', completion.kid_id).eq('coins', freshKid.coins).eq('xp', freshKid.xp).select('id').maybeSingle()
-
-    if (awardError || !awarded) {
-      await supabase.from('completions').update({ status: 'pending', approved_at: null, coins_awarded: null }).eq('id', completionId).eq('status', 'approved')
-      toast.error('Balance changed during approval — try again')
-      await refetch()
-      return
-    }
-
-    if (completion.quest?.kind === 'oneoff') {
-      await supabase.from('quests').update({ active: false }).eq('id', completion.quest.id)
-    }
-
+    const coinsAwarded = approval.coins_awarded ?? completion.coins_requested ?? completion.quest?.coins ?? 0
+    const newLevel = approval.level ?? ((completion.kid as Kid | undefined)?.level ?? 1)
     toast.success(`Quest approved! +${coinsAwarded} coins awarded ✨`)
 
-    if (newLevel > (freshKid?.level ?? 1)) {
+    if (newLevel > ((completion.kid as Kid | undefined)?.level ?? 1)) {
       setTimeout(() => toast.success(`⬆️ ${completion.kid?.name ?? 'Level up'}! Reached Level ${newLevel}!`), 600)
     }
 
@@ -217,48 +174,14 @@ export function useParentActions(deps: Deps): ParentActions {
   const undoApproval = useCallback(async (completionId: string) => {
     const completion = completions.find((c) => c.id === completionId)
     if (!completion) return
-    const coinsToRemove = completion.coins_awarded ?? 0
-
-    const { data: undone, error } = await supabase
-      .from('completions')
-      .update({ status: 'pending', approved_at: null, coins_awarded: null })
-      .eq('id', completionId)
-      .eq('status', 'approved')
-      .select('id')
-
-    if (error || !undone || undone.length === 0) {
-      toast.error('Approval was already undone')
+    const { data: reversed, error } = await supabase.rpc('undo_completion_approval_with_ledger', {
+      p_completion_id: completionId,
+    })
+    const reversal = reversed as { applied?: boolean; reason?: string } | null
+    if (error || !reversal?.applied) {
+      toast.error(reversal?.reason === 'not_approved' ? 'Approval was already undone' : 'Could not undo approval')
       await refetch()
       return
-    }
-
-    const [{ data: freshKid }, { data: approvedDates }] = await Promise.all([
-      supabase.from('kids').select('coins, xp').eq('id', completion.kid_id).single(),
-      supabase.from('completions').select('date').eq('kid_id', completion.kid_id).eq('status', 'approved'),
-    ])
-    if (!freshKid) {
-      await supabase.from('completions').update({ status: 'approved', approved_at: completion.approved_at, coins_awarded: coinsToRemove }).eq('id', completionId).eq('status', 'pending')
-      toast.error('Could not read the adventurer balance')
-      await refetch()
-      return
-    }
-    const newXP = Math.max(0, freshKid.xp - coinsToRemove)
-    const streakState = calculateStreak((approvedDates ?? []).map((row) => row.date))
-    const { data: reversed, error: reverseError } = await supabase.from('kids').update({
-      coins: Math.max(0, freshKid.coins - coinsToRemove),
-      xp: newXP,
-      level: getLevelFromXP(newXP),
-      streak: streakState.streak,
-      last_completed_date: streakState.lastCompletedDate,
-    }).eq('id', completion.kid_id).eq('coins', freshKid.coins).eq('xp', freshKid.xp).select('id').maybeSingle()
-    if (reverseError || !reversed) {
-      await supabase.from('completions').update({ status: 'approved', approved_at: completion.approved_at, coins_awarded: coinsToRemove }).eq('id', completionId).eq('status', 'pending')
-      toast.error('Balance changed while undoing — try again')
-      await refetch()
-      return
-    }
-    if (completion.quest?.kind === 'oneoff') {
-      await supabase.from('quests').update({ active: true }).eq('id', completion.quest.id)
     }
     toast.success('Approval undone — back to pending')
     await refetch()
@@ -531,10 +454,24 @@ export function useParentActions(deps: Deps): ParentActions {
     await refetch()
   }, [family, refetch, supabase])
 
-  const saveCoins = useCallback(async (kidId: string, value: number) => {
+  const saveCoins = useCallback(async (kidId: string, value: number, reason?: string) => {
     if (boundedInteger(value, { min: 0, max: 1_000_000_000 }) === null) return
-    await supabase.from('kids').update({ coins: value }).eq('id', kidId)
-    toast.success('Coins updated! 🪙')
+    const { data, error } = await supabase.rpc('set_kid_coin_balance', {
+      p_kid_id: kidId,
+      p_new_balance: value,
+      p_reason: reason?.trim() || null,
+    })
+    const result = data as { applied?: boolean; reason?: string } | null
+    if (error) {
+      toast.error('Could not adjust coins')
+      await refetch()
+      return
+    }
+    if (!result?.applied && result?.reason === 'unchanged') {
+      toast.info('Balance is already at that amount')
+      return
+    }
+    toast.success('Coin adjustment posted! 🪙')
     await refetch()
   }, [refetch, supabase])
 

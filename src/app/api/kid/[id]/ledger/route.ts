@@ -3,7 +3,7 @@ import { buildLedger } from '@/lib/ledger'
 import { NextRequest } from 'next/server'
 import { requireKidSession } from '@/lib/kid-session'
 
-export type { LedgerEntry } from '@/lib/ledger'
+export type { LedgerEntry, PendingLedgerEntry } from '@/lib/ledger'
 
 export async function GET(
   req: NextRequest,
@@ -22,6 +22,17 @@ export async function GET(
 
   if (!kid) return Response.json({ error: 'Not found' }, { status: 404 })
 
-  const { ledger } = await buildLedger(id, kid.coins)
-  return Response.json({ ledger, currentBalance: kid.coins })
+  try {
+    const { ledger, pending } = await buildLedger(id)
+    const pendingDebits = pending.reduce((sum, entry) => sum + Math.min(0, entry.amount), 0)
+    return Response.json({
+      ledger,
+      pending,
+      currentBalance: kid.coins,
+      availableBalance: Math.max(0, kid.coins + pendingDebits),
+    })
+  } catch (error) {
+    console.error('Failed to build kid ledger', error)
+    return Response.json({ error: 'Could not load coin history' }, { status: 500 })
+  }
 }

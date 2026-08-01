@@ -107,6 +107,11 @@ export function ApprovalsTab({
         pendingCompletions.map((c) => {
           const kid = c.kid as Kid | undefined
           if (!kid) return null
+          const pendingQuest = c.quest as Quest
+          const questAtSubmission = {
+            ...pendingQuest,
+            coins: c.coins_requested ?? pendingQuest.coins,
+          }
           return (
             <div key={c.id} className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <div className="flex items-center gap-3 px-4 pt-4 pb-2">
@@ -121,7 +126,7 @@ export function ApprovalsTab({
               </div>
               <div className="px-4 pb-4">
                 <QuestCard
-                  quest={c.quest as Quest}
+                  quest={questAtSubmission}
                   completion={c}
                   kidColor={kid.color}
                   isParent
@@ -196,7 +201,7 @@ export function ApprovalsTab({
                   <span className="text-white/50 flex-shrink-0">{kid.name}</span>
                   <span className="text-white/35 truncate flex items-center gap-1"><span>{reward.icon}</span>{reward.title}</span>
                 </span>
-                <span className="text-white/25 text-xs whitespace-nowrap">{formatQuestDate(r.redeemed_at.slice(0, 10))}</span>
+                <span className="text-white/25 text-xs whitespace-nowrap">{formatQuestDate((r.processed_at ?? r.redeemed_at).slice(0, 10))}</span>
                 {r.status === 'approved'
                   ? <span className="text-xs font-semibold text-cq-gold whitespace-nowrap">🎁 -{r.cost_charged ?? reward.cost}🪙</span>
                   : <span className="text-xs font-semibold text-red-400 whitespace-nowrap">✗ denied</span>

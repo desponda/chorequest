@@ -17,7 +17,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const { data: instance, error: fetchErr } = await supabase
     .from('curse_instances')
-    .select('*, kid:kids(id, coins, family_id)')
+    .select('*, kid:kids(id, coins, family_id), curse:curses(id, title, icon)')
     .eq('id', id)
     .single()
 
@@ -26,6 +26,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
 
   const kid = instance.kid as { id: string; coins: number; family_id: string } | null
+  const curse = instance.curse as { id: string; title: string; icon: string } | null
   if (!kid || kid.family_id !== auth.familyId) {
     return Response.json({ error: 'Not authorized' }, { status: 403, headers: cors() })
   }
@@ -39,19 +40,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       ? Math.min(kid.coins, instance.coins_deducted)
       : instance.coins_deducted
 
-    if (instance.refunded) {
-      const { data: charged, error: chargeError } = await supabase
-        .from('kids')
-        .update({ coins: kid.coins - coinsDeducted })
-        .eq('id', kid.id)
-        .eq('coins', kid.coins)
-        .select('id')
-        .maybeSingle()
-      if (chargeError || !charged) {
-        return Response.json({ error: 'Balance changed; try again' }, { status: 409, headers: cors() })
-      }
-    }
-
+    const reopenedAt = new Date().toISOString()
     const { data: reopened, error: reopenError } = await supabase
       .from('curse_instances')
       .update({
@@ -66,23 +55,52 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       .maybeSingle()
 
     if (reopenError || !reopened) {
-      if (instance.refunded) {
-        await supabase
-          .from('kids')
-          .update({ coins: kid.coins })
-          .eq('id', kid.id)
-          .eq('coins', kid.coins - coinsDeducted)
-      }
       return Response.json({ error: reopenError?.message ?? 'Curse state changed; try again' }, { status: reopenError ? 500 : 409, headers: cors() })
+    }
+
+    if (instance.refunded) {
+      const { data: charged, error: chargeError } = await supabase.rpc('apply_coin_transaction', {
+        p_kid_id: kid.id,
+        p_expected_balance: kid.coins,
+        p_new_balance: kid.coins - coinsDeducted,
+        p_kind: 'curse_reopened',
+        p_description: `${curse?.title ?? 'Curse'} reopened`,
+        p_icon: curse?.icon ?? '☠️',
+        p_source_id: `${id}:reopen:${reopenedAt}`,
+        p_new_xp: null,
+        p_new_streak: null,
+        p_last_completed_date: null,
+        p_update_progress: false,
+        p_occurred_at: reopenedAt,
+        p_metadata: { curse_id: curse?.id ?? instance.curse_id, instance_id: id },
+      })
+      const chargeResult = charged as { applied?: boolean } | null
+      if (chargeError || !chargeResult?.applied) {
+        const { error: rollbackError } = await supabase
+          .from('curse_instances')
+          .update({
+            status: 'resolved',
+            resolved_at: instance.resolved_at,
+            refunded: true,
+            coins_deducted: instance.coins_deducted,
+          })
+          .eq('id', id)
+          .eq('status', 'active')
+        return Response.json(
+          { error: rollbackError ? 'Balance changed and curse rollback failed' : 'Balance changed; try again' },
+          { status: rollbackError ? 500 : 409, headers: cors() },
+        )
+      }
     }
 
     return Response.json({ instance: reopened }, { headers: cors() })
   }
 
   const refund = body.refund === true
+  const resolvedAt = new Date().toISOString()
   const { data, error } = await supabase
     .from('curse_instances')
-    .update({ status: 'resolved', resolved_at: new Date().toISOString(), refunded: refund })
+    .update({ status: 'resolved', resolved_at: resolvedAt, refunded: refund })
     .eq('id', id)
     .eq('status', 'active')
     .select()
@@ -92,15 +110,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!data) return Response.json({ error: 'Curse was already resolved' }, { status: 409, headers: cors() })
 
   if (refund) {
-    const { data: refunded, error: refundError } = await supabase
-      .from('kids')
-      .update({ coins: kid.coins + instance.coins_deducted })
-      .eq('id', kid.id)
-      .eq('coins', kid.coins)
-      .select('id')
-      .maybeSingle()
+    const { data: refunded, error: refundError } = await supabase.rpc('apply_coin_transaction', {
+      p_kid_id: kid.id,
+      p_expected_balance: kid.coins,
+      p_new_balance: kid.coins + instance.coins_deducted,
+      p_kind: 'curse_refund',
+      p_description: `${curse?.title ?? 'Curse'} forgiven`,
+      p_icon: curse?.icon ?? '☠️',
+      p_source_id: `${id}:refund:${resolvedAt}`,
+      p_new_xp: null,
+      p_new_streak: null,
+      p_last_completed_date: null,
+      p_update_progress: false,
+      p_occurred_at: resolvedAt,
+      p_metadata: { curse_id: curse?.id ?? instance.curse_id, instance_id: id },
+    })
+    const refundResult = refunded as { applied?: boolean } | null
 
-    if (refundError || !refunded) {
+    if (refundError || !refundResult?.applied) {
       await supabase
         .from('curse_instances')
         .update({ status: 'active', resolved_at: null, refunded: false })

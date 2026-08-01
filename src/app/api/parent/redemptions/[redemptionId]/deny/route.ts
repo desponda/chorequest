@@ -37,7 +37,7 @@ export async function POST(
   // Soft-delete: preserve row with status='denied' for audit trail
   const { data: updated } = await supabase
     .from('redemptions')
-    .update({ status: 'denied' })
+    .update({ status: 'denied', processed_at: new Date().toISOString() })
     .eq('id', redemptionId)
     .eq('status', 'pending')
     .select('id')
