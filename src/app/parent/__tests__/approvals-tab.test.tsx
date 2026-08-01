@@ -21,7 +21,7 @@ vi.mock('@/components/quest-card', () => ({
 }))
 
 import { ApprovalsTab } from '../approvals-tab'
-import type { Completion, Kid, Quest, Redemption } from '@/lib/types'
+import type { Completion, Kid, Quest } from '@/lib/types'
 
 function todayStr(offsetDays = 0) {
   const d = new Date()
@@ -38,7 +38,7 @@ const baseKid: Kid = {
 const baseQuest: Quest = {
   id: 'quest-1', family_id: 'fam-1', title: 'Feed the Dog', description: null,
   icon: '🐕', coins: 10, assigned_to: null, kind: 'personal', frequency: 'daily',
-  tier: 'normal', slots: 1, active: true, active_days: null,
+  tier: 'normal', slots: 1, active: true, archived: false, active_days: null,
   created_at: new Date().toISOString(),
 }
 

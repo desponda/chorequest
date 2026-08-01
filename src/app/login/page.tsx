@@ -11,8 +11,6 @@ import { toast } from 'sonner'
 
 type Mode = 'login' | 'signup' | 'forgot'
 
-const REDIRECT_ORIGIN = 'https://chorequest.dresponda.com'
-
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -36,7 +34,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${REDIRECT_ORIGIN}/auth/callback?next=/parent` },
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/parent` },
       })
       if (error) {
         toast.error(error.message)
@@ -61,7 +59,7 @@ export default function LoginPage() {
     if (!email) return
     setLoading(true)
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${REDIRECT_ORIGIN}/auth/callback?next=/reset-password`,
+      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
     })
     setLoading(false)
     if (error) {
@@ -162,7 +160,7 @@ export default function LoginPage() {
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="parent@family.com"
                         required
-                        className="w-full px-4 py-3 rounded-xl text-sm text-white/90 placeholder:text-white/25 outline-none transition-all"
+                        className="w-full px-4 py-3 rounded-xl text-base sm:text-sm text-white/90 placeholder:text-white/25 outline-none transition-all"
                         style={inputStyle}
                       />
                     </div>
@@ -232,7 +230,7 @@ export default function LoginPage() {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="parent@family.com"
                       required
-                      className="w-full px-4 py-3 rounded-xl text-sm text-white/90 placeholder:text-white/25 outline-none transition-all"
+                      className="w-full px-4 py-3 rounded-xl text-base sm:text-sm text-white/90 placeholder:text-white/25 outline-none transition-all"
                       style={inputStyle}
                     />
                   </div>
@@ -260,7 +258,7 @@ export default function LoginPage() {
                         placeholder="••••••••"
                         required
                         minLength={6}
-                        className="w-full px-4 py-3 pr-12 rounded-xl text-sm text-white/90 placeholder:text-white/25 outline-none transition-all"
+                        className="w-full px-4 py-3 pr-12 rounded-xl text-base sm:text-sm text-white/90 placeholder:text-white/25 outline-none transition-all"
                         style={inputStyle}
                       />
                       <button

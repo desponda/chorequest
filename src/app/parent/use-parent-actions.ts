@@ -7,9 +7,10 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Family, Kid, Quest, QuestKind, QuestFrequency, QuestTier, Completion, Reward, Redemption, Curse, CurseInstance } from '@/lib/types'
 import { DEFAULT_QUESTS } from '@/lib/constants'
 import { PLAN_LIMITS, PLAN_LABELS, PLAN_UPGRADE_HINT } from '@/lib/plans'
-import { questDateString } from '@/lib/utils'
-import { yesterday } from './_streak'
-import { getLevelFromXP, getWeekMonday } from '@/lib/xp'
+import { isValidPin, questDateStringForZone, questWeekKeyForZone } from '@/lib/utils'
+import { getLevelFromXP } from '@/lib/xp'
+import { calculateStreak } from '@/lib/streak'
+import { boundedInteger } from '@/lib/validation'
 import type { DungeonRun, DungeonClear, RaidBoss } from '@/lib/types'
 
 interface Deps {
@@ -36,7 +37,6 @@ export interface ParentActions {
   undoRejection: (completionId: string) => Promise<void>
   fulfillRedemption: (redemptionId: string) => Promise<void>
   denyRedemption: (redemptionId: string) => Promise<void>
-  undoRedemption: (redemptionId: string) => Promise<void>
   undoResolvedCurse: (instanceId: string) => Promise<void>
   addKid: (data: { name: string; avatar: string; color: 'azure' | 'mystic'; pin: string }) => Promise<void>
   addQuest: (data: AddQuestInput) => Promise<void>
@@ -103,30 +103,44 @@ export function useParentActions(deps: Deps): ParentActions {
     }
 
     // Award coins + XP to the completing kid
-    const { data: freshKid } = await supabase
+    const [{ data: freshKid }, { data: approvedDates }] = await Promise.all([
+      supabase
       .from('kids')
-      .select('coins, xp, level, streak, last_completed_date')
+      .select('coins, xp, level')
       .eq('id', completion.kid_id)
-      .single()
+      .single(),
+      supabase
+        .from('completions')
+        .select('date')
+        .eq('kid_id', completion.kid_id)
+        .eq('status', 'approved'),
+    ])
 
-    const newXP = (freshKid?.xp ?? 0) + coinsAwarded
+    if (!freshKid) {
+      await supabase.from('completions').update({ status: 'pending', approved_at: null, coins_awarded: null }).eq('id', completionId).eq('status', 'approved')
+      toast.error('Could not read the adventurer balance')
+      await refetch()
+      return
+    }
+
+    const newXP = freshKid.xp + coinsAwarded
     const newLevel = getLevelFromXP(newXP)
-    const resetHour = family?.daily_reset_hour ?? 0
-    const today = questDateString(resetHour)
-    // Preserve streak if already approved something today; increment if last was quest-yesterday; reset otherwise.
-    const newStreak = freshKid?.last_completed_date === today
-      ? (freshKid?.streak ?? 1)
-      : freshKid?.last_completed_date === yesterday(resetHour)
-      ? (freshKid?.streak ?? 0) + 1
-      : 1
+    const streakState = calculateStreak((approvedDates ?? []).map((row) => row.date))
 
-    await supabase.from('kids').update({
-      coins: (freshKid?.coins ?? 0) + coinsAwarded,
+    const { data: awarded, error: awardError } = await supabase.from('kids').update({
+      coins: freshKid.coins + coinsAwarded,
       xp: newXP,
       level: newLevel,
-      streak: newStreak,
-      last_completed_date: today,
-    }).eq('id', completion.kid_id)
+      streak: streakState.streak,
+      last_completed_date: streakState.lastCompletedDate,
+    }).eq('id', completion.kid_id).eq('coins', freshKid.coins).eq('xp', freshKid.xp).select('id').maybeSingle()
+
+    if (awardError || !awarded) {
+      await supabase.from('completions').update({ status: 'pending', approved_at: null, coins_awarded: null }).eq('id', completionId).eq('status', 'approved')
+      toast.error('Balance changed during approval — try again')
+      await refetch()
+      return
+    }
 
     if (completion.quest?.kind === 'oneoff') {
       await supabase.from('quests').update({ active: false }).eq('id', completion.quest.id)
@@ -148,57 +162,36 @@ export function useParentActions(deps: Deps): ParentActions {
           .eq('kid_id', completion.kid_id)
           .eq('status', 'approved')
           .gte('date', activeDungeon.week_start)
+          .lte('date', questDateStringForZone(family?.daily_reset_hour ?? 0, family?.timezone ?? 'UTC'))
 
         const kidDamage = weeklyData?.reduce((s, c) => s + (c.coins_awarded ?? 0), 0) ?? 0
 
         if (kidDamage >= activeDungeon.hp) {
-          await supabase.from('dungeon_clears').insert({
-            dungeon_run_id: activeDungeon.id,
-            kid_id: completion.kid_id,
+          const { data: clear, error: clearError } = await supabase.rpc('award_dungeon_clear', {
+            p_dungeon_run_id: activeDungeon.id,
+            p_kid_id: completion.kid_id,
           })
-          const { data: freshKid2 } = await supabase.from('kids').select('coins, xp').eq('id', completion.kid_id).single()
-          const k2XP = (freshKid2?.xp ?? 0) + activeDungeon.reward_xp
-          await supabase.from('kids').update({
-            coins: (freshKid2?.coins ?? 0) + activeDungeon.reward_coins,
-            xp: k2XP,
-            level: getLevelFromXP(k2XP),
-          }).eq('id', completion.kid_id)
-          setTimeout(() => toast.success(`🏰 ${completion.kid?.name ?? 'Dungeon'} cleared the dungeon! +${activeDungeon.reward_coins} coins!`), 700)
+          const clearResult = clear as { awarded?: boolean; coins?: number } | null
+          if (clearError) {
+            toast.error('Dungeon cleared, but the bonus could not be awarded')
+          } else if (clearResult?.awarded) {
+            setTimeout(() => toast.success(`🏰 ${completion.kid?.name ?? 'Dungeon'} cleared the dungeon! +${activeDungeon.reward_coins} coins!`), 700)
+          }
         }
       }
     }
 
     // Deal damage to active raid boss
     if (activeBoss && family) {
-      const newHP = Math.max(0, activeBoss.current_hp - coinsAwarded)
-
-      await supabase.from('raid_boss_hits').insert({
-        boss_id: activeBoss.id,
-        completion_id: completionId,
-        kid_id: completion.kid_id,
-        damage_dealt: coinsAwarded,
+      const { data: raid, error: raidError } = await supabase.rpc('apply_raid_hit', {
+        p_boss_id: activeBoss.id,
+        p_completion_id: completionId,
       })
-
-      if (newHP === 0) {
-        await supabase.from('raid_bosses').update({
-          current_hp: 0,
-          status: 'defeated',
-          defeated_at: new Date().toISOString(),
-        }).eq('id', activeBoss.id)
-
-        const { data: allKids } = await supabase.from('kids').select('id, coins, xp').eq('family_id', family.id)
-        const perKid = Math.floor(activeBoss.bounty_coins / Math.max(1, allKids?.length ?? 1))
-        await Promise.all((allKids ?? []).map(async (k) => {
-          const kNewXP = k.xp + perKid
-          return supabase.from('kids').update({
-            coins: k.coins + perKid,
-            xp: kNewXP,
-            level: getLevelFromXP(kNewXP),
-          }).eq('id', k.id)
-        }))
-        setTimeout(() => toast.success(`⚔️ Raid boss defeated! ${perKid} coins each!`), 900)
-      } else {
-        await supabase.from('raid_bosses').update({ current_hp: newHP }).eq('id', activeBoss.id)
+      const raidResult = raid as { applied?: boolean; defeated?: boolean; per_kid?: number } | null
+      if (raidError) {
+        toast.error('Quest approved, but raid damage could not be applied')
+      } else if (raidResult?.defeated) {
+        setTimeout(() => toast.success(`⚔️ Raid boss defeated! ${raidResult.per_kid ?? 0} coins each!`), 900)
       }
     }
 
@@ -206,7 +199,17 @@ export function useParentActions(deps: Deps): ParentActions {
   }, [activeBoss, activeDungeon, dungeonClears, completions, family, refetch, supabase])
 
   const reject = useCallback(async (completionId: string) => {
-    await supabase.from('completions').update({ status: 'rejected' }).eq('id', completionId)
+    const { data: updated, error } = await supabase
+      .from('completions')
+      .update({ status: 'rejected', approved_at: new Date().toISOString() })
+      .eq('id', completionId)
+      .eq('status', 'pending')
+      .select('id')
+    if (error || !updated || updated.length === 0) {
+      toast.error('Quest was already reviewed')
+      await refetch()
+      return
+    }
     toast.success('Quest rejected')
     await refetch()
   }, [refetch, supabase])
@@ -216,27 +219,63 @@ export function useParentActions(deps: Deps): ParentActions {
     if (!completion) return
     const coinsToRemove = completion.coins_awarded ?? 0
 
-    await supabase
+    const { data: undone, error } = await supabase
       .from('completions')
       .update({ status: 'pending', approved_at: null, coins_awarded: null })
       .eq('id', completionId)
+      .eq('status', 'approved')
+      .select('id')
 
-    if (coinsToRemove > 0) {
-      const { data: freshKid } = await supabase
-        .from('kids').select('coins, xp').eq('id', completion.kid_id).single()
-      const newXP = Math.max(0, (freshKid?.xp ?? 0) - coinsToRemove)
-      await supabase.from('kids').update({
-        coins: Math.max(0, (freshKid?.coins ?? 0) - coinsToRemove),
-        xp: newXP,
-        level: getLevelFromXP(newXP),
-      }).eq('id', completion.kid_id)
+    if (error || !undone || undone.length === 0) {
+      toast.error('Approval was already undone')
+      await refetch()
+      return
+    }
+
+    const [{ data: freshKid }, { data: approvedDates }] = await Promise.all([
+      supabase.from('kids').select('coins, xp').eq('id', completion.kid_id).single(),
+      supabase.from('completions').select('date').eq('kid_id', completion.kid_id).eq('status', 'approved'),
+    ])
+    if (!freshKid) {
+      await supabase.from('completions').update({ status: 'approved', approved_at: completion.approved_at, coins_awarded: coinsToRemove }).eq('id', completionId).eq('status', 'pending')
+      toast.error('Could not read the adventurer balance')
+      await refetch()
+      return
+    }
+    const newXP = Math.max(0, freshKid.xp - coinsToRemove)
+    const streakState = calculateStreak((approvedDates ?? []).map((row) => row.date))
+    const { data: reversed, error: reverseError } = await supabase.from('kids').update({
+      coins: Math.max(0, freshKid.coins - coinsToRemove),
+      xp: newXP,
+      level: getLevelFromXP(newXP),
+      streak: streakState.streak,
+      last_completed_date: streakState.lastCompletedDate,
+    }).eq('id', completion.kid_id).eq('coins', freshKid.coins).eq('xp', freshKid.xp).select('id').maybeSingle()
+    if (reverseError || !reversed) {
+      await supabase.from('completions').update({ status: 'approved', approved_at: completion.approved_at, coins_awarded: coinsToRemove }).eq('id', completionId).eq('status', 'pending')
+      toast.error('Balance changed while undoing — try again')
+      await refetch()
+      return
+    }
+    if (completion.quest?.kind === 'oneoff') {
+      await supabase.from('quests').update({ active: true }).eq('id', completion.quest.id)
     }
     toast.success('Approval undone — back to pending')
     await refetch()
   }, [completions, refetch, supabase])
 
   const undoRejection = useCallback(async (completionId: string) => {
-    await supabase.from('completions').update({ status: 'pending' }).eq('id', completionId)
+    const { data: undone, error } = await supabase
+      .from('completions')
+      .update({ status: 'pending', approved_at: null })
+      .eq('id', completionId)
+      .eq('status', 'rejected')
+      .select('id')
+    if (error || !undone || undone.length === 0) {
+      toast.error('Rejection was already undone')
+      await refetch()
+      return
+    }
     toast.success('Rejection undone — back to pending')
     await refetch()
   }, [refetch, supabase])
@@ -251,13 +290,14 @@ export function useParentActions(deps: Deps): ParentActions {
     // Server-side route: authenticates parent, verifies family ownership,
     // atomically fetches fresh coins before deducting, idempotency-guarded
     const res = await fetch(`/api/parent/redemptions/${redemptionId}/approve`, { method: 'POST' })
+    const result = await res.json().catch(() => ({})) as { error?: string; coinsDeducted?: number }
 
     if (res.status === 409) {
-      toast.error('Request was already processed')
+      toast.error(result.error ?? 'Request was already processed')
     } else if (!res.ok) {
       toast.error('Could not process — try again')
     } else {
-      toast.success(`${kid.name} got ${reward.title}! 🎁 -${reward.cost} coins`)
+      toast.success(`${kid.name} got ${reward.title}! 🎁 -${result.coinsDeducted ?? redemption.cost_charged ?? reward.cost} coins`)
     }
 
     await refetch()
@@ -277,30 +317,27 @@ export function useParentActions(deps: Deps): ParentActions {
     await refetch()
   }, [refetch])
 
-  const undoRedemption = useCallback(async (redemptionId: string) => {
-    const redemption = redemptions.find((r) => r.id === redemptionId)
-    if (!redemption) return
-    const kid = redemption.kid as Kid | undefined
-    const reward = redemption.reward as Reward | undefined
-    if (!kid || !reward) return
-    await supabase.from('redemptions').update({ status: 'pending' }).eq('id', redemptionId)
-    const { data: freshKid } = await supabase.from('kids').select('coins').eq('id', kid.id).single()
-    await supabase.from('kids').update({ coins: (freshKid?.coins ?? kid.coins) + reward.cost }).eq('id', kid.id)
-    toast.success(`Redemption undone — ${reward.cost} coins returned to ${kid.name}`)
-    await refetch()
-  }, [redemptions, refetch, supabase])
-
   const undoResolvedCurse = useCallback(async (instanceId: string) => {
     const instance = resolvedCurseInstances.find((ci) => ci.id === instanceId)
     const kid = instance?.kid as Kid | undefined
     const curse = instance?.curse as Curse | undefined
-    await supabase.from('curse_instances').update({ status: 'active', resolved_at: null }).eq('id', instanceId)
+    if (!family?.api_key || !instance) return
+    const res = await fetch(`/api/curse-instances/${instanceId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${family.api_key}` },
+      body: JSON.stringify({ reopen: true }),
+    })
+    if (!res.ok) {
+      toast.error('Could not reopen curse')
+      await refetch()
+      return
+    }
     toast.success(`${curse?.title ?? 'Curse'} reopened for ${kid?.name ?? 'kid'}`)
     await refetch()
-  }, [resolvedCurseInstances, refetch, supabase])
+  }, [family, resolvedCurseInstances, refetch])
 
   const addKid = useCallback(async (data: { name: string; avatar: string; color: 'azure' | 'mystic'; pin: string }) => {
-    if (!data.name.trim() || data.pin.length !== 4 || !family) return
+    if (!data.name.trim() || !isValidPin(data.pin) || !family) return
     const plan = family.plan ?? 'free'
     const limits = PLAN_LIMITS[plan]
     if (limits.maxKids < Infinity && kids.length >= limits.maxKids) {
@@ -324,6 +361,10 @@ export function useParentActions(deps: Deps): ParentActions {
 
   const addQuest = useCallback(async (data: AddQuestInput) => {
     if (!data.title.trim() || !family) return
+    if (boundedInteger(data.coins, { min: 0, max: 1_000_000 }) === null || boundedInteger(data.slots, { min: 1, max: 100 }) === null) {
+      toast.error('Quest coins or slots are invalid')
+      return
+    }
     const plan = family.plan ?? 'free'
     const limits = PLAN_LIMITS[plan]
     const activeQuestCount = quests.filter((q) => q.active).length
@@ -374,13 +415,21 @@ export function useParentActions(deps: Deps): ParentActions {
   }, [refetch, supabase])
 
   const deleteQuest = useCallback(async (id: string) => {
-    const { error } = await supabase.from('quests').delete().eq('id', id)
+    const { error } = await supabase.from('quests').update({ archived: true, active: false }).eq('id', id).eq('archived', false)
     if (error) toast.error('Failed to delete quest')
     else toast.success('Quest deleted')
     await refetch()
   }, [refetch, supabase])
 
   const saveQuest = useCallback(async (id: string, updates: Partial<Quest>) => {
+    if (updates.coins !== undefined && boundedInteger(updates.coins, { min: 0, max: 1_000_000 }) === null) {
+      toast.error('Quest coins must be a non-negative integer')
+      return
+    }
+    if (updates.slots !== undefined && boundedInteger(updates.slots, { min: 1, max: 100 }) === null) {
+      toast.error('Quest slots must be between 1 and 100')
+      return
+    }
     const { error } = await supabase.from('quests').update(updates).eq('id', id)
     if (error) toast.error('Failed to save quest')
     else {
@@ -419,6 +468,10 @@ export function useParentActions(deps: Deps): ParentActions {
 
   const addReward = useCallback(async (data: { title: string; description: string; icon: string; cost: number }) => {
     if (!data.title.trim() || !family) return
+    if (boundedInteger(data.cost, { min: 1, max: 1_000_000 }) === null) {
+      toast.error('Reward cost must be a positive integer')
+      return
+    }
     const plan = family.plan ?? 'free'
     const limits = PLAN_LIMITS[plan]
     if (limits.maxRewards < Infinity && rewards.length >= limits.maxRewards) {
@@ -440,7 +493,7 @@ export function useParentActions(deps: Deps): ParentActions {
   }, [family, rewards, refetch, supabase])
 
   const deleteReward = useCallback(async (id: string) => {
-    const { error } = await supabase.from('rewards').delete().eq('id', id)
+    const { error } = await supabase.from('rewards').update({ archived: true, available: false }).eq('id', id).eq('archived', false)
     if (error) toast.error('Failed to delete reward')
     else toast.success('Reward removed')
     await refetch()
@@ -448,6 +501,10 @@ export function useParentActions(deps: Deps): ParentActions {
 
   const saveReward = useCallback(async (id: string, updates: { title: string; description: string; icon: string; cost: number }) => {
     if (!updates.title.trim()) return
+    if (boundedInteger(updates.cost, { min: 1, max: 1_000_000 }) === null) {
+      toast.error('Reward cost must be a positive integer')
+      return
+    }
     const { error } = await supabase.from('rewards').update({
       title: updates.title.trim(),
       description: updates.description.trim() || null,
@@ -475,14 +532,14 @@ export function useParentActions(deps: Deps): ParentActions {
   }, [family, refetch, supabase])
 
   const saveCoins = useCallback(async (kidId: string, value: number) => {
-    if (isNaN(value) || value < 0) return
+    if (boundedInteger(value, { min: 0, max: 1_000_000_000 }) === null) return
     await supabase.from('kids').update({ coins: value }).eq('id', kidId)
     toast.success('Coins updated! 🪙')
     await refetch()
   }, [refetch, supabase])
 
   const setParentPin = useCallback(async (pin: string) => {
-    if (!family || pin.length !== 4) return
+    if (!family || !isValidPin(pin)) return
     const { error } = await supabase.from('families').update({ parent_pin: pin }).eq('id', family.id)
     if (!error) {
       toast.success('Parent lock PIN set! 🔒')
@@ -516,6 +573,10 @@ export function useParentActions(deps: Deps): ParentActions {
 
   const addCurse = useCallback(async (data: { title: string; icon: string; penalty: number }) => {
     if (!data.title.trim() || !family) return
+    if (boundedInteger(data.penalty, { min: 1, max: 1_000_000 }) === null) {
+      toast.error('Curse penalty must be a positive integer')
+      return
+    }
     const plan = family.plan ?? 'free'
     if (!PLAN_LIMITS[plan].curses) {
       toast.error(`Curses require Family plan or higher. ${PLAN_UPGRADE_HINT[plan]}`)
@@ -534,7 +595,7 @@ export function useParentActions(deps: Deps): ParentActions {
   }, [family, refetch, supabase])
 
   const deleteCurse = useCallback(async (id: string) => {
-    const { error } = await supabase.from('curses').delete().eq('id', id)
+    const { error } = await supabase.from('curses').update({ archived: true }).eq('id', id).eq('archived', false)
     if (error) toast.error('Failed to delete curse')
     else toast.success('Curse removed from arsenal')
     await refetch()
@@ -543,28 +604,25 @@ export function useParentActions(deps: Deps): ParentActions {
   const castCurse = useCallback(async (curseId: string, kidId: string) => {
     const curse = curses.find(c => c.id === curseId)
     const kid = kids.find(k => k.id === kidId)
-    if (!curse || !kid) return
+    if (!curse || !kid || !family?.api_key) return
 
-    const { error: instanceError } = await supabase.from('curse_instances').insert({
-      curse_id: curseId,
-      kid_id: kidId,
-      coins_deducted: curse.penalty,
-      status: 'active',
+    const res = await fetch(`/api/curses/${curseId}/cast`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${family.api_key}` },
+      body: JSON.stringify({ kid_id: kidId }),
     })
-    if (instanceError) { toast.error('Failed to cast curse'); return }
-
-    const { data: freshKid } = await supabase.from('kids').select('coins').eq('id', kidId).single()
-    const { error: coinsError } = await supabase
-      .from('kids')
-      .update({ coins: Math.max(0, (freshKid?.coins ?? kid.coins) - curse.penalty) })
-      .eq('id', kidId)
-    if (coinsError) toast.error('Curse cast but coin deduction failed — check manually')
-    else toast.success(`${curse.icon} ${curse.title} cast on ${kid.name}! −${curse.penalty} coins`)
+    const result = await res.json().catch(() => ({})) as { coins_deducted?: number }
+    if (!res.ok) toast.error('Failed to cast curse')
+    else toast.success(`${curse.icon} ${curse.title} cast on ${kid.name}! −${result.coins_deducted ?? 0} coins`)
     await refetch()
-  }, [curses, kids, refetch, supabase])
+  }, [curses, family, kids, refetch])
 
   const castAdHocCurse = useCallback(async (data: { title: string; icon: string; penalty: number; kidId: string }) => {
     if (!data.title.trim() || !family) return
+    if (boundedInteger(data.penalty, { min: 1, max: 1_000_000 }) === null) {
+      toast.error('Curse penalty must be a positive integer')
+      return
+    }
     const plan = family.plan ?? 'free'
     if (!PLAN_LIMITS[plan].curses) {
       toast.error(`Curses require Family plan or higher. ${PLAN_UPGRADE_HINT[plan]}`)
@@ -581,51 +639,54 @@ export function useParentActions(deps: Deps): ParentActions {
     }).select('id').single()
     if (curseError || !curse) { toast.error('Failed to cast curse'); return }
 
-    const { error: instanceError } = await supabase.from('curse_instances').insert({
-      curse_id: curse.id,
-      kid_id: data.kidId,
-      coins_deducted: data.penalty,
-      status: 'active',
+    if (!family.api_key) return
+    const res = await fetch(`/api/curses/${curse.id}/cast`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${family.api_key}` },
+      body: JSON.stringify({ kid_id: data.kidId }),
     })
-    if (instanceError) { toast.error('Curse created but failed to cast'); return }
+    const result = await res.json().catch(() => ({})) as { coins_deducted?: number }
+    if (!res.ok) {
+      toast.error('Curse created but failed to cast')
+      return
+    }
 
-    const { data: freshKid } = await supabase.from('kids').select('coins').eq('id', data.kidId).single()
-    await supabase.from('kids')
-      .update({ coins: Math.max(0, (freshKid?.coins ?? kid.coins) - data.penalty) })
-      .eq('id', data.kidId)
-
-    toast.success(`${data.icon} ${data.title.trim()} cast on ${kid.name}! −${data.penalty} coins`)
+    toast.success(`${data.icon} ${data.title.trim()} cast on ${kid.name}! −${result.coins_deducted ?? 0} coins`)
     await refetch()
   }, [family, kids, refetch, supabase])
 
   const resolveCurse = useCallback(async (instanceId: string, refund: boolean) => {
     const instance = activeCurseInstances.find(ci => ci.id === instanceId)
     const kid = instance?.kid as Kid | undefined
-    if (!instance || !kid) return
+    if (!instance || !kid || !family?.api_key) return
 
-    const { error: resolveError } = await supabase
-      .from('curse_instances')
-      .update({ status: 'resolved', resolved_at: new Date().toISOString() })
-      .eq('id', instanceId)
-    if (resolveError) { toast.error('Failed to resolve curse'); return }
-
-    if (refund) {
-      const { data: freshKid } = await supabase.from('kids').select('coins').eq('id', kid.id).single()
-      const { error: coinsError } = await supabase
-        .from('kids')
-        .update({ coins: (freshKid?.coins ?? kid.coins) + instance.coins_deducted })
-        .eq('id', kid.id)
-      if (coinsError) toast.error('Curse lifted but refund failed — check manually')
-      else toast.success(`Curse lifted — ${instance.coins_deducted} coins refunded to ${kid.name}`)
-    } else {
-      toast.success('Curse resolved')
+    const res = await fetch(`/api/curse-instances/${instanceId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${family.api_key}` },
+      body: JSON.stringify({ refund }),
+    })
+    if (!res.ok) {
+      toast.error('Failed to resolve curse')
+      await refetch()
+      return
     }
+
+    if (refund) toast.success(`Curse lifted — ${instance.coins_deducted} coins refunded to ${kid.name}`)
+    else toast.success('Curse resolved')
     await refetch()
-  }, [activeCurseInstances, refetch, supabase])
+  }, [activeCurseInstances, family, refetch])
 
   const addDungeonRun = useCallback(async (data: { title: string; icon: string; hp: number; rewardCoins: number; rewardXp: number }) => {
     if (!family) return
-    const monday = getWeekMonday()
+    if (
+      boundedInteger(data.hp, { min: 1, max: 1_000_000 }) === null ||
+      boundedInteger(data.rewardCoins, { min: 0, max: 1_000_000 }) === null ||
+      boundedInteger(data.rewardXp, { min: 0, max: 1_000_000 }) === null
+    ) {
+      toast.error('Dungeon values must be whole, non-negative numbers')
+      return
+    }
+    const monday = questWeekKeyForZone(family.daily_reset_hour ?? 0, family.timezone ?? 'UTC')
     const { error } = await supabase.from('dungeon_runs').insert({
       family_id: family.id,
       title: data.title.trim() || 'Weekly Dungeon',
@@ -645,7 +706,7 @@ export function useParentActions(deps: Deps): ParentActions {
   }, [family, refetch, supabase])
 
   const deleteDungeonRun = useCallback(async (id: string) => {
-    const { error } = await supabase.from('dungeon_runs').delete().eq('id', id)
+    const { error } = await supabase.from('dungeon_runs').update({ archived: true }).eq('id', id).eq('archived', false)
     if (error) toast.error('Failed to delete dungeon')
     else toast.success('Dungeon dismissed')
     await refetch()
@@ -653,6 +714,13 @@ export function useParentActions(deps: Deps): ParentActions {
 
   const addRaidBoss = useCallback(async (data: { title: string; icon: string; hpPerKid: number; bountyCoins: number }) => {
     if (!family || !data.title.trim()) return
+    if (
+      boundedInteger(data.hpPerKid, { min: 1, max: 1_000_000 }) === null ||
+      boundedInteger(data.bountyCoins, { min: 0, max: 1_000_000 }) === null
+    ) {
+      toast.error('Raid boss values must be whole, non-negative numbers')
+      return
+    }
     const totalHP = data.hpPerKid * Math.max(1, kids.length)
     const { error } = await supabase.from('raid_bosses').insert({
       family_id: family.id,
@@ -672,7 +740,7 @@ export function useParentActions(deps: Deps): ParentActions {
   }, [family, kids, refetch, supabase])
 
   const deleteRaidBoss = useCallback(async (id: string) => {
-    const { error } = await supabase.from('raid_bosses').delete().eq('id', id)
+    const { error } = await supabase.from('raid_bosses').update({ archived: true }).eq('id', id).eq('archived', false)
     if (error) toast.error('Failed to dismiss raid boss')
     else toast.success('Raid boss dismissed')
     await refetch()
@@ -686,7 +754,7 @@ export function useParentActions(deps: Deps): ParentActions {
 
   return {
     approve, reject, undoApproval, undoRejection,
-    fulfillRedemption, denyRedemption, undoRedemption, undoResolvedCurse,
+    fulfillRedemption, denyRedemption, undoResolvedCurse,
     addKid,
     addQuest, toggleQuest, deleteQuest, saveQuest, seedDefaultQuests,
     addReward, deleteReward, saveReward,

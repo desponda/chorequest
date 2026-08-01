@@ -112,7 +112,7 @@ export default function ResetPasswordPage() {
                     minLength={6}
                     aria-invalid={tooShort}
                     aria-describedby={tooShort ? 'rp-password-error' : undefined}
-                    className="w-full px-4 py-3 pr-12 rounded-xl text-sm text-white/90 placeholder:text-white/25 outline-none transition-all"
+                    className="w-full px-4 py-3 pr-12 rounded-xl text-base sm:text-sm text-white/90 placeholder:text-white/25 outline-none transition-all"
                     style={inputStyle}
                   />
                   <button
@@ -145,7 +145,7 @@ export default function ResetPasswordPage() {
                   required
                   aria-invalid={mismatch}
                   aria-describedby={mismatch ? 'rp-confirm-error' : undefined}
-                  className="w-full px-4 py-3 rounded-xl text-sm text-white/90 placeholder:text-white/25 outline-none transition-all"
+                  className="w-full px-4 py-3 rounded-xl text-base sm:text-sm text-white/90 placeholder:text-white/25 outline-none transition-all"
                   style={inputStyle}
                 />
                 {mismatch && (
@@ -157,7 +157,7 @@ export default function ResetPasswordPage() {
 
               <motion.button
                 type="submit"
-                disabled={loading || mismatch || tooShort || password.length === 0}
+                disabled={loading || password.length < 6 || password !== confirm}
                 className="mt-2 w-full py-3.5 rounded-xl font-heading font-bold tracking-widest text-sm uppercase transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                   background: 'linear-gradient(135deg, rgba(251,191,36,0.25), rgba(251,191,36,0.12))',

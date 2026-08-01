@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest'
-import { isValidPin, questDateString, questWeekKey, localDateString } from '../utils'
+import {
+  dateKeyDayOfWeek,
+  isDateKey,
+  isValidPin,
+  localDateString,
+  questDateString,
+  questDateStringForZone,
+  questWeekKey,
+  questWeekKeyForZone,
+  weekKeyForDate,
+} from '../utils'
 
 describe('isValidPin', () => {
   it('accepts exactly 4 numeric digits', () => {
@@ -111,5 +121,44 @@ describe('localDateString', () => {
   it('zero-pads month and day', () => {
     expect(localDateString(new Date(2025, 0, 9))).toBe('2025-01-09')
     expect(localDateString(new Date(2025, 8, 1))).toBe('2025-09-01')
+  })
+})
+
+describe('timezone-aware quest keys', () => {
+  const instant = new Date('2025-06-15T02:00:00Z')
+
+  it('uses the family timezone instead of the server timezone', () => {
+    expect(questDateStringForZone(0, 'America/New_York', instant)).toBe('2025-06-14')
+    expect(questDateStringForZone(0, 'Asia/Tokyo', instant)).toBe('2025-06-15')
+  })
+
+  it('applies the reset hour before computing the week', () => {
+    expect(questDateStringForZone(23, 'America/New_York', instant)).toBe('2025-06-13')
+    expect(questWeekKeyForZone(23, 'America/New_York', instant)).toBe('2025-06-09')
+  })
+})
+
+describe('date-key helpers', () => {
+  it('validates real calendar dates rather than only their shape', () => {
+    expect(isDateKey('2026-05-05')).toBe(true)
+    expect(isDateKey('2024-02-29')).toBe(true)
+    expect(isDateKey('2025-02-29')).toBe(false)
+    expect(isDateKey('2026-13-01')).toBe(false)
+    expect(isDateKey('05/05/2026')).toBe(false)
+  })
+
+  it('gets weekdays without shifting date-only values in western timezones', () => {
+    expect(dateKeyDayOfWeek('2026-05-05')).toBe(2) // Tuesday
+    expect(dateKeyDayOfWeek('2026-05-10')).toBe(0) // Sunday
+  })
+
+  it('finds the containing Monday across month and year boundaries', () => {
+    expect(weekKeyForDate('2026-05-10')).toBe('2026-05-04')
+    expect(weekKeyForDate('2025-01-01')).toBe('2024-12-30')
+  })
+
+  it('rejects impossible date keys', () => {
+    expect(() => dateKeyDayOfWeek('2026-02-30')).toThrow(RangeError)
+    expect(() => weekKeyForDate('not-a-date')).toThrow(RangeError)
   })
 })

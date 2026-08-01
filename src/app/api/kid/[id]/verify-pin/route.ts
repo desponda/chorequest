@@ -1,6 +1,8 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { isValidPin } from '@/lib/utils'
+import { createKidSessionToken, KID_SESSION_COOKIE, kidSessionCookieOptions } from '@/lib/kid-session'
 import { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -11,17 +13,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const supabase = createServiceClient()
-  const { data: kid } = await supabase
-    .from('kids')
-    .select('pin')
-    .eq('id', id)
-    .single()
-
-  if (!kid) {
-    // Return 401 (not 404) to avoid confirming whether a kid ID exists
-    return Response.json({ success: false }, { status: 401 })
+  const { data, error } = await supabase.rpc('verify_kid_pin', {
+    p_kid_id: id,
+    p_pin: body.pin,
+  })
+  if (error) {
+    return Response.json({ error: 'Could not verify PIN' }, { status: 500 })
   }
 
-  const success = kid.pin === body.pin
-  return Response.json({ success }, { status: success ? 200 : 401 })
+  const result = data as { success?: boolean; retry_after?: number } | null
+  const success = result?.success === true
+  const retryAfter = Math.max(0, result?.retry_after ?? 0)
+  const response = NextResponse.json(
+    { success, retryAfter },
+    {
+      status: success ? 200 : retryAfter > 0 ? 429 : 401,
+      headers: retryAfter > 0 ? { 'Retry-After': String(retryAfter) } : undefined,
+    },
+  )
+  if (success) {
+    response.cookies.set(KID_SESSION_COOKIE, createKidSessionToken(id), kidSessionCookieOptions)
+  }
+  return response
 }

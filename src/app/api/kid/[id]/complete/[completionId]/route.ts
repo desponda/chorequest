@@ -1,30 +1,29 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest } from 'next/server'
+import { requireKidSession } from '@/lib/kid-session'
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string; completionId: string }> }
 ) {
   const { id, completionId } = await params
+  const authError = requireKidSession(req, id)
+  if (authError) return authError
   const supabase = createServiceClient()
 
-  const { data: completion } = await supabase
+  const { data: deleted, error } = await supabase
     .from('completions')
-    .select('id')
+    .delete()
     .eq('id', completionId)
     .eq('kid_id', id)
     .eq('status', 'pending')
-    .single()
-
-  if (!completion) {
-    return Response.json({ error: 'Not found or already reviewed' }, { status: 404 })
-  }
-
-  const { error } = await supabase.from('completions').delete().eq('id', completionId)
+    .select('id')
+    .maybeSingle()
 
   if (error) {
     return Response.json({ error: error.message }, { status: 500 })
   }
+  if (!deleted) return Response.json({ error: 'Not found or already reviewed' }, { status: 409 })
 
   return Response.json({ success: true })
 }

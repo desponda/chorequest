@@ -6,7 +6,6 @@ import type { LedgerEntry } from '@/lib/ledger'
 interface CoinLedgerProps {
   ledger: LedgerEntry[]
   currentBalance: number
-  kidColor?: 'azure' | 'mystic'
 }
 
 const KIND_LABEL: Record<LedgerEntry['kind'], string> = {
@@ -15,6 +14,9 @@ const KIND_LABEL: Record<LedgerEntry['kind'], string> = {
   reward_redeemed: 'Reward redeemed',
   reward_denied: 'Reward denied',
   curse: 'Curse applied',
+  curse_refund: 'Curse forgiven',
+  dungeon_reward: 'Dungeon reward',
+  raid_bounty: 'Raid bounty',
 }
 
 function formatDate(iso: string): string {
@@ -44,9 +46,7 @@ function groupByDate(ledger: LedgerEntry[]): Array<{ dateLabel: string; entries:
   return Array.from(groups.entries()).map(([dateLabel, entries]) => ({ dateLabel, entries }))
 }
 
-export function CoinLedger({ ledger, currentBalance, kidColor = 'azure' }: CoinLedgerProps) {
-  const primaryColor = kidColor === 'azure' ? '#38bdf8' : '#a78bfa'
-
+export function CoinLedger({ ledger, currentBalance }: CoinLedgerProps) {
   if (ledger.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-white/25">

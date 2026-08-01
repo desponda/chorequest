@@ -12,18 +12,21 @@ import { CoinCounter } from '@/components/coin-counter'
 import { StreakBadge } from '@/components/streak-badge'
 import { KidViewSkeleton } from '@/components/skeletons'
 import type { Kid, Quest, Completion, Reward, CurseInstance, Redemption } from '@/lib/types'
-import { KID_COLORS, getLockDurationMs } from '@/lib/constants'
-import { questDateString, questWeekKey } from '@/lib/utils'
+import { KID_COLORS } from '@/lib/constants'
+import { questDateStringForZone, questWeekKeyForZone } from '@/lib/utils'
 import { isQuestVisibleToKid, kidHasActiveCompletion, sharedClaimedCount, kidCompletionForPeriod } from '@/lib/quest-rules'
 import { toast } from 'sonner'
 import { CoinLedger } from '@/components/coin-ledger'
 import type { LedgerEntry } from '@/lib/ledger'
+import { getLevelTitle } from '@/lib/xp'
+import { classifyRedemptionChanges } from '@/lib/redemption-notifications'
 
 const PIN_SESSION_KEY = 'cq_kid_pin_'
 
 interface KidDataPayload {
   kid: Kid
   resetHour: number
+  timeZone: string
   quests: Quest[]
   completions: Completion[]
   rewards: Reward[]
@@ -32,11 +35,37 @@ interface KidDataPayload {
   pendingRedemptions: Redemption[]
 }
 
+type PublicKidProfile = Pick<Kid, 'id' | 'name' | 'avatar' | 'color'>
+
+function lockedPayload(kid: PublicKidProfile): KidDataPayload {
+  return {
+    kid: {
+      ...kid,
+      family_id: '',
+      coins: 0,
+      streak: 0,
+      last_completed_date: null,
+      xp: 0,
+      level: 1,
+      created_at: '',
+    },
+    resetHour: 0,
+    timeZone: 'UTC',
+    quests: [],
+    completions: [],
+    rewards: [],
+    activeCurses: [],
+    familySharedCompletions: [],
+    pendingRedemptions: [],
+  }
+}
+
 export default function KidPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
 
   const [data, setData] = useState<KidDataPayload | null>(null)
   const prevPendingIdsRef = useRef<string[]>([])
+  const locallyCancelledRedemptionIdsRef = useRef(new Set<string>())
   const isFirstFetchRef = useRef(true)
   const [tab, setTab] = useState<'quests' | 'bounty' | 'rewards' | 'history'>('quests')
   const [pinVerified, setPinVerified] = useState(() =>
@@ -46,7 +75,6 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   )
   const [pinInput, setPinInput] = useState('')
   const [pinError, setPinError] = useState(false)
-  const [pinAttempts, setPinAttempts] = useState(0)
   const [lockedUntil, setLockedUntil] = useState<number | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const [loading, setLoading] = useState(true)
@@ -55,6 +83,11 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   const fetchData = useCallback(async () => {
     const res = await fetch(`/api/kid/${id}/data`)
     if (!res.ok) {
+      if (res.status === 401) {
+        sessionStorage.removeItem(PIN_SESSION_KEY + id)
+        setPinVerified(false)
+        setData(null)
+      }
       setLoading(false)
       return
     }
@@ -62,20 +95,46 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
     setData(payload)
 
     const incoming = payload.pendingRedemptions ?? []
+    const changes = classifyRedemptionChanges(
+      prevPendingIdsRef.current,
+      incoming,
+      locallyCancelledRedemptionIdsRef.current,
+    )
     if (!isFirstFetchRef.current) {
-      const newIds = new Set(incoming.map((r) => r.id))
-      const resolved = prevPendingIdsRef.current.filter((rid) => !newIds.has(rid))
-      if (resolved.length > 0) {
+      if (changes.approvedIds.length > 0) {
         toast.success('🎉 Reward approved!', { description: 'Your balance has been updated' })
+      }
+      if (changes.deniedIds.length > 0) {
+        toast.error('Reward request denied', { description: 'Your reserved coins are available again' })
       }
     }
     isFirstFetchRef.current = false
-    prevPendingIdsRef.current = incoming.map((r) => r.id)
+    prevPendingIdsRef.current = changes.pendingIds
+    for (const id of locallyCancelledRedemptionIdsRef.current) {
+      if (!changes.pendingIds.includes(id)) locallyCancelledRedemptionIdsRef.current.delete(id)
+    }
 
     setLoading(false)
   }, [id])
 
   useEffect(() => {
+    if (pinVerified) return
+    let cancelled = false
+    setLoading(true)
+    fetch(`/api/kid/${id}/profile`)
+      .then(async (res) => res.ok ? res.json() as Promise<{ kid: PublicKidProfile }> : null)
+      .then((payload) => {
+        if (!cancelled && payload?.kid) setData(lockedPayload(payload.kid))
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [id, pinVerified])
+
+  useEffect(() => {
+    if (!pinVerified) return
+    setLoading(true)
     fetchData()
 
     const channel = supabase
@@ -87,7 +146,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [fetchData, id, supabase])
+  }, [fetchData, id, pinVerified, supabase])
 
   useEffect(() => {
     if (!lockedUntil) return
@@ -105,19 +164,15 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pin: next }),
       })
-      const { success } = await res.json()
+      const { success, retryAfter } = await res.json() as { success?: boolean; retryAfter?: number }
       if (success) {
         sessionStorage.setItem(PIN_SESSION_KEY + id, 'verified')
+        setLoading(true)
         setPinVerified(true)
         setPinError(false)
-        setPinAttempts(0)
         setLockedUntil(null)
       } else {
-        const attempts = pinAttempts + 1
-        setPinAttempts(attempts)
-        if (attempts >= 5) {
-          setLockedUntil(now + getLockDurationMs(attempts))
-        }
+        if (retryAfter && retryAfter > 0) setLockedUntil(Date.now() + retryAfter * 1000)
         setPinError(true)
         setTimeout(() => {
           setPinInput('')
@@ -125,7 +180,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
         }, 700)
       }
     }
-  }, [lockedUntil, now, pinInput, pinAttempts, id])
+  }, [lockedUntil, now, pinInput, id])
 
   useEffect(() => {
     if (pinVerified) return
@@ -146,8 +201,8 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
       const quest = data.quests.find((q) => q.id === questId)
       if (!quest) return
 
-      const today = questDateString(data.resetHour)
-      const weekStart = questWeekKey(data.resetHour)
+      const today = questDateStringForZone(data.resetHour, data.timeZone)
+      const weekStart = questWeekKeyForZone(data.resetHour, data.timeZone)
 
       // For shared quests, double-check slot availability before posting
       if (quest.kind === 'shared') {
@@ -182,7 +237,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
       if (!reward) return
 
       // Only count pending (not denied) against available coins
-      const pendingTotal = (data.pendingRedemptions ?? []).filter(r => r.status === 'pending').reduce((sum, r) => sum + (r.reward?.cost ?? 0), 0)
+      const pendingTotal = (data.pendingRedemptions ?? []).filter(r => r.status === 'pending').reduce((sum, r) => sum + (r.cost_charged ?? r.reward?.cost ?? 0), 0)
       const available = Math.max(0, data.kid.coins - pendingTotal)
 
       if (available < reward.cost) {
@@ -223,8 +278,10 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
 
   const handleCancelRedemption = useCallback(
     async (redemptionId: string) => {
+      locallyCancelledRedemptionIdsRef.current.add(redemptionId)
       const res = await fetch(`/api/kid/${id}/redeem/${redemptionId}`, { method: 'DELETE' })
       if (!res.ok) {
+        locallyCancelledRedemptionIdsRef.current.delete(redemptionId)
         toast.error('Could not cancel request')
         return
       }
@@ -238,14 +295,14 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
     return <KidViewSkeleton />
   }
 
-  const { kid, resetHour, quests, completions, rewards, activeCurses, familySharedCompletions } = data
+  const { kid, resetHour, timeZone, quests, completions, rewards, activeCurses, familySharedCompletions } = data
   // Split by status: only pending counts against available coins; denied shown as history
   const pendingRedemptions = (data.pendingRedemptions ?? []).filter((r) => r.status === 'pending')
   const deniedRedemptions = (data.pendingRedemptions ?? []).filter((r) => r.status === 'denied')
-  const today = questDateString(resetHour)
-  const weekStart = questWeekKey(resetHour)
+  const today = questDateStringForZone(resetHour, timeZone)
+  const weekStart = questWeekKeyForZone(resetHour, timeZone)
   const colors = KID_COLORS[kid.color]
-  const pendingTotal = pendingRedemptions.reduce((sum, r) => sum + (r.reward?.cost ?? 0), 0)
+  const pendingTotal = pendingRedemptions.reduce((sum, r) => sum + (r.cost_charged ?? r.reward?.cost ?? 0), 0)
   const availableCoins = Math.max(0, kid.coins - pendingTotal)
   const pendingCompletions = completions.filter(c => c.status === 'pending')
 
@@ -359,6 +416,11 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
     const myCompletion = kidCompletionForPeriod(q, kid.id, completions, today, weekStart)
     return !myCompletion && claimed < q.slots
   }).length
+  const hasQuestTabContent =
+    pendingCompletions.length > 0 ||
+    activeCurses.length > 0 ||
+    personalDaily.length > 0 ||
+    personalWeekly.length > 0
 
   return (
     <div className="min-h-screen bg-quest-void flex flex-col">
@@ -381,7 +443,9 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
             <span className="text-3xl">{kid.avatar}</span>
             <div>
               <h1 className="font-heading text-2xl font-bold text-white/95">{kid.name}</h1>
-              <p className="text-xs" style={{ color: colors.primary }}>Level {Math.floor(kid.coins / 50) + 1} Adventurer</p>
+              <p className="text-xs" style={{ color: colors.primary }}>
+                {getLevelTitle(kid.level ?? 1)} Â· Lv {kid.level ?? 1}
+              </p>
             </div>
           </div>
 
@@ -510,10 +574,24 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                   </motion.button>
                 )}
 
-                {visibleQuests.length === 0 && (
+                {!hasQuestTabContent && (
                   <div className="text-center py-16 text-white/30">
                     <p className="text-4xl mb-3">🧙</p>
-                    <p>No quests yet — ask a parent to add some!</p>
+                    <p>
+                      {availableBountyCount > 0
+                        ? 'No personal quests right now.'
+                        : 'No quests yet — ask a parent to add some!'}
+                    </p>
+                    {availableBountyCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setTab('bounty')}
+                        className="mt-4 min-h-[44px] px-4 rounded-xl text-sm font-bold text-amber-400"
+                        style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)' }}
+                      >
+                        View {availableBountyCount === 1 ? 'Bounty' : `${availableBountyCount} Bounties`}
+                      </button>
+                    )}
                   </div>
                 )}
               </motion.div>
@@ -530,7 +608,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                 onUndo={handleUndo}
               />
             ) : tab === 'history' ? (
-              <HistoryTab key="history" kidId={id} kidColor={kid.color} />
+              <HistoryTab key="history" kidId={id} />
             ) : (
               <RewardsTab
                 rewards={rewards}
@@ -875,7 +953,7 @@ function kidColorRgb(color: string) {
   return color === 'azure' ? '56,189,248' : '167,139,250'
 }
 
-function HistoryTab({ kidId, kidColor }: { kidId: string; kidColor: 'azure' | 'mystic' }) {
+function HistoryTab({ kidId }: { kidId: string }) {
   const [ledger, setLedger] = useState<LedgerEntry[]>([])
   const [balance, setBalance] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -919,7 +997,7 @@ function HistoryTab({ kidId, kidColor }: { kidId: string; kidColor: 'azure' | 'm
       exit={{ opacity: 0, x: -10 }}
       transition={{ duration: 0.2 }}
     >
-      <CoinLedger ledger={ledger} currentBalance={balance} kidColor={kidColor} />
+      <CoinLedger ledger={ledger} currentBalance={balance} />
     </motion.div>
   )
 }

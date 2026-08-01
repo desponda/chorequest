@@ -2,6 +2,7 @@ import { authenticate, isAuthError, cors } from '@/lib/api-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import type { Plan } from '@/lib/types'
 import { PLAN_LIMITS, PLAN_LABELS } from '@/lib/plans'
+import { boundedInteger, nonEmptyString } from '@/lib/validation'
 
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: cors() })
@@ -16,6 +17,7 @@ export async function GET(req: Request) {
     .from('rewards')
     .select('*')
     .eq('family_id', auth.familyId)
+    .eq('archived', false)
     .order('created_at')
 
   if (error) return Response.json({ error: error.message }, { status: 500, headers: cors() })
@@ -28,15 +30,22 @@ export async function POST(req: Request) {
   if (isAuthError(auth)) return auth
 
   const body = await req.json().catch(() => null)
-  if (!body?.title) {
+  const title = nonEmptyString(body?.title)
+  const icon = body?.icon === undefined ? '🎁' : nonEmptyString(body.icon)
+  const cost = boundedInteger(body?.cost, { defaultValue: 50, min: 1, max: 1_000_000 })
+  if (!title) {
     return Response.json({ error: '`title` is required' }, { status: 400, headers: cors() })
   }
+  if (!icon || (body.description !== undefined && body.description !== null && typeof body.description !== 'string')) {
+    return Response.json({ error: '`icon` must be non-empty and `description` must be text or null' }, { status: 400, headers: cors() })
+  }
+  if (cost === null) return Response.json({ error: '`cost` must be a positive integer' }, { status: 400, headers: cors() })
 
   const supabase = createServiceClient()
 
   const [familyRes, countRes] = await Promise.all([
     supabase.from('families').select('plan').eq('id', auth.familyId).single(),
-    supabase.from('rewards').select('id', { count: 'exact', head: true }).eq('family_id', auth.familyId),
+    supabase.from('rewards').select('id', { count: 'exact', head: true }).eq('family_id', auth.familyId).eq('archived', false),
   ])
   const plan = ((familyRes.data?.plan ?? 'free') as Plan)
   const limits = PLAN_LIMITS[plan]
@@ -49,11 +58,12 @@ export async function POST(req: Request) {
     .from('rewards')
     .insert({
       family_id: auth.familyId,
-      title: body.title,
+      title,
       description: body.description ?? null,
-      icon: body.icon ?? '🎁',
-      cost: Number(body.cost ?? 50),
+      icon,
+      cost,
       available: true,
+      archived: false,
     })
     .select()
     .single()

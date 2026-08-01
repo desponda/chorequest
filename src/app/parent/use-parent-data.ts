@@ -4,8 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import type { Family, Kid, Quest, Completion, Reward, Redemption, Curse, CurseInstance, DungeonRun, DungeonClear, RaidBoss } from '@/lib/types'
-import { questDateString } from '@/lib/utils'
-import { getWeekMonday } from '@/lib/xp'
+import { questDateStringForZone, questWeekKeyForZone } from '@/lib/utils'
 
 export interface ParentData {
   family: Family | null
@@ -55,35 +54,41 @@ export function useParentData(): ParentData {
 
     const { data: resetData } = await supabase
       .from('families')
-      .select('daily_reset_hour')
+      .select('daily_reset_hour, timezone')
       .eq('id', profile.family_id)
       .single()
-    const today = questDateString(resetData?.daily_reset_hour ?? 0)
-    const monday = getWeekMonday()
+    const resetHour = resetData?.daily_reset_hour ?? 0
+    const detectedTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+    const timeZone = resetData?.timezone ?? detectedTimeZone
+    if (!resetData?.timezone) {
+      await supabase.from('families').update({ timezone: detectedTimeZone }).eq('id', profile.family_id).is('timezone', null)
+    }
+    const today = questDateStringForZone(resetHour, timeZone)
+    const weekStart = questWeekKeyForZone(resetHour, timeZone)
 
     const [
       familyRes, kidsRes, questsRes, pendingCompletionsRes, reviewedTodayRes, rewardsRes,
       pendingRedemptionsRes, approvedRedemptionsRes, cursesRes, curseInstancesRes, resolvedCurseInstancesRes,
       activeDungeonRes, activeBossRes, pastDungeonsRes, defeatedBossesRes, weeklyCompletionsRes,
     ] = await Promise.all([
-      supabase.from('families').select('id, name, invite_token, api_key, daily_reset_hour, created_at, parent_pin, plan').eq('id', profile.family_id).single(),
+      supabase.from('families').select('id, name, invite_token, api_key, daily_reset_hour, timezone, created_at, parent_pin, plan').eq('id', profile.family_id).single(),
       supabase.from('kids').select(KID_COLS).eq('family_id', profile.family_id).order('created_at'),
-      supabase.from('quests').select('*').eq('family_id', profile.family_id).order('created_at'),
+      supabase.from('quests').select('*').eq('family_id', profile.family_id).eq('archived', false).order('created_at'),
       // pending completions: no date filter — yesterday's unapproved items must surface
       supabase.from('completions').select(`*, quest:quests(*), kid:kids(${KID_COLS})`).eq('status', 'pending').order('completed_at', { ascending: false }),
       // reviewed completions: no date filter — show full history
       supabase.from('completions').select(`*, quest:quests(*), kid:kids(${KID_COLS})`).in('status', ['approved', 'rejected']).order('completed_at', { ascending: false }).limit(200),
-      supabase.from('rewards').select('*').eq('family_id', profile.family_id).order('created_at'),
+      supabase.from('rewards').select('*').eq('family_id', profile.family_id).eq('archived', false).order('created_at'),
       supabase.from('redemptions').select(`*, reward:rewards(*), kid:kids(${KID_COLS})`).eq('status', 'pending').order('redeemed_at', { ascending: false }),
       supabase.from('redemptions').select(`*, reward:rewards(*), kid:kids(${KID_COLS})`).in('status', ['approved', 'denied']).order('redeemed_at', { ascending: false }).limit(200),
-      supabase.from('curses').select('*').eq('family_id', profile.family_id).order('created_at'),
+      supabase.from('curses').select('*').eq('family_id', profile.family_id).eq('archived', false).order('created_at'),
       supabase.from('curse_instances').select(`*, curse:curses(*), kid:kids(${KID_COLS})`).eq('status', 'active').order('cast_at', { ascending: false }),
       supabase.from('curse_instances').select(`*, curse:curses(*), kid:kids(${KID_COLS})`).eq('status', 'resolved').order('resolved_at', { ascending: false }).limit(200),
-      supabase.from('dungeon_runs').select('*').eq('family_id', profile.family_id).eq('week_start', monday).maybeSingle(),
-      supabase.from('raid_bosses').select('*').eq('family_id', profile.family_id).eq('status', 'active').maybeSingle(),
-      supabase.from('dungeon_runs').select('*').eq('family_id', profile.family_id).lt('week_start', monday).order('week_start', { ascending: false }).limit(5),
-      supabase.from('raid_bosses').select('*').eq('family_id', profile.family_id).eq('status', 'defeated').order('defeated_at', { ascending: false }).limit(5),
-      supabase.from('completions').select('kid_id, coins_awarded, status').eq('status', 'approved').gte('date', monday),
+      supabase.from('dungeon_runs').select('*').eq('family_id', profile.family_id).eq('week_start', weekStart).eq('archived', false).maybeSingle(),
+      supabase.from('raid_bosses').select('*').eq('family_id', profile.family_id).eq('status', 'active').eq('archived', false).maybeSingle(),
+      supabase.from('dungeon_runs').select('*').eq('family_id', profile.family_id).eq('archived', false).lt('week_start', weekStart).order('week_start', { ascending: false }).limit(5),
+      supabase.from('raid_bosses').select('*').eq('family_id', profile.family_id).eq('status', 'defeated').eq('archived', false).order('defeated_at', { ascending: false }).limit(5),
+      supabase.from('completions').select('kid_id, coins_awarded, status').eq('status', 'approved').gte('date', weekStart).lte('date', today),
     ])
 
     if (familyRes.data) {
@@ -93,6 +98,7 @@ export function useParentData(): ParentData {
         has_parent_pin: parent_pin !== null,
         api_key: rest.api_key ?? undefined,
         daily_reset_hour: rest.daily_reset_hour ?? 0,
+        timezone: rest.timezone ?? timeZone,
         plan: (rest.plan as import('@/lib/types').Plan) ?? 'free',
       })
     }

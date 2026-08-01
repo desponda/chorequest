@@ -8,6 +8,9 @@ import { test, expect } from '@playwright/test'
 
 test.describe('Quest board — unauthenticated gates', () => {
   test('kid page with unknown UUID loads without crashing', async ({ page }) => {
+    await page.route('**/api/kid/*/profile', (route) =>
+      route.fulfill({ status: 404, contentType: 'application/json', body: '{"error":"Kid not found"}' }),
+    )
     await page.goto('/kid/00000000-0000-0000-0000-000000000001')
     await page.waitForLoadState('networkidle')
     await expect(page.locator('body')).not.toContainText('Internal Server Error')
@@ -28,26 +31,26 @@ test.describe('Quest board — unauthenticated gates', () => {
   })
 })
 
-test.describe('Complete API — public error handling', () => {
-  test('POST /api/kid/:id/complete returns 400 on bad body', async ({ request }) => {
+test.describe('Complete API — kid-session authorization', () => {
+  test('POST /api/kid/:id/complete rejects an unauthenticated bad-body request', async ({ request }) => {
     const res = await request.post('/api/kid/00000000-0000-0000-0000-000000000001/complete', {
       data: {},
     })
-    expect(res.status()).toBe(400)
+    expect(res.status()).toBe(401)
   })
 
-  test('POST /api/kid/:id/complete returns 404 for unknown kid', async ({ request }) => {
+  test('POST /api/kid/:id/complete does not disclose whether an unauthenticated kid exists', async ({ request }) => {
     const res = await request.post('/api/kid/00000000-0000-0000-0000-000000000001/complete', {
       data: { quest_id: '00000000-0000-0000-0000-000000000099', date: '2025-01-01' },
     })
-    expect(res.status()).toBe(404)
+    expect(res.status()).toBe(401)
   })
 
-  test('DELETE /api/kid/:id/complete/:completionId returns 404 for unknown completion', async ({ request }) => {
+  test('DELETE /api/kid/:id/complete/:completionId rejects an unauthenticated request', async ({ request }) => {
     const res = await request.delete(
       '/api/kid/00000000-0000-0000-0000-000000000001/complete/00000000-0000-0000-0000-000000000099',
     )
-    expect(res.status()).toBe(404)
+    expect(res.status()).toBe(401)
   })
 })
 

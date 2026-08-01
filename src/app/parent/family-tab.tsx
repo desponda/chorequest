@@ -472,7 +472,7 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
                   </motion.p>
                 </div>
               ) : (
-                <CoinLedger ledger={ledger} currentBalance={ledgerBalance} kidColor={ledgerKid.color} />
+                <CoinLedger ledger={ledger} currentBalance={ledgerBalance} />
               )}
             </div>
           </motion.div>

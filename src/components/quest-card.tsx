@@ -244,6 +244,8 @@ export function QuestCard({
                   {isPending ? (
                     <motion.span
                       data-testid="quest-action-content"
+                      role="status"
+                      aria-label="Awaiting approval"
                       className="text-sm px-4 py-1.5 rounded-xl font-semibold whitespace-nowrap"
                       style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.3)', color: '#fbbf24' }}
                       animate={{ opacity: [0.6, 1] }}

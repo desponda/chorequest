@@ -1,6 +1,6 @@
 import { authenticate, isAuthError, cors } from '@/lib/api-auth'
 import { createServiceClient } from '@/lib/supabase/service'
-import { questDateString } from '@/lib/utils'
+import { isDateKey, questDateStringForZone } from '@/lib/utils'
 
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: cors() })
@@ -15,9 +15,16 @@ export async function GET(req: Request) {
 
   // Allow caller to supply date explicitly (YYYY-MM-DD) to handle timezone edge cases
   let today = searchParams.get('date') ?? null
+  if (today && !isDateKey(today)) {
+    return Response.json({ error: '`date` must be YYYY-MM-DD' }, { status: 400, headers: cors() })
+  }
   if (!today) {
-    const { data: fam } = await supabase.from('families').select('daily_reset_hour').eq('id', auth.familyId).single()
-    today = questDateString(fam?.daily_reset_hour ?? 0)
+    const { data: fam } = await supabase.from('families').select('daily_reset_hour, timezone').eq('id', auth.familyId).single()
+    try {
+      today = questDateStringForZone(fam?.daily_reset_hour ?? 0, fam?.timezone ?? 'UTC')
+    } catch {
+      return Response.json({ error: 'Family timezone is invalid' }, { status: 500, headers: cors() })
+    }
   }
 
   const [kidsRes, completionsRes] = await Promise.all([

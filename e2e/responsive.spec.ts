@@ -57,10 +57,10 @@ test.describe('Login page responsive', () => {
 // ─── Unauthenticated routing ──────────────────────────────────────────────────
 
 test.describe('Auth redirect', () => {
-  test('root redirects to /login when unauthenticated', async ({ page }) => {
+  test('marketing root remains public when unauthenticated', async ({ page }) => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')
-    await expect(page).toHaveURL(/login/)
+    await expect(page).toHaveURL(/localhost:3000\/$/)
   })
 
   test('/parent redirects to /login when unauthenticated', async ({ page }) => {
@@ -70,6 +70,9 @@ test.describe('Auth redirect', () => {
   })
 
   test('/kid/[id] is accessible without auth (has own PIN protection)', async ({ page }) => {
+    await page.route('**/api/kid/*/profile', (route) =>
+      route.fulfill({ status: 404, contentType: 'application/json', body: '{"error":"Kid not found"}' }),
+    )
     await page.goto('/kid/00000000-0000-0000-0000-000000000000')
     await page.waitForLoadState('networkidle')
     // Should NOT redirect to login — kid view is public with its own PIN lock

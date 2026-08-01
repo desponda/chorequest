@@ -18,6 +18,38 @@ export function localDateString(date = new Date()): string {
   return `${y}-${m}-${d}`
 }
 
+/** Returns true when `value` is a real calendar date in YYYY-MM-DD form. */
+export function isDateKey(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  return date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+}
+
+/**
+ * Returns the weekday for a YYYY-MM-DD quest key (0=Sunday ... 6=Saturday).
+ * Date-only strings are parsed as UTC by JavaScript, so using `getDay()` would
+ * shift them to the previous day in negative-offset timezones.
+ */
+export function dateKeyDayOfWeek(dateKey: string): number {
+  if (!isDateKey(dateKey)) throw new RangeError(`Invalid date key: ${dateKey}`)
+  const [year, month, day] = dateKey.split('-').map(Number)
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay()
+}
+
+/** Returns the Monday containing a valid YYYY-MM-DD quest key. */
+export function weekKeyForDate(dateKey: string): string {
+  if (!isDateKey(dateKey)) throw new RangeError(`Invalid date key: ${dateKey}`)
+  const [year, month, day] = dateKey.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  const weekday = date.getUTCDay()
+  date.setUTCDate(date.getUTCDate() - (weekday === 0 ? 6 : weekday - 1))
+  return date.toISOString().slice(0, 10)
+}
+
 /**
  * Returns the effective quest-day date string (YYYY-MM-DD).
  * Before `resetHour` each day, completions still belong to the previous day.
@@ -45,4 +77,30 @@ export function questWeekKey(resetHour = 0, now = new Date()): string {
   const monday = new Date(effective)
   monday.setDate(effective.getDate() - daysFromMonday)
   return localDateString(monday)
+}
+
+/** Returns the effective quest date in a family's configured IANA timezone. */
+export function questDateStringForZone(resetHour: number, timeZone: string, now = new Date()): string {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(now).map(({ type, value }) => [type, value]),
+  )
+  const dateKey = `${parts.year}-${parts.month}-${parts.day}`
+  if (Number(parts.hour) >= resetHour) return dateKey
+
+  const [year, month, day] = dateKey.split('-').map(Number)
+  const previous = new Date(Date.UTC(year, month - 1, day))
+  previous.setUTCDate(previous.getUTCDate() - 1)
+  return previous.toISOString().slice(0, 10)
+}
+
+/** Returns the Monday containing the family's current effective quest date. */
+export function questWeekKeyForZone(resetHour: number, timeZone: string, now = new Date()): string {
+  return weekKeyForDate(questDateStringForZone(resetHour, timeZone, now))
 }
