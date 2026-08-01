@@ -33,18 +33,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const coinsDeducted = Math.min(kid.coins, curse.penalty)
   const newCoins = kid.coins - coinsDeducted
 
-  const { data: charged, error: chargeError } = await supabase
-    .from('kids')
-    .update({ coins: newCoins })
-    .eq('id', kid.id)
-    .eq('coins', kid.coins)
-    .select('id')
-    .maybeSingle()
-
-  if (chargeError || !charged) {
-    return Response.json({ error: 'Balance changed; try again' }, { status: 409, headers: cors() })
-  }
-
   const instanceRes = await supabase.from('curse_instances').insert({
     curse_id: curse.id,
     kid_id: kid.id,
@@ -54,8 +42,32 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }).select().single()
 
   if (instanceRes.error) {
-    await supabase.from('kids').update({ coins: kid.coins }).eq('id', kid.id).eq('coins', newCoins)
     return Response.json({ error: instanceRes.error.message }, { status: 500, headers: cors() })
+  }
+
+  const { data: charged, error: chargeError } = await supabase.rpc('apply_coin_transaction', {
+    p_kid_id: kid.id,
+    p_expected_balance: kid.coins,
+    p_new_balance: newCoins,
+    p_kind: 'curse',
+    p_description: curse.title,
+    p_icon: curse.icon,
+    p_source_id: instanceRes.data.id,
+    p_new_xp: null,
+    p_new_streak: null,
+    p_last_completed_date: null,
+    p_update_progress: false,
+    p_occurred_at: instanceRes.data.cast_at,
+    p_metadata: { curse_id: curse.id },
+  })
+  const chargeResult = charged as { applied?: boolean } | null
+
+  if (chargeError || !chargeResult?.applied) {
+    const { error: rollbackError } = await supabase.from('curse_instances').delete().eq('id', instanceRes.data.id)
+    return Response.json(
+      { error: rollbackError ? 'Balance changed and curse rollback failed' : 'Balance changed; try again' },
+      { status: rollbackError ? 500 : 409, headers: cors() },
+    )
   }
 
   return Response.json({ instance: instanceRes.data, coins_deducted: coinsDeducted }, { status: 201, headers: cors() })

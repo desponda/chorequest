@@ -17,7 +17,7 @@ import { questDateStringForZone, questWeekKeyForZone } from '@/lib/utils'
 import { isQuestVisibleToKid, kidHasActiveCompletion, sharedClaimedCount, kidCompletionForPeriod } from '@/lib/quest-rules'
 import { toast } from 'sonner'
 import { CoinLedger } from '@/components/coin-ledger'
-import type { LedgerEntry } from '@/lib/ledger'
+import type { LedgerEntry, PendingLedgerEntry } from '@/lib/ledger'
 import { getLevelTitle } from '@/lib/xp'
 import { classifyRedemptionChanges } from '@/lib/redemption-notifications'
 
@@ -608,7 +608,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                 onUndo={handleUndo}
               />
             ) : tab === 'history' ? (
-              <HistoryTab key="history" kidId={id} />
+              <HistoryTab key="history" kidId={id} timeZone={timeZone} />
             ) : (
               <RewardsTab
                 rewards={rewards}
@@ -858,7 +858,7 @@ function PendingApprovalSection({
             <div key={c.id} className="flex items-center gap-3 px-4 py-2.5">
               <span className="text-lg flex-shrink-0">{quest.icon}</span>
               <span className="text-sm text-white/80 font-medium flex-1 truncate">{quest.title}</span>
-              <span className="text-xs text-amber-400/70 flex-shrink-0">🪙 {quest.coins}</span>
+              <span className="text-xs text-amber-400/70 flex-shrink-0">🪙 {c.coins_requested ?? quest.coins}</span>
               <button
                 onClick={() => onUndo(c.id)}
                 className="text-xs text-white/30 hover:text-amber-400 transition-all flex-shrink-0 px-2 py-1 rounded-lg"
@@ -953,20 +953,40 @@ function kidColorRgb(color: string) {
   return color === 'azure' ? '56,189,248' : '167,139,250'
 }
 
-function HistoryTab({ kidId }: { kidId: string }) {
+function HistoryTab({ kidId, timeZone }: { kidId: string; timeZone?: string }) {
   const [ledger, setLedger] = useState<LedgerEntry[]>([])
+  const [pending, setPending] = useState<PendingLedgerEntry[]>([])
   const [balance, setBalance] = useState(0)
+  const [availableBalance, setAvailableBalance] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
-    fetch(`/api/kid/${kidId}/ledger`)
-      .then(r => r.json())
-      .then(d => {
-        setLedger(d.ledger ?? [])
-        setBalance(d.currentBalance ?? 0)
-      })
-      .finally(() => setLoading(false))
-  }, [kidId])
+    const controller = new AbortController()
+    setLoading(true)
+    setError(null)
+
+    void (async () => {
+      try {
+        const response = await fetch(`/api/kid/${kidId}/ledger`, { signal: controller.signal })
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(data.error ?? 'Could not load coin history')
+        setLedger(data.ledger ?? [])
+        setPending(data.pending ?? [])
+        setBalance(data.currentBalance ?? 0)
+        setAvailableBalance(data.availableBalance ?? data.currentBalance ?? 0)
+      } catch (loadError) {
+        if (!controller.signal.aborted) {
+          setError(loadError instanceof Error ? loadError.message : 'Could not load coin history')
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoading(false)
+      }
+    })()
+
+    return () => controller.abort()
+  }, [kidId, reloadKey])
 
   if (loading) {
     return (
@@ -989,6 +1009,29 @@ function HistoryTab({ kidId }: { kidId: string }) {
     )
   }
 
+  if (error) {
+    return (
+      <motion.div
+        key="history-error"
+        className="flex flex-col items-center justify-center py-16 text-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        role="alert"
+      >
+        <p className="text-sm font-semibold text-red-200">Couldn&apos;t load coin history</p>
+        <p className="text-xs text-white/60 mt-1">{error}</p>
+        <button
+          type="button"
+          onClick={() => setReloadKey((value) => value + 1)}
+          className="min-h-11 mt-4 px-4 rounded-xl text-sm font-bold text-cq-gold"
+          style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)' }}
+        >
+          Try again
+        </button>
+      </motion.div>
+    )
+  }
+
   return (
     <motion.div
       key="history"
@@ -997,7 +1040,14 @@ function HistoryTab({ kidId }: { kidId: string }) {
       exit={{ opacity: 0, x: -10 }}
       transition={{ duration: 0.2 }}
     >
-      <CoinLedger ledger={ledger} currentBalance={balance} />
+      <CoinLedger
+        ledger={ledger}
+        pending={pending}
+        currentBalance={balance}
+        availableBalance={availableBalance}
+        timeZone={timeZone}
+        onRefresh={() => setReloadKey((value) => value + 1)}
+      />
     </motion.div>
   )
 }

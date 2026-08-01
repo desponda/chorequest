@@ -32,6 +32,18 @@ export async function GET(
     return Response.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { ledger } = await buildLedger(kidId, kid.coins)
-  return Response.json({ ledger, currentBalance: kid.coins, kidName: kid.name })
+  try {
+    const { ledger, pending } = await buildLedger(kidId)
+    const pendingDebits = pending.reduce((sum, entry) => sum + Math.min(0, entry.amount), 0)
+    return Response.json({
+      ledger,
+      pending,
+      currentBalance: kid.coins,
+      availableBalance: Math.max(0, kid.coins + pendingDebits),
+      kidName: kid.name,
+    })
+  } catch (error) {
+    console.error('Failed to build parent ledger', error)
+    return Response.json({ error: 'Could not load coin history' }, { status: 500 })
+  }
 }

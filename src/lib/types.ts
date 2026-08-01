@@ -87,6 +87,7 @@ export interface Completion {
   completed_at: string
   approved_at: string | null
   coins_awarded: number | null
+  coins_requested?: number
   date: string
   quest?: Quest
   kid?: Kid
@@ -154,6 +155,7 @@ export interface Redemption {
   status: 'pending' | 'approved' | 'denied'
   cost_charged: number | null
   redeemed_at: string
+  processed_at?: string | null
   reward?: Reward
   kid?: Kid
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import type { Family, Kid, KidColor } from '@/lib/types'
@@ -9,7 +9,7 @@ import { PLAN_LABELS, PLAN_LIMITS } from '@/lib/plans'
 import { ActionButton, Empty, FormInput, Section, fadeSlide } from './_ui'
 import type { ParentActions } from './use-parent-actions'
 import { CoinLedger } from '@/components/coin-ledger'
-import type { LedgerEntry } from '@/lib/ledger'
+import type { LedgerEntry, PendingLedgerEntry } from '@/lib/ledger'
 import { useEscapeToClose } from '@/lib/use-escape-to-close'
 import { useFocusTrap } from '@/lib/use-focus-trap'
 import { ConfirmDelete } from '@/components/ui/confirm-delete'
@@ -30,7 +30,7 @@ export function FamilyTab({ family, kids, onShowQr, actions }: Props) {
       <DailyResetSettings family={family} actions={actions} />
       <ParentLockSettings family={family} actions={actions} />
       <AddKidForm family={family} kidCount={kids.length} actions={actions} />
-      <KidList kids={kids} onShowQr={onShowQr} actions={actions} />
+      <KidList kids={kids} onShowQr={onShowQr} actions={actions} timeZone={family?.timezone ?? undefined} />
       {family && <InviteLink family={family} actions={actions} />}
       {family?.api_key && <ApiKey family={family} actions={actions} />}
     </motion.div>
@@ -283,36 +283,67 @@ function AddKidForm({ family, kidCount, actions }: { family: Family | null; kidC
   )
 }
 
-function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: string) => void; actions: ParentActions }) {
+function KidList({
+  kids,
+  onShowQr,
+  actions,
+  timeZone,
+}: {
+  kids: Kid[]
+  onShowQr: (kidId: string) => void
+  actions: ParentActions
+  timeZone?: string
+}) {
   const [editingCoinsKidId, setEditingCoinsKidId] = useState<string | null>(null)
   const [editCoinsValue, setEditCoinsValue] = useState('')
+  const [editCoinsReason, setEditCoinsReason] = useState('')
   const [revealPinKidId, setRevealPinKidId] = useState<string | null>(null)
   const [ledgerKid, setLedgerKid] = useState<Kid | null>(null)
   const [ledger, setLedger] = useState<LedgerEntry[]>([])
+  const [ledgerPending, setLedgerPending] = useState<PendingLedgerEntry[]>([])
   const [ledgerBalance, setLedgerBalance] = useState(0)
+  const [ledgerAvailableBalance, setLedgerAvailableBalance] = useState(0)
   const [ledgerLoading, setLedgerLoading] = useState(false)
+  const [ledgerError, setLedgerError] = useState<string | null>(null)
+  const ledgerRequestRef = useRef(0)
 
   useEscapeToClose(ledgerKid !== null, () => setLedgerKid(null))
   const ledgerTrapRef = useFocusTrap<HTMLDivElement>(ledgerKid !== null)
 
   const openLedger = async (kid: Kid) => {
+    const requestId = ++ledgerRequestRef.current
     setLedgerKid(kid)
     setLedgerLoading(true)
+    setLedgerError(null)
     setLedger([])
+    setLedgerPending([])
     try {
       const res = await fetch(`/api/parent/kids/${kid.id}/ledger`)
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error ?? 'Could not load coin history')
+      if (requestId !== ledgerRequestRef.current) return
       setLedger(data.ledger ?? [])
+      setLedgerPending(data.pending ?? [])
       setLedgerBalance(data.currentBalance ?? kid.coins)
+      setLedgerAvailableBalance(data.availableBalance ?? data.currentBalance ?? kid.coins)
+    } catch (error) {
+      if (requestId === ledgerRequestRef.current) {
+        setLedgerError(error instanceof Error ? error.message : 'Could not load coin history')
+      }
     } finally {
-      setLedgerLoading(false)
+      if (requestId === ledgerRequestRef.current) setLedgerLoading(false)
     }
   }
 
   const handleSaveCoins = async (kidId: string) => {
-    const val = parseInt(editCoinsValue, 10)
-    await actions.saveCoins(kidId, val)
+    const val = Number(editCoinsValue)
+    if (!Number.isInteger(val) || val < 0 || val > 1_000_000_000) {
+      toast.error('Enter a coin balance between 0 and 1,000,000,000')
+      return
+    }
+    await actions.saveCoins(kidId, val, editCoinsReason)
     setEditingCoinsKidId(null)
+    setEditCoinsReason('')
   }
 
   return (
@@ -337,10 +368,13 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
                 <div className="flex-1">
                   <p className="font-semibold text-white/90">{kid.name}</p>
                   {editingCoinsKidId === kid.id ? (
-                    <div className="flex items-center gap-1.5 mt-1">
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                      <label className="sr-only" htmlFor={`coin-balance-${kid.id}`}>New coin balance</label>
                       <input
+                        id={`coin-balance-${kid.id}`}
                         type="number"
                         min={0}
+                        max={1_000_000_000}
                         value={editCoinsValue}
                         onChange={(e) => setEditCoinsValue(e.target.value)}
                         onKeyDown={(e) => {
@@ -348,18 +382,40 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
                           if (e.key === 'Escape') setEditingCoinsKidId(null)
                         }}
                         autoFocus
-                        className="w-20 px-2 py-0.5 rounded-lg text-xs text-white/90 outline-none"
+                        className="w-24 min-h-11 px-2 rounded-lg text-sm text-white/90 outline-none"
                         style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(251,191,36,0.4)' }}
                       />
+                      <label className="sr-only" htmlFor={`coin-reason-${kid.id}`}>Adjustment reason</label>
+                      <input
+                        id={`coin-reason-${kid.id}`}
+                        type="text"
+                        maxLength={120}
+                        value={editCoinsReason}
+                        onChange={(e) => setEditCoinsReason(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveCoins(kid.id)
+                          if (e.key === 'Escape') setEditingCoinsKidId(null)
+                        }}
+                        placeholder="Reason (optional)"
+                        className="w-36 min-h-11 px-2 rounded-lg text-sm text-white/90 placeholder:text-white/40 outline-none"
+                        style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(251,191,36,0.25)' }}
+                      />
                       <button
+                        type="button"
                         onClick={() => handleSaveCoins(kid.id)}
-                        className="text-xs text-cq-gold hover:opacity-80 transition-all font-bold"
+                        aria-label="Save coin adjustment"
+                        className="min-w-11 min-h-11 rounded-lg text-sm text-cq-gold hover:opacity-80 transition-all font-bold"
                       >
                         ✓
                       </button>
                       <button
-                        onClick={() => setEditingCoinsKidId(null)}
-                        className="text-xs text-white/30 hover:text-white/60 transition-all"
+                        type="button"
+                        onClick={() => {
+                          setEditingCoinsKidId(null)
+                          setEditCoinsReason('')
+                        }}
+                        aria-label="Cancel coin adjustment"
+                        className="min-w-11 min-h-11 rounded-lg text-sm text-white/60 hover:text-white/90 transition-all"
                       >
                         ✕
                       </button>
@@ -369,6 +425,7 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
                       onClick={() => {
                         setEditingCoinsKidId(kid.id)
                         setEditCoinsValue(String(kid.coins))
+                        setEditCoinsReason('')
                       }}
                       className="text-xs mt-0.5 text-left hover:opacity-80 transition-all"
                       style={{ color: colors.primary }}
@@ -387,10 +444,12 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
                   </button>
                   <button
                     onClick={() => openLedger(kid)}
-                    className="text-lg hover:scale-110 transition-all"
-                    title="View coin ledger"
+                    className="min-h-11 px-2 rounded-xl text-sm hover:scale-105 transition-all flex items-center gap-1.5 text-white/70 hover:text-white/95"
+                    aria-label={`View ${kid.name}'s coin history`}
+                    title="View coin history"
                   >
-                    📒
+                    <span aria-hidden="true">📒</span>
+                    <span className="hidden sm:inline text-xs font-semibold">History</span>
                   </button>
                   <button
                     onClick={() => onShowQr(kid.id)}
@@ -443,7 +502,7 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
                 <h2 id="ledger-modal-title" className="font-heading text-lg font-bold text-white/90 truncate">
                   {ledgerKid.avatar} {ledgerKid.name}&apos;s Ledger
                 </h2>
-                <p className="text-white/35 text-xs mt-0.5">Full coin transaction history</p>
+                <p className="text-white/60 text-xs mt-0.5">Pending and posted coin activity</p>
               </div>
               <button
                 onClick={() => setLedgerKid(null)}
@@ -471,8 +530,28 @@ function KidList({ kids, onShowQr, actions }: { kids: Kid[]; onShowQr: (kidId: s
                     ✦ Loading ✦
                   </motion.p>
                 </div>
+              ) : ledgerError ? (
+                <div className="flex flex-col items-center justify-center py-14 text-center" role="alert">
+                  <p className="text-sm font-semibold text-red-200">Couldn&apos;t load coin history</p>
+                  <p className="text-xs text-white/60 mt-1">{ledgerError}</p>
+                  <button
+                    type="button"
+                    onClick={() => openLedger(ledgerKid)}
+                    className="min-h-11 mt-4 px-4 rounded-xl text-sm font-bold text-cq-gold"
+                    style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)' }}
+                  >
+                    Try again
+                  </button>
+                </div>
               ) : (
-                <CoinLedger ledger={ledger} currentBalance={ledgerBalance} />
+                <CoinLedger
+                  ledger={ledger}
+                  pending={ledgerPending}
+                  currentBalance={ledgerBalance}
+                  availableBalance={ledgerAvailableBalance}
+                  timeZone={timeZone}
+                  onRefresh={() => openLedger(ledgerKid)}
+                />
               )}
             </div>
           </motion.div>

@@ -80,7 +80,7 @@ export function useParentData(): ParentData {
       supabase.from('completions').select(`*, quest:quests(*), kid:kids(${KID_COLS})`).in('status', ['approved', 'rejected']).order('completed_at', { ascending: false }).limit(200),
       supabase.from('rewards').select('*').eq('family_id', profile.family_id).eq('archived', false).order('created_at'),
       supabase.from('redemptions').select(`*, reward:rewards(*), kid:kids(${KID_COLS})`).eq('status', 'pending').order('redeemed_at', { ascending: false }),
-      supabase.from('redemptions').select(`*, reward:rewards(*), kid:kids(${KID_COLS})`).in('status', ['approved', 'denied']).order('redeemed_at', { ascending: false }).limit(200),
+      supabase.from('redemptions').select(`*, reward:rewards(*), kid:kids(${KID_COLS})`).in('status', ['approved', 'denied']).order('processed_at', { ascending: false }).limit(200),
       supabase.from('curses').select('*').eq('family_id', profile.family_id).eq('archived', false).order('created_at'),
       supabase.from('curse_instances').select(`*, curse:curses(*), kid:kids(${KID_COLS})`).eq('status', 'active').order('cast_at', { ascending: false }),
       supabase.from('curse_instances').select(`*, curse:curses(*), kid:kids(${KID_COLS})`).eq('status', 'resolved').order('resolved_at', { ascending: false }).limit(200),
