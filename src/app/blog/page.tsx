@@ -51,7 +51,7 @@ export default async function BlogListingPage() {
 
       {/* Nav */}
       <header
-        className="sticky top-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 gap-3"
+        className="safe-top sticky top-0 z-50 flex items-center justify-between px-4 sm:px-6 pb-3 sm:pb-4 gap-3"
         style={{ background: 'rgba(5,3,16,0.8)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
       >
         <Link href="/" className="flex items-center gap-2 min-w-0">
@@ -64,7 +64,7 @@ export default async function BlogListingPage() {
           <Link href="/blog" className="text-white/80 font-medium hidden sm:block">Blog</Link>
           <Link
             href="/login"
-            className="px-3 sm:px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap text-sm"
+            className="min-h-11 inline-flex items-center px-3 sm:px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap text-sm"
             style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)', color: '#fbbf24' }}
           >
             Sign in
@@ -72,11 +72,11 @@ export default async function BlogListingPage() {
         </nav>
       </header>
 
-      <main className="relative z-10 max-w-4xl mx-auto px-6 py-16">
+      <main className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
         {/* Header */}
         <div className="mb-14">
           <p className="text-xs font-bold tracking-[0.3em] uppercase text-white/30 mb-3">ChoreQuest Blog</p>
-          <h1 className="font-heading text-5xl sm:text-6xl font-bold text-white/90 leading-tight">
+          <h1 className="font-heading text-4xl sm:text-6xl font-bold text-white/90 leading-tight">
             Raising<br />
             <span style={{ color: '#fbbf24' }}>Responsible</span> Kids
           </h1>
@@ -88,7 +88,7 @@ export default async function BlogListingPage() {
         {/* Posts */}
         {articles.length === 0 ? (
           <div
-            className="rounded-2xl p-12 text-center"
+            className="rounded-2xl p-7 sm:p-12 text-center"
             style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
           >
             <p className="text-4xl mb-4">📜</p>
@@ -144,7 +144,7 @@ export default async function BlogListingPage() {
         className="relative z-10 py-10 px-6 text-center"
         style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
       >
-        <Link href="/" className="text-white/25 text-sm hover:text-white/50 transition-colors">
+        <Link href="/" className="min-h-11 inline-flex items-center rounded-xl px-3 text-white/55 text-sm hover:text-white/90 transition-colors">
           ← Back to ChoreQuest
         </Link>
       </footer>

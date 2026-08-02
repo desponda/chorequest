@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { StarField } from '@/components/star-field'
 import { toast } from 'sonner'
@@ -51,7 +52,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-quest-void flex items-center justify-center px-4">
+    <div className="min-h-screen bg-quest-void flex items-start sm:items-center justify-center px-4 py-6 sm:py-10 overflow-y-auto safe-top safe-bottom">
       <StarField />
 
       <motion.div
@@ -60,22 +61,28 @@ export default function ResetPasswordPage() {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
-        <div className="text-center mb-10">
+        <Link
+          href="/login"
+          className="inline-flex min-h-11 items-center rounded-xl px-2 text-sm font-semibold text-white/60 hover:text-white/90 transition-colors sm:fixed sm:top-5 sm:left-5 sm:z-20"
+        >
+          ← Back to sign in
+        </Link>
+        <div className="text-center mb-6 sm:mb-8 mt-2">
           <motion.p
-            className="text-5xl mb-4"
+            className="text-4xl sm:text-5xl mb-2 sm:mb-3"
             animate={{ y: [0, -6, 0] }}
             transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
           >
             🏰
           </motion.p>
-          <h1 className="font-heading text-5xl font-black text-gradient-gold tracking-widest mb-2">
+          <h1 className="font-heading text-4xl sm:text-5xl font-black text-gradient-gold tracking-wide sm:tracking-widest mb-2">
             ChoreQuest
           </h1>
           <p className="text-white/40 text-sm tracking-widest uppercase">The Family Realm</p>
         </div>
 
         <div
-          className="rounded-3xl p-8"
+          className="rounded-3xl p-5 sm:p-8"
           style={{
             background: 'rgba(255, 255, 255, 0.04)',
             border: '1px solid rgba(255, 255, 255, 0.09)',
@@ -119,7 +126,7 @@ export default function ResetPasswordPage() {
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-lg text-white/35 hover:text-white/70 transition-colors"
+                    className="absolute right-0.5 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-xl text-white/55 hover:text-white/90 transition-colors"
                   >
                     {showPassword ? '🙈' : '👁️'}
                   </button>
@@ -174,7 +181,7 @@ export default function ResetPasswordPage() {
           )}
         </div>
 
-        <p className="text-center text-white/20 text-xs mt-6 tracking-widest uppercase">
+        <p className="text-center text-white/50 text-xs mt-6 tracking-widest uppercase">
           ✦ ChoreQuest · The Family Realm ✦
         </p>
       </motion.div>

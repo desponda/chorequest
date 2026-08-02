@@ -1,18 +1,16 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { useId } from 'react'
 
 export function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div>
-      <p className="text-xs font-bold uppercase tracking-widest text-white/30 mb-3">{title}</p>
-      <div
-        className="rounded-2xl p-4"
-        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-      >
+    <section>
+      <h2 className="text-xs font-bold uppercase tracking-widest text-white/50 mb-3">{title}</h2>
+      <div className="surface-panel rounded-2xl p-4">
         {children}
       </div>
-    </div>
+    </section>
   )
 }
 
@@ -35,22 +33,29 @@ export function Empty({
 }
 
 export function FormInput({
-  placeholder, value, onChange, className = '',
+  placeholder, value, onChange, className = '', label,
 }: {
   placeholder: string
   value: string
   onChange: (v: string) => void
   className?: string
+  label?: string
 }) {
+  const id = useId()
+  const visibleLabel = label ?? placeholder.replace(/\.{3}$/u, '')
+
   return (
-    <input
-      type="text"
-      placeholder={placeholder}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={`w-full px-3 py-2.5 rounded-xl text-sm text-white/90 placeholder:text-white/25 outline-none ${className}`}
-      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-    />
+    <label htmlFor={id} className="block">
+      <span className="field-label">{visibleLabel}</span>
+      <input
+        id={id}
+        type="text"
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`field-control w-full min-h-11 px-3 py-2.5 rounded-xl text-sm text-white/90 placeholder:text-white/25 outline-none ${className}`}
+      />
+    </label>
   )
 }
 
@@ -64,9 +69,10 @@ export function ActionButton({
 }) {
   return (
     <motion.button
+      type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`${className} py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-40`}
+      className={`${className} min-h-11 px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-40`}
       style={{
         background: 'rgba(251, 191, 36, 0.15)',
         border: '1px solid rgba(251, 191, 36, 0.35)',

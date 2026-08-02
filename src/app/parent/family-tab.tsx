@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useId, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import type { Family, Kid, KidColor } from '@/lib/types'
@@ -196,6 +196,7 @@ function ParentLockSettings({ family, actions }: { family: Family | null; action
 }
 
 function AddKidForm({ family, kidCount, actions }: { family: Family | null; kidCount: number; actions: ParentActions }) {
+  const pinId = useId()
   const [name, setName] = useState('')
   const [avatar, setAvatar] = useState('🧙')
   const [color, setColor] = useState<KidColor>('azure')
@@ -219,9 +220,12 @@ function AddKidForm({ family, kidCount, actions }: { family: Family | null; kidC
           <div className="flex flex-wrap gap-2">
             {KID_AVATARS.map((av) => (
               <button
+                type="button"
                 key={av}
                 onClick={() => setAvatar(av)}
-                className="text-2xl w-10 h-10 rounded-xl transition-all"
+                aria-label={`Use ${av} as the avatar`}
+                aria-pressed={avatar === av}
+                className="text-2xl w-11 h-11 rounded-xl transition-all"
                 style={{
                   background: avatar === av ? 'rgba(251,191,36,0.18)' : 'rgba(255,255,255,0.05)',
                   border: `1px solid ${avatar === av ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.08)'}`,
@@ -238,9 +242,11 @@ function AddKidForm({ family, kidCount, actions }: { family: Family | null; kidC
           <div className="flex gap-2">
             {(['azure', 'mystic'] as const).map((c) => (
               <button
+                type="button"
                 key={c}
                 onClick={() => setColor(c)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all capitalize"
+                aria-pressed={color === c}
+                className="min-h-11 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all capitalize"
                 style={{
                   background: color === c ? KID_COLORS[c].bg : 'rgba(255,255,255,0.04)',
                   border: `1px solid ${color === c ? KID_COLORS[c].border : 'rgba(255,255,255,0.08)'}`,
@@ -255,15 +261,16 @@ function AddKidForm({ family, kidCount, actions }: { family: Family | null; kidC
         </div>
 
         <div>
-          <label className="text-xs text-white/40 mb-1.5 block">4-Digit PIN</label>
+          <label htmlFor={pinId} className="field-label">4-Digit PIN</label>
           <input
+            id={pinId}
             type="tel"
             maxLength={4}
             pattern="[0-9]{4}"
             placeholder="e.g. 1234"
             value={pin}
             onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-            className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none tracking-widest"
+            className="w-full min-h-11 px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none tracking-widest"
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
           />
         </div>
@@ -361,11 +368,11 @@ function KidList({
             return (
               <div
                 key={kid.id}
-                className="flex items-center gap-4 p-4 rounded-2xl"
+                className="flex flex-wrap items-center gap-3 sm:gap-4 p-4 rounded-2xl"
                 style={{ background: colors.bg, border: `1px solid ${colors.border}` }}
               >
                 <span className="text-3xl">{kid.avatar}</span>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className="font-semibold text-white/90">{kid.name}</p>
                   {editingCoinsKidId === kid.id ? (
                     <div className="flex flex-wrap items-center gap-1.5 mt-1">
@@ -422,23 +429,27 @@ function KidList({
                     </div>
                   ) : (
                     <button
+                      type="button"
                       onClick={() => {
                         setEditingCoinsKidId(kid.id)
                         setEditCoinsValue(String(kid.coins))
                         setEditCoinsReason('')
                       }}
-                      className="text-xs mt-0.5 text-left hover:opacity-80 transition-all"
+                      className="min-h-11 inline-flex items-center rounded-lg text-xs mt-0.5 text-left hover:opacity-80 transition-all"
+                      aria-label={`Adjust ${kid.name}'s coin balance`}
                       style={{ color: colors.primary }}
                     >
                       🪙 {kid.coins} coins · 🔥 {kid.streak} streak · Lv {Math.floor(kid.coins / 50) + 1}
                     </button>
                   )}
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex w-full sm:w-auto items-center justify-end gap-1 sm:gap-2 flex-shrink-0">
                   <button
+                    type="button"
                     onClick={() => setRevealPinKidId(revealPinKidId === kid.id ? null : kid.id)}
-                    className="text-xs text-white/30 font-mono hover:text-white/60 transition-all"
+                    className="min-h-11 px-2 rounded-xl text-xs text-white/55 font-mono hover:text-white/90 transition-all"
                     title={revealPinKidId === kid.id ? 'Hide PIN' : 'Show PIN'}
+                    aria-label={revealPinKidId === kid.id ? `Hide ${kid.name}'s PIN` : `Show ${kid.name}'s PIN`}
                   >
                     {revealPinKidId === kid.id ? `PIN: ${kid.pin}` : 'PIN: ····'}
                   </button>
@@ -452,9 +463,11 @@ function KidList({
                     <span className="hidden sm:inline text-xs font-semibold">History</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => onShowQr(kid.id)}
-                    className="text-lg hover:scale-110 transition-all"
+                    className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-xl text-lg hover:scale-105 transition-all"
                     title="Show QR code"
+                    aria-label={`Show QR code for ${kid.name}`}
                   >
                     📱
                   </button>
@@ -468,7 +481,7 @@ function KidList({
       {/* Per-kid ledger modal */}
       {ledgerKid && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)' }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -480,7 +493,7 @@ function KidList({
         >
           <motion.div
             ref={ledgerTrapRef}
-            className="rounded-3xl mx-4 w-full max-w-md overflow-hidden"
+            className="modal-shell rounded-3xl w-full max-w-md overflow-hidden"
             style={{
               background: 'rgba(10,6,28,0.98)',
               border: '1px solid rgba(251,191,36,0.18)',
@@ -507,14 +520,14 @@ function KidList({
               <button
                 onClick={() => setLedgerKid(null)}
                 aria-label="Close ledger"
-                className="w-11 h-11 rounded-full flex items-center justify-center text-white/35 hover:text-white/70 transition-all flex-shrink-0"
+                className="w-11 h-11 rounded-full flex items-center justify-center text-white/55 hover:text-white/90 transition-all flex-shrink-0"
                 style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
               >
                 ✕
               </button>
             </div>
 
-            <div className="overflow-y-auto px-6 py-4 flex-1">
+            <div className="overflow-y-auto px-4 sm:px-6 py-4 flex-1">
               {ledgerLoading ? (
                 <div
                   className="flex items-center justify-center py-16"

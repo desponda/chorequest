@@ -93,7 +93,7 @@ export function QuestCard({
 
   const freqLabel = cadenceLabel(quest)
   const hasActiveDays = quest.active_days && quest.active_days.length > 0 && quest.active_days.length < 7
-  const hasSecondLine = freqLabel || hasActiveDays || (isShared && quest.kind === 'shared' && quest.slots > 0)
+  const hasSecondLine = !isNormal || freqLabel || hasActiveDays || (isShared && quest.kind === 'shared' && quest.slots > 0)
 
   const handleComplete = async () => {
     if (!onComplete || loading || (!isTodo && !isRejected)) return
@@ -105,6 +105,7 @@ export function QuestCard({
   }
 
   const actionBtnLabel = loading ? '✨' : isRejected ? '↺ Retry' : isShared ? '⚡ Claim' : '⚔️ Done'
+  const actionAriaLabel = loading ? 'Submitting quest' : isRejected ? 'Retry quest' : isShared ? 'Claim quest' : 'Mark quest done'
   const kidRgb = kidColor === 'azure' ? '56,189,248' : '167,139,250'
 
   return (
@@ -165,7 +166,7 @@ export function QuestCard({
       <div className="px-3 py-2.5">
         {/* Single row: icon | title+badge | action | coins */}
         <div className="flex items-center gap-2.5">
-          <span className="text-xl leading-none flex-shrink-0">{quest.icon}</span>
+          <span className="text-xl leading-none flex-shrink-0" aria-hidden="true">{quest.icon}</span>
 
           {/* Title + tier badge, flex-1 truncates long titles */}
           <div className="flex-1 min-w-0">
@@ -177,11 +178,14 @@ export function QuestCard({
               >
                 {quest.title}
               </p>
-              <TierBadge tier={quest.tier} />
+              <TierBadge tier={quest.tier} className="max-[359px]:hidden" />
             </div>
 
             {hasSecondLine && (
               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                {!isNormal && (
+                  <TierBadge tier={quest.tier} className="min-[360px]:hidden" />
+                )}
                 {freqLabel && (
                   <span
                     className="text-[10px] px-1.5 py-0.5 rounded-md"
@@ -219,15 +223,16 @@ export function QuestCard({
           </div>
 
           {/* Right side: truly fixed columns — inline styles + flexShrink:0 bypass flex shrink bugs */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
             {/* Action slot: fixed 96px, content right-aligned */}
-            <div data-testid="quest-action-slot" style={{ width: '96px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+            <div className="quest-action-slot" data-testid="quest-action-slot" style={{ width: '96px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
               {(isTodo || isRejected) && onComplete ? (
                 <motion.button
                   data-testid="quest-action-content"
                   onClick={handleComplete}
                   disabled={loading}
-                  className="text-sm px-4 py-1.5 rounded-xl font-bold transition-all disabled:opacity-50"
+                  aria-label={actionAriaLabel}
+                  className="min-h-11 min-w-11 text-sm px-3 py-2 rounded-xl font-bold transition-all disabled:opacity-50"
                   style={{
                     background: `linear-gradient(135deg, rgba(${kidRgb}, 0.16), rgba(${kidRgb}, 0.06))`,
                     border: `1px solid ${colors.border}`,
@@ -236,7 +241,10 @@ export function QuestCard({
                   whileHover={{ background: `linear-gradient(135deg, rgba(${kidRgb}, 0.26), rgba(${kidRgb}, 0.10))` }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  {actionBtnLabel}
+                  <span className="quest-action-label-full">{actionBtnLabel}</span>
+                  <span className="quest-action-label-short" aria-hidden="true">
+                    {loading ? '✨' : isRejected ? '↺' : isShared ? '⚡' : '✓'}
+                  </span>
                 </motion.button>
               ) : (isPending || isApproved || isShareLocked) ? (
                 <>
@@ -246,7 +254,7 @@ export function QuestCard({
                       data-testid="quest-action-content"
                       role="status"
                       aria-label="Awaiting approval"
-                      className="text-sm px-4 py-1.5 rounded-xl font-semibold whitespace-nowrap"
+                      className="min-h-11 min-w-11 inline-flex items-center justify-center text-sm px-3 py-2 rounded-xl font-semibold whitespace-nowrap"
                       style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.3)', color: '#fbbf24' }}
                       animate={{ opacity: [0.6, 1] }}
                       transition={{ duration: 0.8, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
@@ -256,28 +264,31 @@ export function QuestCard({
                   ) : isApproved ? (
                     <span
                       data-testid="quest-action-content"
-                      className="text-sm px-4 py-1.5 rounded-xl font-semibold whitespace-nowrap"
+                      className="min-h-11 min-w-11 inline-flex items-center justify-center text-sm px-3 py-2 rounded-xl font-semibold whitespace-nowrap"
                       style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80' }}
                     >
-                      ✓ done
+                      <span className="quest-action-label-full">✓ done</span>
+                      <span className="quest-action-label-short" aria-hidden="true">✓</span>
                     </span>
                   ) : (
                     <span
                       data-testid="quest-action-content"
-                      className="text-sm px-4 py-1.5 rounded-xl font-semibold whitespace-nowrap"
+                      className="min-h-11 min-w-11 inline-flex items-center justify-center text-sm px-3 py-2 rounded-xl font-semibold whitespace-nowrap"
                       style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)' }}
                     >
-                      claimed
+                      <span className="quest-action-label-full">claimed</span>
+                      <span className="quest-action-label-short" aria-hidden="true">—</span>
                     </span>
                   )}
                   {!isParent && isPending && onUndo && (
                     <motion.button
                       onClick={async () => { setLoading(true); await onUndo(); setLoading(false) }}
                       disabled={loading}
-                      className="text-sm text-white/25 transition-all disabled:opacity-40"
+                      className="quest-undo-button min-h-11 min-w-11 inline-flex items-center justify-center rounded-xl text-sm text-white/55 transition-all disabled:opacity-40"
                       whileHover={{ color: 'rgba(255,255,255,0.65)' }}
                       whileTap={{ scale: 0.9 }}
                       title="Undo submission"
+                      aria-label="Undo quest submission"
                     >
                       ↩
                     </motion.button>
@@ -287,7 +298,7 @@ export function QuestCard({
             </div>
 
             {/* Coins: emoji fixed-width + number right-aligned — keeps 🪙 pinned regardless of digit count */}
-            <div style={{ width: '48px', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+            <div className="quest-coin-slot" style={{ width: '48px', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
               <span data-testid="quest-coin-icon" className="text-sm" style={{ width: '18px', textAlign: 'center', flexShrink: 0 }}>🪙</span>
               <span className="font-heading font-bold text-sm" style={{ flex: 1, textAlign: 'right', color: isNormal ? '#fbbf24' : tier.color }}>
                 {quest.coins}
@@ -301,7 +312,7 @@ export function QuestCard({
           <div className="mt-2.5 flex gap-2">
             <button
               onClick={() => onApprove?.(completion.id)}
-              className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
+              className="min-h-11 flex-1 py-2 rounded-xl text-xs font-bold transition-all"
               style={{
                 background: 'rgba(74, 222, 128, 0.12)',
                 border: '1px solid rgba(74, 222, 128, 0.28)',
@@ -312,7 +323,7 @@ export function QuestCard({
             </button>
             <button
               onClick={() => onReject?.(completion.id)}
-              className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
+              className="min-h-11 flex-1 py-2 rounded-xl text-xs font-bold transition-all"
               style={{
                 background: 'rgba(239, 68, 68, 0.1)',
                 border: '1px solid rgba(239, 68, 68, 0.22)',

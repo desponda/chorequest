@@ -61,7 +61,7 @@ export function QuestRow({ quest, kids, onToggle, onDelete, onSave }: Props) {
       className="rounded-xl mb-2 overflow-hidden"
       style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
     >
-      <div className="flex items-start gap-3 p-3">
+      <div className="flex flex-wrap items-start gap-3 p-3">
         <span className="text-xl mt-0.5 flex-shrink-0">{quest.icon}</span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -78,10 +78,13 @@ export function QuestRow({ quest, kids, onToggle, onDelete, onSave }: Props) {
               : ''}
           </p>
         </div>
-        <div className="flex gap-1 flex-shrink-0 self-start pt-0.5">
+        <div className="flex w-full sm:w-auto justify-end gap-1 flex-shrink-0 self-start">
           <button
+            type="button"
             onClick={() => setEditing((e) => !e)}
-            className="text-xs px-2.5 py-1 rounded-lg transition-all"
+            aria-label={editing ? `Close editor for ${quest.title}` : `Edit ${quest.title}`}
+            aria-expanded={editing}
+            className="min-h-11 min-w-11 inline-flex items-center justify-center text-xs rounded-xl transition-all"
             style={{
               background: editing ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.05)',
               color: editing ? '#fbbf24' : 'rgba(255,255,255,0.4)',
@@ -90,8 +93,11 @@ export function QuestRow({ quest, kids, onToggle, onDelete, onSave }: Props) {
             ✏️
           </button>
           <button
+            type="button"
             onClick={() => onToggle(quest.id, quest.active)}
-            className="text-xs px-2.5 py-1 rounded-lg transition-all"
+            aria-label={quest.active ? `Disable ${quest.title}` : `Enable ${quest.title}`}
+            aria-pressed={quest.active}
+            className="min-h-11 min-w-11 px-3 text-xs rounded-xl transition-all"
             style={{
               background: quest.active ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.05)',
               color: quest.active ? '#4ade80' : 'rgba(255,255,255,0.35)',
@@ -125,14 +131,14 @@ export function QuestRow({ quest, kids, onToggle, onDelete, onSave }: Props) {
               <div className="flex gap-2">
                 <button
                   onClick={handleSave}
-                  className="flex-1 py-2 rounded-xl text-sm font-bold transition-all"
+                  className="min-h-11 flex-1 py-2 rounded-xl text-sm font-bold transition-all"
                   style={{ background: 'rgba(74,222,128,0.14)', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80' }}
                 >
                   Save Changes
                 </button>
                 <button
                   onClick={() => setEditing(false)}
-                  className="px-4 py-2 rounded-xl text-sm transition-all"
+                  className="min-h-11 px-4 py-2 rounded-xl text-sm transition-all"
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}
                 >
                   Cancel

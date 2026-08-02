@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { motion } from 'framer-motion'
 import type { Kid, Plan, Curse, CurseInstance } from '@/lib/types'
 import { PLAN_LIMITS } from '@/lib/plans'
@@ -19,6 +19,7 @@ interface Props {
 }
 
 export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }: Props) {
+  const fieldId = useId()
   const [title, setTitle] = useState('')
   const [icon, setIcon] = useState('☠️')
   const [penalty, setPenalty] = useState(10)
@@ -72,9 +73,12 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
           <div className="flex gap-2 flex-wrap">
             {CURSE_ICONS.map((ic) => (
               <button
+                type="button"
                 key={ic}
                 onClick={() => setQcIcon(ic)}
-                className="text-xl w-10 h-10 rounded-xl transition-all"
+                aria-label={`Use ${ic} as the quick curse icon`}
+                aria-pressed={qcIcon === ic}
+                className="text-xl w-11 h-11 rounded-xl transition-all"
                 style={{
                   background: qcIcon === ic ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)',
                   border: `1px solid ${qcIcon === ic ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.08)'}`,
@@ -86,14 +90,15 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
           </div>
           <FormInput placeholder="What happened? (e.g. Whining, Hit sibling...)" value={qcTitle} onChange={setQcTitle} />
           <div>
-            <label className="text-xs text-white/40 mb-1 block">Coin penalty</label>
+            <label htmlFor={`${fieldId}-quick-penalty`} className="field-label">Coin penalty</label>
             <input
+              id={`${fieldId}-quick-penalty`}
               type="number"
               min={1}
               max={200}
               value={qcPenalty}
               onChange={(e) => setQcPenalty(Number(e.target.value))}
-              className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
+              className="w-full min-h-11 px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
               style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
             />
           </div>
@@ -104,7 +109,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                   key={k.id}
                   onClick={() => handleQuickCast(k.id)}
                   disabled={!qcTitle.trim()}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-30"
+                  className="min-h-11 flex-1 px-3 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-30"
                   style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171' }}
                   whileHover={{ background: 'rgba(239,68,68,0.22)' }}
                   whileTap={{ scale: 0.97 }}
@@ -125,9 +130,12 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
           <div className="flex gap-2 flex-wrap">
             {CURSE_ICONS.map((ic) => (
               <button
+                type="button"
                 key={ic}
                 onClick={() => setIcon(ic)}
-                className="text-xl w-10 h-10 rounded-xl transition-all"
+                aria-label={`Use ${ic} as the saved curse icon`}
+                aria-pressed={icon === ic}
+                className="text-xl w-11 h-11 rounded-xl transition-all"
                 style={{
                   background: icon === ic ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)',
                   border: `1px solid ${icon === ic ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.08)'}`,
@@ -139,21 +147,22 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
           </div>
           <FormInput placeholder="Curse name (e.g. Whining, Tantrum)..." value={title} onChange={setTitle} />
           <div>
-            <label className="text-xs text-white/40 mb-1 block">Coin penalty</label>
+            <label htmlFor={`${fieldId}-saved-penalty`} className="field-label">Coin penalty</label>
             <input
+              id={`${fieldId}-saved-penalty`}
               type="number"
               min={1}
               max={200}
               value={penalty}
               onChange={(e) => setPenalty(Number(e.target.value))}
-              className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
+              className="w-full min-h-11 px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
               style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
             />
           </div>
           <motion.button
             onClick={handleAdd}
             disabled={!title.trim()}
-            className="w-full py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
+            className="w-full min-h-11 px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
             style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171' }}
             whileHover={{ background: 'rgba(239,68,68,0.22)' }}
             whileTap={{ scale: 0.98 }}
@@ -166,7 +175,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
               {curses.map(curse => (
                 <div
                   key={curse.id}
-                  className="flex items-center gap-3 p-3 rounded-xl"
+                  className="flex flex-wrap items-center gap-3 p-3 rounded-xl"
                   style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}
                 >
                   <span className="text-xl">{curse.icon}</span>
@@ -175,12 +184,12 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                     <p className="text-red-400/60 text-xs">−{curse.penalty} coins</p>
                   </div>
                   {castingCurseId === curse.id ? (
-                    <div className="flex gap-1 flex-wrap">
+                    <div className="flex w-full sm:w-auto gap-1 flex-wrap justify-end">
                       {kids.map(k => (
                         <button
                           key={k.id}
                           onClick={() => handleCast(curse.id, k.id)}
-                          className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all"
+                          className="min-h-11 px-3 py-2 rounded-lg text-xs font-bold transition-all"
                           style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171' }}
                         >
                           {k.avatar} {k.name}
@@ -188,7 +197,8 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                       ))}
                       <button
                         onClick={() => setCastingCurseId(null)}
-                        className="px-2 py-1 rounded-lg text-xs text-white/30 hover:text-white/60 transition-all"
+                        className="min-h-11 min-w-11 px-2 py-2 rounded-lg text-xs text-white/60 hover:text-white/90 transition-all"
+                        aria-label="Cancel casting curse"
                       >
                         ✕
                       </button>
@@ -197,7 +207,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setCastingCurseId(curse.id)}
-                        className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+                        className="min-h-11 px-3 py-2 rounded-xl text-xs font-bold transition-all"
                         style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171' }}
                       >
                         Cast ⚡
@@ -228,7 +238,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
               return (
                 <div
                   key={ci.id}
-                  className="flex items-center gap-3 p-3 rounded-xl"
+                  className="flex flex-wrap items-center gap-3 p-3 rounded-xl"
                   style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)' }}
                 >
                   <span className="text-xl">{curse?.icon ?? '☠️'}</span>
@@ -238,10 +248,10 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                       {kid?.avatar} {kid?.name} · −{ci.coins_deducted} coins
                     </p>
                   </div>
-                  <div className="flex gap-1.5 flex-shrink-0">
+                  <div className="flex w-full sm:w-auto gap-1.5 flex-shrink-0 justify-end">
                     <button
                       onClick={() => actions.resolveCurse(ci.id, true)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all"
+                      className="min-h-11 px-3 py-2 rounded-lg text-xs font-bold transition-all"
                       style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.25)', color: '#4ade80' }}
                       title="Lift curse and refund coins"
                     >
@@ -249,7 +259,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                     </button>
                     <button
                       onClick={() => actions.resolveCurse(ci.id, false)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all"
+                      className="min-h-11 px-3 py-2 rounded-lg text-xs font-bold transition-all"
                       style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}
                       title="Resolve without refund"
                     >
