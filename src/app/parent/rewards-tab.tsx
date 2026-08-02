@@ -163,8 +163,9 @@ export function RewardsTab({ rewards, actions, plan }: Props) {
 
   return (
     <motion.div key="rewards" {...fadeSlide} className="flex flex-col gap-6">
-      <Section title="Add Reward">
-        <div className="flex flex-col gap-3">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
+        <Section title="Add Reward">
+          <div className="flex flex-col gap-3">
           <div className="flex gap-2 flex-wrap">
             {['🎁', '🎮', '📱', '🍕', '🎬', '🎡', '🎪', '🛒', '💤', '🎯', '🎨', '🎵'].map((ic) => (
               <button
@@ -202,25 +203,26 @@ export function RewardsTab({ rewards, actions, plan }: Props) {
               {rewards.length} / {limits.maxRewards} rewards · {PLAN_LABELS[plan]} plan
             </p>
           )}
-          <ActionButton onClick={handleAdd} label={atLimit ? 'Reward limit reached' : '+ Add Reward'} disabled={atLimit} />
-        </div>
-      </Section>
-
-      <Section title="Reward Store">
-        {rewards.length === 0 ? (
-          <Empty
-            icon="🎁"
-            message="No rewards yet"
-            hint="Add a reward above so kids can spend the coins they earn."
-          />
-        ) : (
-          <div className="flex flex-col gap-2">
-            {rewards.map((r) => (
-              <RewardRow key={r.id} reward={r} onSave={actions.saveReward} onDelete={actions.deleteReward} />
-            ))}
+            <ActionButton onClick={handleAdd} label={atLimit ? 'Reward limit reached' : '+ Add Reward'} disabled={atLimit} />
           </div>
-        )}
-      </Section>
+        </Section>
+
+        <Section title="Reward Store">
+          {rewards.length === 0 ? (
+            <Empty
+              icon="🎁"
+              message="No rewards yet"
+              hint="Add a reward so kids can spend the coins they earn."
+            />
+          ) : (
+            <div className="flex flex-col gap-2">
+              {rewards.map((r) => (
+                <RewardRow key={r.id} reward={r} onSave={actions.saveReward} onDelete={actions.deleteReward} />
+              ))}
+            </div>
+          )}
+        </Section>
+      </div>
     </motion.div>
   )
 }

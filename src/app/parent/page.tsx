@@ -89,23 +89,22 @@ export default function ParentDashboard() {
     <div className="min-h-screen bg-quest-void flex flex-col">
       <StarField />
 
-      <div className="relative z-10 flex flex-col flex-1 w-full max-w-2xl mx-auto">
+      <div className="workspace-frame workspace-frame-parent relative z-10 flex flex-col flex-1">
         <motion.header
-          className="safe-top flex items-center gap-3 px-4 sm:px-6 pb-3 sm:pb-4 flex-shrink-0"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
+          className="workspace-header safe-top grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-4 sm:px-6 pb-3 sm:pb-4 flex-shrink-0 border-b border-white/10 sm:border-b-0"
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
         >
           <Link
             href="/display"
-            className="text-white/45 hover:text-white/80 transition-all text-sm flex-shrink-0 min-h-[44px] flex items-center px-1"
+            className="justify-self-start text-white/60 hover:text-white/90 transition-all text-sm flex-shrink-0 min-h-[44px] flex items-center px-1"
           >
             ← Realm
           </Link>
-          <div className="flex-1 text-center min-w-0">
+          <div className="text-center min-w-0">
             <span className="font-heading text-lg font-bold text-white/80">Parent Command</span>
           </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="justify-self-end flex items-center gap-1 flex-shrink-0">
             {data.family?.has_parent_pin && (
               <button
                 onClick={lock.handleLock}
@@ -128,7 +127,7 @@ export default function ParentDashboard() {
         </motion.header>
 
         <div
-          className="grid grid-cols-3 sm:grid-cols-6 gap-2 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0"
+          className="workspace-tabs grid grid-cols-3 sm:grid-cols-6 gap-2 mx-4 sm:mx-6 my-3 sm:my-0 sm:mb-4 flex-shrink-0"
           role="tablist"
           aria-label="Parent dashboard sections"
         >
@@ -144,11 +143,11 @@ export default function ParentDashboard() {
               aria-selected={tab === t.id}
               aria-label={t.label}
               tabIndex={tab === t.id ? 0 : -1}
-              className="relative min-w-0 min-h-11 flex flex-row items-center justify-center gap-1.5 px-2 sm:px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+              className="relative min-w-0 min-h-11 sm:min-h-12 flex flex-row items-center justify-center gap-1.5 px-2 sm:px-3 py-2 rounded-xl text-sm font-semibold transition-all"
               style={{
-                background: tab === t.id ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.05)',
-                border: `1px solid ${tab === t.id ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.08)'}`,
-                color: tab === t.id ? '#fbbf24' : 'rgba(255,255,255,0.5)',
+                background: tab === t.id ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.025)',
+                border: `1px solid ${tab === t.id ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.04)'}`,
+                color: tab === t.id ? '#fbbf24' : 'rgba(255,255,255,0.68)',
               }}
             >
               {/* Mobile: icon + tiny label stacked */}
@@ -185,7 +184,7 @@ export default function ParentDashboard() {
           id={`parent-panel-${tab}`}
           role="tabpanel"
           aria-labelledby={`parent-tab-${tab}`}
-          className="flex-1 px-4 sm:px-6 pb-8 overflow-y-auto scrollbar-thin-glass safe-bottom"
+          className="workspace-main workspace-main-parent flex-1 px-4 sm:px-6 pb-8 overflow-y-auto scrollbar-thin-glass safe-bottom"
         >
           <AnimatePresence mode="wait">
             {tab === 'approvals' && (

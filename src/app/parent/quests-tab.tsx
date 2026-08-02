@@ -55,47 +55,51 @@ export function QuestsTab({ kids, quests, actions, plan }: Props) {
 
   return (
     <motion.div key="quests" {...fadeSlide} className="flex flex-col gap-6">
-      <Section title="Add New Quest">
-        <div className="flex flex-col gap-3">
-          <QuestFormFields state={state} onChange={update} kids={kids} iconLimit={14} plan={plan} />
-          {limits.maxQuests < Infinity && (
-            <p className="text-xs text-center" style={{ color: atLimit ? '#fb923c' : 'rgba(255,255,255,0.3)' }}>
-              {activeCount} / {limits.maxQuests} active quests · {PLAN_LABELS[plan]} plan
-            </p>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)] lg:items-start">
+        <div className="flex flex-col gap-4">
+          <Section title="Add New Quest">
+            <div className="flex flex-col gap-3">
+              <QuestFormFields state={state} onChange={update} kids={kids} iconLimit={14} plan={plan} />
+              {limits.maxQuests < Infinity && (
+                <p className="text-xs text-center" style={{ color: atLimit ? '#fb923c' : 'rgba(255,255,255,0.56)' }}>
+                  {activeCount} / {limits.maxQuests} active quests · {PLAN_LABELS[plan]} plan
+                </p>
+              )}
+              <ActionButton onClick={handleAdd} label={atLimit ? 'Quest limit reached' : '+ Add Quest'} disabled={atLimit} />
+            </div>
+          </Section>
+
+          {quests.length === 0 && (
+            <button
+              onClick={actions.seedDefaultQuests}
+              className="min-h-11 text-sm text-white/60 hover:text-white/85 transition-all text-center underline underline-offset-4"
+            >
+              Or add default starter quests →
+            </button>
           )}
-          <ActionButton onClick={handleAdd} label={atLimit ? 'Quest limit reached' : '+ Add Quest'} disabled={atLimit} />
         </div>
-      </Section>
 
-      {quests.length === 0 && (
-        <button
-          onClick={actions.seedDefaultQuests}
-          className="text-sm text-white/40 hover:text-white/70 transition-all text-center underline underline-offset-4"
-        >
-          Or add default starter quests →
-        </button>
-      )}
-
-      <Section title="Active Quests">
-        {active.length === 0 ? (
-          <Empty
-            icon="⚔️"
-            message="No active quests yet"
-            hint="Use the form above to create one, or tap “Or add default starter quests” below."
-          />
-        ) : (
-          active.map((q) => (
-            <QuestRow
-              key={q.id}
-              quest={q}
-              kids={kids}
-              onToggle={actions.toggleQuest}
-              onDelete={actions.deleteQuest}
-              onSave={actions.saveQuest}
+        <Section title="Active Quests">
+          {active.length === 0 ? (
+            <Empty
+              icon="⚔️"
+              message="No active quests yet"
+              hint="Use the form to create one, or add the default starter set."
             />
-          ))
-        )}
-      </Section>
+          ) : (
+            active.map((q) => (
+              <QuestRow
+                key={q.id}
+                quest={q}
+                kids={kids}
+                onToggle={actions.toggleQuest}
+                onDelete={actions.deleteQuest}
+                onSave={actions.saveQuest}
+              />
+            ))
+          )}
+        </Section>
+      </div>
 
       {archived.length > 0 && (
         <Section title="Archived Quests">

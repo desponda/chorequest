@@ -70,6 +70,10 @@
   --cq-border-strong: rgba(255, 255, 255, 0.16);
   --cq-text-secondary: rgba(255, 255, 255, 0.72);
   --cq-text-tertiary: rgba(255, 255, 255, 0.56);
+  --cq-workspace-kid: 56rem;
+  --cq-workspace-parent: 72rem;
+  --cq-content-kid: 48rem;
+  --cq-content-parent: 64rem;
   --sidebar: oklch(0.10 0.03 278);
   --sidebar-foreground: oklch(0.97 0 0);
   --sidebar-primary: oklch(0.82 0.14 75);
@@ -208,6 +212,90 @@
     border: 1px solid var(--cq-border-soft);
   }
 
+  .workspace-frame {
+    width: 100%;
+    margin-inline: auto;
+  }
+
+  .workspace-frame-kid {
+    max-width: var(--cq-workspace-kid);
+  }
+
+  .workspace-frame-parent {
+    max-width: var(--cq-workspace-parent);
+  }
+
+  .workspace-main {
+    width: 100%;
+    margin-inline: auto;
+  }
+
+  .workspace-main-kid {
+    max-width: var(--cq-content-kid);
+  }
+
+  .workspace-main-parent {
+    max-width: var(--cq-content-parent);
+  }
+
+  .workspace-tabs {
+    padding: 0.375rem;
+    border: 1px solid var(--cq-border-soft);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.035);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.14);
+  }
+
+  @media (min-width: 480px) {
+    .workspace-header {
+      margin: 1rem 1rem 0.75rem;
+      padding: 0.875rem 1rem;
+      border: 1px solid var(--cq-border-soft);
+      border-radius: 1rem;
+      background: rgba(10, 7, 28, 0.72);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+  }
+
+  @media (min-width: 640px) {
+    .workspace-header {
+      margin-inline: 1.5rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .realm-kid-grid:has(> :only-child) {
+      grid-template-columns: minmax(20rem, 32rem) !important;
+      justify-content: center;
+    }
+
+    .realm-bounty-grid:has(> :only-child) {
+      grid-template-columns: minmax(18rem, 28rem) !important;
+      justify-content: center;
+    }
+  }
+
+  @media (max-width: 359px) {
+    .workspace-tabs {
+      gap: 0.25rem;
+      padding: 0.25rem;
+    }
+
+    .kid-workspace-tab {
+      min-height: 3.5rem;
+      flex-direction: column;
+      gap: 0.125rem;
+    }
+
+    .kid-tab-badge {
+      position: absolute;
+      top: 0.25rem;
+      right: 0.25rem;
+    }
+  }
+
   .field-label {
     display: block;
     margin-bottom: 0.375rem;
@@ -234,13 +322,15 @@
      near-black glass surfaces those values fell below readable contrast. */
   .text-white\/20,
   .text-white\/25,
-  .text-white\/30 {
-    color: rgb(255 255 255 / 0.5);
-  }
-
+  .text-white\/30,
   .text-white\/35,
   .text-white\/40 {
     color: rgb(255 255 255 / 0.56);
+  }
+
+  .text-white\/45,
+  .text-white\/50 {
+    color: rgb(255 255 255 / 0.62);
   }
 
   .placeholder\:text-white\/25::placeholder {

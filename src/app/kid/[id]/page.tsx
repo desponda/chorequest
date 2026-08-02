@@ -446,20 +446,20 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
     <div className="min-h-screen bg-quest-void flex flex-col">
       <StarField />
 
-      <div className="relative z-10 flex flex-col flex-1 w-full max-w-md mx-auto">
+      <div className="workspace-frame workspace-frame-kid relative z-10 flex flex-col flex-1">
         <motion.header
-          className="safe-top flex items-center gap-2 sm:gap-3 px-4 sm:px-6 pb-4 sm:pb-5 flex-shrink-0"
+          className="workspace-header safe-top flex min-[480px]:grid min-[480px]:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-4 px-4 sm:px-6 pb-4 sm:pb-5 flex-shrink-0"
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
         >
           <Link
             href="/display"
-            className="text-white/45 hover:text-white/80 transition-all text-sm min-h-[44px] flex items-center px-1"
+            className="justify-self-start text-white/60 hover:text-white/90 transition-all text-sm min-h-[44px] flex items-center px-1"
           >
             ← Realm
           </Link>
 
-          <div className="flex-1 min-w-0 flex items-center gap-2 sm:gap-3 justify-center">
+          <div className="flex-1 min-[480px]:flex-none min-w-0 flex items-center gap-2 sm:gap-3 justify-center">
             <span className="text-2xl sm:text-3xl flex-shrink-0">{kid.avatar}</span>
             <div>
               <h1 className="font-heading text-xl sm:text-2xl font-bold text-white/95 truncate">{kid.name}</h1>
@@ -469,19 +469,24 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {kid.streak > 1 && <span className="hidden sm:inline-flex"><StreakBadge streak={kid.streak} compact /></span>}
+          <div className="justify-self-end flex items-center gap-2 sm:gap-3">
+            {kid.streak > 1 && <span className="hidden min-[480px]:inline-flex"><StreakBadge streak={kid.streak} compact /></span>}
             <CoinCounter value={availableCoins} size="sm" />
           </div>
         </motion.header>
 
         <div
-          className="grid grid-cols-4 px-4 sm:px-6 gap-1.5 sm:gap-2 mb-4 flex-shrink-0"
+          className="workspace-tabs grid grid-cols-4 mx-4 sm:mx-6 gap-1.5 sm:gap-2 mb-4 flex-shrink-0"
           role="tablist"
           aria-label="Adventurer sections"
         >
           {(['quests', 'bounty', 'rewards', 'history'] as const).map((t) => {
-            const labels = { quests: '⚔️ Quests', bounty: '⚡ Bounty', rewards: '🎁 Rewards', history: '📒 History' }
+            const labels = {
+              quests: { icon: '⚔️', label: 'Quests' },
+              bounty: { icon: '⚡', label: 'Bounty' },
+              rewards: { icon: '🎁', label: 'Rewards' },
+              history: { icon: '📒', label: 'History' },
+            }
             const badge = t === 'quests' && pendingCompletions.length > 0
               ? pendingCompletions.length
               : t === 'bounty' && availableBountyCount > 0
@@ -499,23 +504,24 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                 aria-selected={tab === t}
                 aria-label={`${t.charAt(0).toUpperCase()}${t.slice(1)}`}
                 tabIndex={tab === t ? 0 : -1}
-                className="relative min-w-0 min-h-11 px-1 py-2 rounded-xl text-[11px] sm:text-sm font-semibold transition-all flex items-center justify-center gap-1"
+                className="kid-workspace-tab relative min-w-0 min-h-11 sm:min-h-12 px-1.5 sm:px-3 py-2 rounded-xl text-[11px] sm:text-sm font-semibold transition-all flex items-center justify-center gap-1.5"
                 style={{
                   background: tab === t
                     ? (t === 'bounty' ? 'rgba(251,191,36,0.12)' : colors.bg)
-                    : 'rgba(255,255,255,0.04)',
+                    : 'rgba(255,255,255,0.025)',
                   border: `1px solid ${tab === t
                     ? (t === 'bounty' ? 'rgba(251,191,36,0.35)' : colors.border)
-                    : 'rgba(255,255,255,0.07)'}`,
+                    : 'rgba(255,255,255,0.04)'}`,
                   color: tab === t
                     ? (t === 'bounty' ? '#fbbf24' : colors.primary)
-                    : 'rgba(255,255,255,0.45)',
+                    : 'rgba(255,255,255,0.68)',
                 }}
               >
-                {labels[t]}
+                <span aria-hidden="true">{labels[t].icon}</span>
+                <span>{labels[t].label}</span>
                 {badge && (
                   <span
-                    className="px-1.5 py-0.5 rounded-full text-[10px] font-bold leading-none"
+                    className="kid-tab-badge px-1.5 py-0.5 rounded-full text-[10px] font-bold leading-none"
                     style={{ background: 'rgba(251,191,36,0.9)', color: '#0a0620' }}
                     aria-label={`${badge} new`}
                   >
@@ -531,7 +537,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
           id={`kid-panel-${tab}`}
           role="tabpanel"
           aria-labelledby={`kid-tab-${tab}`}
-          className="flex-1 px-4 sm:px-6 pb-8 overflow-y-auto scrollbar-thin-glass safe-bottom"
+          className="workspace-main workspace-main-kid flex-1 px-4 sm:px-6 pb-8 overflow-y-auto scrollbar-thin-glass safe-bottom"
         >
           <AnimatePresence mode="wait">
             {tab === 'quests' ? (
@@ -666,7 +672,7 @@ function Section({ title, accent, children }: { title: string; accent?: 'gold'; 
     <div>
       <p
         className="text-xs font-bold uppercase tracking-widest mb-2"
-        style={{ color: accent === 'gold' ? 'rgba(251,191,36,0.7)' : 'rgba(255,255,255,0.35)' }}
+        style={{ color: accent === 'gold' ? 'rgba(251,191,36,0.85)' : 'rgba(255,255,255,0.62)' }}
       >
         {title}
       </p>
@@ -893,7 +899,7 @@ function PendingApprovalSection({
               <span className="text-xs text-amber-400/70 flex-shrink-0">🪙 {c.coins_requested ?? quest.coins}</span>
               <button
                 onClick={() => onUndo(c.id)}
-                className="text-xs text-white/30 hover:text-amber-400 transition-all flex-shrink-0 px-2 py-1 rounded-lg"
+                className="min-h-11 min-w-11 inline-flex items-center justify-center text-xs text-white/60 hover:text-amber-400 transition-all flex-shrink-0 px-2 rounded-lg"
                 style={{ background: 'rgba(255,255,255,0.04)' }}
                 title="Cancel submission"
               >
@@ -952,11 +958,14 @@ function BountyTab({
       transition={{ duration: 0.2 }}
     >
       <div
-        className="rounded-2xl px-4 py-3 flex items-center gap-3"
+        className="rounded-2xl px-4 py-3 sm:px-5 sm:py-4 flex items-center gap-3.5"
         style={{ background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.2)' }}
       >
-        <span className="text-xl">⚡</span>
-        <p className="text-xs text-amber-400/70">First to claim earns the coins — slots are limited</p>
+        <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-xl" style={{ background: 'rgba(251,191,36,0.12)' }}>⚡</span>
+        <div className="min-w-0">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-amber-300">Bounty board</h2>
+          <p className="mt-0.5 text-sm text-amber-100/75">First to claim earns the coins. Available slots are limited.</p>
+        </div>
       </div>
 
       {quests.map((q, i) => {

@@ -459,7 +459,7 @@ export default function WallDisplay() {
 
       {/* Kid columns */}
       <main
-        className="relative z-10 flex-1 grid gap-4 sm:gap-6 px-4 sm:px-8 pb-4 min-h-0"
+        className="realm-kid-grid relative z-10 flex-1 grid gap-4 sm:gap-6 px-4 sm:px-8 pb-4 min-h-0"
         style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))' }}
       >
         {kids.map((kid, i) => (
@@ -508,7 +508,7 @@ export default function WallDisplay() {
           </div>
 
           <div
-            className="grid gap-3"
+            className="realm-bounty-grid grid gap-3"
             style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))' }}
           >
             {bountyQuests.map((quest, i) => {
@@ -596,7 +596,7 @@ export default function WallDisplay() {
           >
             <motion.div
               ref={bountyTrapRef}
-              className="modal-shell rounded-3xl w-full max-w-sm sm:max-w-lg overflow-hidden"
+              className="modal-shell rounded-3xl w-full max-w-sm sm:max-w-2xl overflow-hidden"
               style={{
                 background: 'rgba(10,6,28,0.98)',
                 border: '1px solid rgba(251,191,36,0.25)',
@@ -693,7 +693,7 @@ export default function WallDisplay() {
           >
             <motion.div
               ref={rewardsTrapRef}
-              className="modal-shell rounded-3xl w-full max-w-sm sm:max-w-lg overflow-hidden"
+              className="modal-shell rounded-3xl w-full max-w-sm sm:max-w-2xl overflow-hidden"
               style={{
                 background: 'rgba(10,6,28,0.98)',
                 border: '1px solid rgba(251,191,36,0.18)',
