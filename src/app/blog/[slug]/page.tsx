@@ -73,7 +73,7 @@ export default async function BlogPostPage({ params }: Props) {
 
       {/* Nav */}
       <header
-        className="sticky top-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 gap-3"
+        className="safe-top sticky top-0 z-50 flex items-center justify-between px-4 sm:px-6 pb-3 sm:pb-4 gap-3"
         style={{ background: 'rgba(5,3,16,0.8)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
       >
         <Link href="/" className="flex items-center gap-2 min-w-0">
@@ -81,10 +81,10 @@ export default async function BlogPostPage({ params }: Props) {
           <span className="font-heading font-bold text-base sm:text-lg tracking-widest text-white/90 truncate">ChoreQuest</span>
         </Link>
         <div className="flex items-center gap-3 sm:gap-4">
-          <Link href="/blog" className="text-sm text-white/45 hover:text-white/70 transition-colors whitespace-nowrap">← All posts</Link>
+          <Link href="/blog" className="min-h-11 inline-flex items-center rounded-lg px-2 text-sm text-white/60 hover:text-white/90 transition-colors whitespace-nowrap">← All posts</Link>
           <Link
             href="/login"
-            className="px-3 sm:px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap"
+            className="min-h-11 inline-flex items-center px-3 sm:px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap"
             style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)', color: '#fbbf24' }}
           >
             Sign in
@@ -92,12 +92,14 @@ export default async function BlogPostPage({ params }: Props) {
         </div>
       </header>
 
-      <main className="relative z-10 max-w-2xl mx-auto px-6 py-16">
+      <main className="relative z-10 max-w-2xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
         {/* Cover image */}
         {post.cover_url && (
           <div
             className="w-full h-64 rounded-2xl bg-cover bg-center mb-10"
             style={{ backgroundImage: `url(${post.cover_url})` }}
+            role="img"
+            aria-label={`Cover image for ${post.title}`}
           />
         )}
 
@@ -227,12 +229,12 @@ export default async function BlogPostPage({ params }: Props) {
         {/* Back link + CTA */}
         <div className="mt-16 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pt-8"
           style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-          <Link href="/blog" className="text-sm text-white/40 hover:text-white/70 transition-colors">
+          <Link href="/blog" className="min-h-11 inline-flex items-center rounded-xl px-2 text-sm text-white/60 hover:text-white/90 transition-colors">
             ← All articles
           </Link>
           <Link
             href="/login"
-            className="px-6 py-3 rounded-xl text-sm font-bold transition-all"
+            className="min-h-11 inline-flex items-center px-6 py-3 rounded-xl text-sm font-bold transition-all"
             style={{
               background: 'rgba(251,191,36,0.12)',
               border: '1px solid rgba(251,191,36,0.3)',

@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { StarField } from '@/components/star-field'
@@ -30,6 +30,24 @@ export default function ParentDashboard() {
 
   const [tab, setTab] = useState<Tab>('approvals')
   const [qrKidId, setQrKidId] = useState<string | null>(null)
+  const tabRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({})
+
+  const handleTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, current: Tab) => {
+    const ids: Tab[] = ['approvals', 'quests', 'rewards', 'curses', 'dungeons', 'family']
+    const currentIndex = ids.indexOf(current)
+    let nextIndex = currentIndex
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') nextIndex = (currentIndex + 1) % ids.length
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') nextIndex = (currentIndex - 1 + ids.length) % ids.length
+    else if (event.key === 'Home') nextIndex = 0
+    else if (event.key === 'End') nextIndex = ids.length - 1
+    else return
+
+    event.preventDefault()
+    const next = ids[nextIndex]
+    setTab(next)
+    tabRefs.current[next]?.focus()
+  }
 
   const pendingCompletions = data.completions.filter((c) => c.status === 'pending')
   const reviewedCompletions = data.completions.filter((c) => c.status !== 'pending')
@@ -73,7 +91,7 @@ export default function ParentDashboard() {
 
       <div className="relative z-10 flex flex-col flex-1 w-full max-w-2xl mx-auto">
         <motion.header
-          className="flex items-center gap-3 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0"
+          className="safe-top flex items-center gap-3 px-4 sm:px-6 pb-3 sm:pb-4 flex-shrink-0"
           style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -110,18 +128,23 @@ export default function ParentDashboard() {
         </motion.header>
 
         <div
-          className="flex gap-1.5 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0"
+          className="grid grid-cols-3 sm:grid-cols-6 gap-2 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0"
           role="tablist"
           aria-label="Parent dashboard sections"
         >
           {tabs.map((t) => (
             <button
               key={t.id}
+              ref={(node) => { tabRefs.current[t.id] = node }}
               onClick={() => setTab(t.id)}
+              onKeyDown={(event) => handleTabKeyDown(event, t.id)}
               role="tab"
+              id={`parent-tab-${t.id}`}
+              aria-controls={`parent-panel-${t.id}`}
               aria-selected={tab === t.id}
               aria-label={t.label}
-              className="relative flex-1 min-w-0 min-h-[48px] sm:min-h-0 flex sm:flex-row flex-col items-center justify-center gap-0.5 sm:gap-1.5 px-1 sm:px-3 py-1.5 sm:py-2 rounded-xl text-sm font-semibold transition-all"
+              tabIndex={tab === t.id ? 0 : -1}
+              className="relative min-w-0 min-h-11 flex flex-row items-center justify-center gap-1.5 px-2 sm:px-3 py-2 rounded-xl text-sm font-semibold transition-all"
               style={{
                 background: tab === t.id ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.05)',
                 border: `1px solid ${tab === t.id ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.08)'}`,
@@ -129,8 +152,8 @@ export default function ParentDashboard() {
               }}
             >
               {/* Mobile: icon + tiny label stacked */}
-              <span className="sm:hidden text-base leading-none">{t.icon}</span>
-              <span className="sm:hidden text-[9px] font-bold tracking-wide uppercase leading-none mt-0.5">
+              <span className="sm:hidden text-base leading-none" aria-hidden="true">{t.icon}</span>
+              <span className="sm:hidden text-[10px] font-bold tracking-wide uppercase leading-none">
                 {t.label}
               </span>
               {/* Desktop: icon + full label inline */}
@@ -158,7 +181,12 @@ export default function ParentDashboard() {
           ))}
         </div>
 
-        <main className="flex-1 px-6 pb-8 overflow-y-auto scrollbar-thin-glass">
+        <main
+          id={`parent-panel-${tab}`}
+          role="tabpanel"
+          aria-labelledby={`parent-tab-${tab}`}
+          className="flex-1 px-4 sm:px-6 pb-8 overflow-y-auto scrollbar-thin-glass safe-bottom"
+        >
           <AnimatePresence mode="wait">
             {tab === 'approvals' && (
               <ApprovalsTab

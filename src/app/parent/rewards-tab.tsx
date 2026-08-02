@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Plan, Reward } from '@/lib/types'
 import { PLAN_LABELS, PLAN_LIMITS } from '@/lib/plans'
@@ -17,6 +17,7 @@ interface RewardRowProps {
 }
 
 function RewardRow({ reward, onSave, onDelete }: RewardRowProps) {
+  const costId = useId()
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(reward.title)
   const [desc, setDesc] = useState(reward.description ?? '')
@@ -49,8 +50,11 @@ function RewardRow({ reward, onSave, onDelete }: RewardRowProps) {
         </div>
         <span className="text-cq-gold text-sm font-bold font-heading">🪙 {reward.cost}</span>
         <button
+          type="button"
           onClick={() => setEditing((e) => !e)}
-          className="text-xs px-2.5 py-1 rounded-lg transition-all"
+          className="min-h-11 min-w-11 inline-flex items-center justify-center text-xs rounded-xl transition-all"
+          aria-label={editing ? `Close editor for ${reward.title}` : `Edit ${reward.title}`}
+          aria-expanded={editing}
           style={{
             background: editing ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.05)',
             color: editing ? '#fbbf24' : 'rgba(255,255,255,0.4)',
@@ -82,9 +86,12 @@ function RewardRow({ reward, onSave, onDelete }: RewardRowProps) {
               <div className="flex gap-2 flex-wrap">
                 {REWARD_ICONS.map((ic) => (
                   <button
+                    type="button"
                     key={ic}
                     onClick={() => setIcon(ic)}
-                    className="text-xl w-9 h-9 rounded-xl transition-all"
+                    aria-label={`Use ${ic} as the reward icon`}
+                    aria-pressed={icon === ic}
+                    className="text-xl w-11 h-11 rounded-xl transition-all"
                     style={{
                       background: icon === ic ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.05)',
                       border: `1px solid ${icon === ic ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.08)'}`,
@@ -97,27 +104,28 @@ function RewardRow({ reward, onSave, onDelete }: RewardRowProps) {
               <FormInput placeholder="Reward title..." value={title} onChange={setTitle} />
               <FormInput placeholder="Description (optional)" value={desc} onChange={setDesc} />
               <div>
-                <label className="text-xs text-white/40 mb-1 block">Coin cost</label>
+                <label htmlFor={costId} className="field-label">Coin cost</label>
                 <input
+                  id={costId}
                   type="number"
                   min={1}
                   value={cost}
                   onChange={(e) => setCost(Number(e.target.value))}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
+                  className="w-full min-h-11 px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
                   style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
                 />
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={handleSave}
-                  className="flex-1 py-2 rounded-xl text-sm font-bold transition-all"
+                  className="min-h-11 flex-1 py-2 rounded-xl text-sm font-bold transition-all"
                   style={{ background: 'rgba(74,222,128,0.14)', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80' }}
                 >
                   Save Changes
                 </button>
                 <button
                   onClick={handleCancel}
-                  className="px-4 py-2 rounded-xl text-sm transition-all"
+                  className="min-h-11 px-4 py-2 rounded-xl text-sm transition-all"
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}
                 >
                   Cancel
@@ -138,6 +146,7 @@ interface Props {
 }
 
 export function RewardsTab({ rewards, actions, plan }: Props) {
+  const costId = useId()
   const [title, setTitle] = useState('')
   const [desc, setDesc] = useState('')
   const [icon, setIcon] = useState('🎁')
@@ -159,9 +168,12 @@ export function RewardsTab({ rewards, actions, plan }: Props) {
           <div className="flex gap-2 flex-wrap">
             {['🎁', '🎮', '📱', '🍕', '🎬', '🎡', '🎪', '🛒', '💤', '🎯', '🎨', '🎵'].map((ic) => (
               <button
+                type="button"
                 key={ic}
                 onClick={() => setIcon(ic)}
-                className="text-xl w-10 h-10 rounded-xl transition-all"
+                aria-label={`Use ${ic} as the reward icon`}
+                aria-pressed={icon === ic}
+                className="text-xl w-11 h-11 rounded-xl transition-all"
                 style={{
                   background: icon === ic ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.05)',
                   border: `1px solid ${icon === ic ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.08)'}`,
@@ -174,13 +186,14 @@ export function RewardsTab({ rewards, actions, plan }: Props) {
           <FormInput placeholder="Reward title..." value={title} onChange={setTitle} />
           <FormInput placeholder="Description (optional)" value={desc} onChange={setDesc} />
           <div>
-            <label className="text-xs text-white/40 mb-1 block">Coin cost</label>
+            <label htmlFor={costId} className="field-label">Coin cost</label>
             <input
+              id={costId}
               type="number"
               min={1}
               value={cost}
               onChange={(e) => setCost(Number(e.target.value))}
-              className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
+              className="w-full min-h-11 px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
               style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
             />
           </div>

@@ -24,12 +24,12 @@ export default function WallDisplay() {
   const [completions, setCompletions] = useState<Completion[]>([])
   const [activeCurseCounts, setActiveCurseCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [pendingCount, setPendingCount] = useState(0)
   const [claimingBounty, setClaimingBounty] = useState<Quest | null>(null)
   const [rewards, setRewards] = useState<Reward[]>([])
   const [showRewards, setShowRewards] = useState(false)
   const [showBounty, setShowBounty] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
   const [activeDungeon, setActiveDungeon] = useState<DungeonRun | null>(null)
   const [dungeonClears, setDungeonClears] = useState<DungeonClear[]>([])
   const [weeklyCompletions, setWeeklyCompletions] = useState<Completion[]>([])
@@ -44,12 +44,16 @@ export default function WallDisplay() {
   const claimTrapRef = useFocusTrap<HTMLDivElement>(claimingBounty !== null)
 
   const fetchData = useCallback(async () => {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('family_id')
       .single()
 
-    if (!profile) return
+    if (profileError || !profile) {
+      setLoadError('We could not load your family profile.')
+      setLoading(false)
+      return
+    }
 
     const [familyRes, kidsRes, questsRes, rewardsRes] = await Promise.all([
       supabase.from('families').select('id, name, invite_token, daily_reset_hour, timezone, created_at, plan').eq('id', profile.family_id).single(),
@@ -57,6 +61,13 @@ export default function WallDisplay() {
       supabase.from('quests').select('*').eq('family_id', profile.family_id).eq('active', true).eq('archived', false).order('created_at'),
       supabase.from('rewards').select('*').eq('available', true).eq('archived', false).order('cost'),
     ])
+
+    if (familyRes.error || kidsRes.error || questsRes.error) {
+      setLoadError('The realm could not be loaded. Check your connection and try again.')
+      setLoading(false)
+      return
+    }
+    setLoadError(null)
 
     const resetHour = familyRes.data?.daily_reset_hour ?? 0
     const timeZone = familyRes.data?.timezone ?? 'UTC'
@@ -99,13 +110,6 @@ export default function WallDisplay() {
 
     setLoading(false)
   }, [supabase])
-
-  useEffect(() => {
-    const update = () => setIsMobile(window.innerWidth < 640)
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
-  }, [])
 
   useEffect(() => {
     fetchData()
@@ -218,6 +222,30 @@ export default function WallDisplay() {
     return <DisplaySkeleton />
   }
 
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-quest-void flex items-center justify-center px-4 text-center safe-top safe-bottom">
+        <StarField />
+        <div className="relative z-10 max-w-sm">
+          <p className="text-5xl mb-4" aria-hidden="true">🌩️</p>
+          <h1 className="font-heading text-2xl font-bold text-white mb-2">The realm is out of reach</h1>
+          <p className="text-white/60 text-sm mb-6">{loadError}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setLoading(true)
+              fetchData()
+            }}
+            className="min-h-11 px-6 rounded-xl text-sm font-bold text-cq-gold"
+            style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)' }}
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (kids.length === 0) {
     return (
       <div className="min-h-screen bg-quest-void flex items-center justify-center">
@@ -254,7 +282,7 @@ export default function WallDisplay() {
 
       {/* Header */}
       <motion.header
-        className="relative z-10 flex items-center justify-between px-4 sm:px-8 py-3 sm:py-5 flex-shrink-0"
+        className="safe-top relative z-10 flex items-center justify-between px-4 sm:px-8 pb-3 sm:pb-5 flex-shrink-0"
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
@@ -391,7 +419,10 @@ export default function WallDisplay() {
                 <p className="font-heading text-xs font-bold text-white/60 tracking-wide">{activeDungeon.title}</p>
                 <p className="text-xs text-white/30 ml-auto">+{activeDungeon.reward_coins}🪙 +{activeDungeon.reward_xp}✨ per adventurer</p>
               </div>
-              <div className={`grid gap-3`} style={{ gridTemplateColumns: `repeat(${Math.max(1, kids.length)}, 1fr)` }}>
+              <div
+                className="grid gap-3"
+                style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 132px), 1fr))' }}
+              >
                 {kids.map(kid => {
                   const damage = weeklyCompletions
                     .filter(c => c.kid_id === kid.id)
@@ -429,7 +460,7 @@ export default function WallDisplay() {
       {/* Kid columns */}
       <main
         className="relative z-10 flex-1 grid gap-4 sm:gap-6 px-4 sm:px-8 pb-4 min-h-0"
-        style={{ gridTemplateColumns: `repeat(${isMobile ? 1 : kids.length}, 1fr)` }}
+        style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))' }}
       >
         {kids.map((kid, i) => (
           <motion.div
@@ -478,7 +509,7 @@ export default function WallDisplay() {
 
           <div
             className="grid gap-3"
-            style={{ gridTemplateColumns: `repeat(${isMobile ? Math.min(bountyQuests.length, 2) : Math.min(bountyQuests.length, 4)}, 1fr)` }}
+            style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))' }}
           >
             {bountyQuests.map((quest, i) => {
               const count = getFamilyCount(quest)
@@ -541,7 +572,7 @@ export default function WallDisplay() {
       )}
 
       <motion.footer
-        className="relative z-10 text-center pb-4 text-white/20 text-xs tracking-[0.25em] uppercase flex-shrink-0"
+        className="safe-bottom relative z-10 text-center text-white/50 text-xs tracking-[0.25em] uppercase flex-shrink-0"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.9 }}
@@ -553,7 +584,7 @@ export default function WallDisplay() {
       <AnimatePresence>
         {showBounty && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)' }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -565,7 +596,7 @@ export default function WallDisplay() {
           >
             <motion.div
               ref={bountyTrapRef}
-              className="rounded-3xl mx-4 w-full max-w-sm sm:max-w-lg overflow-hidden"
+              className="modal-shell rounded-3xl w-full max-w-sm sm:max-w-lg overflow-hidden"
               style={{
                 background: 'rgba(10,6,28,0.98)',
                 border: '1px solid rgba(251,191,36,0.25)',
@@ -597,7 +628,7 @@ export default function WallDisplay() {
                 </div>
               </div>
 
-              <div className="overflow-y-auto px-7 py-4 flex-1 flex flex-col gap-3">
+              <div className="overflow-y-auto px-4 sm:px-7 py-4 flex-1 flex flex-col gap-3">
                 {bountyQuests.map((quest) => {
                   const count = getFamilyCount(quest)
                   const isFull = count >= quest.slots
@@ -650,7 +681,7 @@ export default function WallDisplay() {
       <AnimatePresence>
         {showRewards && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)' }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -662,7 +693,7 @@ export default function WallDisplay() {
           >
             <motion.div
               ref={rewardsTrapRef}
-              className="rounded-3xl mx-4 w-full max-w-sm sm:max-w-lg overflow-hidden"
+              className="modal-shell rounded-3xl w-full max-w-sm sm:max-w-lg overflow-hidden"
               style={{
                 background: 'rgba(10,6,28,0.98)',
                 border: '1px solid rgba(251,191,36,0.18)',
@@ -701,7 +732,7 @@ export default function WallDisplay() {
               </div>
 
               {/* Rewards list */}
-              <div className="overflow-y-auto px-7 py-4 flex-1 flex flex-col gap-3">
+              <div className="overflow-y-auto px-4 sm:px-7 py-4 flex-1 flex flex-col gap-3">
                 {rewards.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-white/25">
                     <span className="text-4xl mb-3">🎁</span>
@@ -761,7 +792,7 @@ export default function WallDisplay() {
       <AnimatePresence>
         {claimingBounty && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -773,7 +804,7 @@ export default function WallDisplay() {
           >
             <motion.div
               ref={claimTrapRef}
-              className="rounded-3xl p-7 mx-4 max-w-sm w-full"
+              className="modal-shell overflow-y-auto rounded-3xl p-5 sm:p-7 max-w-sm w-full"
               style={{
                 background: 'rgba(12,8,32,0.97)',
                 border: '1px solid rgba(255,255,255,0.1)',
@@ -791,14 +822,17 @@ export default function WallDisplay() {
               </div>
               <p className="text-center text-white/40 text-sm mb-6">Who&apos;s doing this bounty?</p>
 
-              <div className="flex gap-4 justify-center">
+              <div
+                className="grid gap-3"
+                style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(104px, 1fr))' }}
+              >
                 {kids.map(kid => {
                   const colors = KID_COLORS[kid.color]
                   return (
                     <motion.button
                       key={kid.id}
                       onClick={() => handleClaimBounty(claimingBounty.id, kid.id)}
-                      className="flex flex-col items-center gap-2 px-6 py-4 rounded-2xl"
+                      className="min-h-24 flex flex-col items-center justify-center gap-2 px-3 py-4 rounded-2xl"
                       style={{ background: colors.bg, border: `1px solid ${colors.border}` }}
                       whileHover={{ scale: 1.06, boxShadow: `0 0 20px ${colors.glow}` }}
                       whileTap={{ scale: 0.95 }}
@@ -812,7 +846,7 @@ export default function WallDisplay() {
 
               <button
                 onClick={() => setClaimingBounty(null)}
-                className="mt-5 w-full text-center text-white/25 text-sm hover:text-white/50 transition-all"
+                className="mt-5 min-h-11 w-full rounded-xl text-center text-white/60 text-sm hover:text-white/90 transition-all"
               >
                 Cancel
               </button>

@@ -128,9 +128,12 @@ export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, k
             <div className="flex gap-2 flex-wrap">
               {DUNGEON_ICONS.map((ic) => (
                 <button
+                  type="button"
                   key={ic}
                   onClick={() => setDIcon(ic)}
-                  className="text-xl w-10 h-10 rounded-xl transition-all"
+                  aria-label={`Use ${ic} as the dungeon icon`}
+                  aria-pressed={dIcon === ic}
+                  className="text-xl w-11 h-11 rounded-xl transition-all"
                   style={{
                     background: dIcon === ic ? 'rgba(56,189,248,0.2)' : 'rgba(255,255,255,0.05)',
                     border: `1px solid ${dIcon === ic ? 'rgba(56,189,248,0.4)' : 'rgba(255,255,255,0.08)'}`,
@@ -141,33 +144,36 @@ export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, k
               ))}
             </div>
             <FormInput placeholder="Dungeon name (e.g. Cave of Chaos)" value={dTitle} onChange={setDTitle} />
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div>
                 <label className="text-xs text-white/40 mb-1 block">HP (damage needed)</label>
                 <input type="number" min={50} max={5000} value={dHp}
+                  aria-label="Dungeon HP needed"
                   onChange={(e) => setDHp(Number(e.target.value))}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
+                  className="w-full min-h-11 px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
                   style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
               </div>
               <div>
                 <label className="text-xs text-white/40 mb-1 block">Reward coins (per kid)</label>
                 <input type="number" min={10} max={500} value={dRewardCoins}
+                  aria-label="Reward coins per kid"
                   onChange={(e) => setDRewardCoins(Number(e.target.value))}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
+                  className="w-full min-h-11 px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
                   style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
               </div>
               <div>
                 <label className="text-xs text-white/40 mb-1 block">Reward XP (per kid)</label>
                 <input type="number" min={10} max={1000} value={dRewardXp}
+                  aria-label="Reward experience points per kid"
                   onChange={(e) => setDRewardXp(Number(e.target.value))}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
+                  className="w-full min-h-11 px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
                   style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
               </div>
             </div>
             <motion.button
               onClick={handleAddDungeon}
               disabled={!dTitle.trim()}
-              className="w-full py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
+              className="w-full min-h-11 px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
               style={{ background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.35)', color: '#38bdf8' }}
               whileHover={{ background: 'rgba(56,189,248,0.22)' }}
               whileTap={{ scale: 0.98 }}
@@ -219,9 +225,12 @@ export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, k
             <div className="flex gap-2 flex-wrap">
               {BOSS_ICONS.map((ic) => (
                 <button
+                  type="button"
                   key={ic}
                   onClick={() => setBIcon(ic)}
-                  className="text-xl w-10 h-10 rounded-xl transition-all"
+                  aria-label={`Use ${ic} as the raid boss icon`}
+                  aria-pressed={bIcon === ic}
+                  className="text-xl w-11 h-11 rounded-xl transition-all"
                   style={{
                     background: bIcon === ic ? 'rgba(251,146,60,0.2)' : 'rgba(255,255,255,0.05)',
                     border: `1px solid ${bIcon === ic ? 'rgba(251,146,60,0.4)' : 'rgba(255,255,255,0.08)'}`,
@@ -236,15 +245,17 @@ export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, k
               <div>
                 <label className="text-xs text-white/40 mb-1 block">HP per kid · total: {bHpPerKid * Math.max(1, kidCount)}</label>
                 <input type="number" min={100} max={5000} value={bHpPerKid}
+                  aria-label="Raid boss HP per kid"
                   onChange={(e) => setBHpPerKid(Number(e.target.value))}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
+                  className="w-full min-h-11 px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
                   style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
               </div>
               <div>
                 <label className="text-xs text-white/40 mb-1 block">Total coin bounty</label>
                 <input type="number" min={50} max={2000} value={bBounty}
+                  aria-label="Total raid boss coin bounty"
                   onChange={(e) => setBBounty(Number(e.target.value))}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
+                  className="w-full min-h-11 px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
                   style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
               </div>
             </div>
@@ -254,7 +265,7 @@ export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, k
             <motion.button
               onClick={handleAddBoss}
               disabled={!bTitle.trim() || kidCount === 0}
-              className="w-full py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
+              className="w-full min-h-11 px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
               style={{ background: 'rgba(251,146,60,0.15)', border: '1px solid rgba(251,146,60,0.35)', color: '#fb923c' }}
               whileHover={{ background: 'rgba(251,146,60,0.22)' }}
               whileTap={{ scale: 0.98 }}

@@ -31,7 +31,7 @@ export function ParentSkeleton() {
       <StarField />
       <div className="relative z-10 flex flex-col flex-1 w-full max-w-2xl mx-auto">
         <header
-          className="flex items-center gap-3 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0"
+          className="safe-top flex items-center gap-3 px-4 sm:px-6 pb-3 sm:pb-4 flex-shrink-0"
           style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
         >
           <Shimmer className="h-5 w-16 rounded-md" />
@@ -40,12 +40,12 @@ export function ParentSkeleton() {
           </div>
           <Shimmer className="h-5 w-16 rounded-md" />
         </header>
-        <div className="flex gap-1.5 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0">
           {Array.from({ length: 6 }).map((_, i) => (
             <Shimmer key={i} className="flex-1 h-12 rounded-xl" />
           ))}
         </div>
-        <main className="flex-1 px-4 sm:px-6 pb-8 flex flex-col gap-4">
+        <main className="flex-1 px-4 sm:px-6 pb-8 flex flex-col gap-4 safe-bottom">
           <Shimmer className="h-5 w-24 rounded-md" />
           <Shimmer className="h-20 w-full rounded-2xl" />
           <Shimmer className="h-20 w-full rounded-2xl" />
@@ -67,7 +67,7 @@ export function KidViewSkeleton() {
     >
       <StarField />
       <div className="relative z-10 flex flex-col flex-1 w-full max-w-md mx-auto">
-        <header className="flex items-center gap-3 px-4 sm:px-6 py-4 sm:py-5 flex-shrink-0">
+        <header className="safe-top flex items-center gap-3 px-4 sm:px-6 pb-4 sm:pb-5 flex-shrink-0">
           <Shimmer className="h-5 w-16 rounded-md" />
           <div className="flex-1 flex items-center gap-3 justify-center">
             <Shimmer className="h-10 w-10 rounded-full" />
@@ -83,7 +83,7 @@ export function KidViewSkeleton() {
             <Shimmer key={i} className="flex-1 h-11 rounded-xl" />
           ))}
         </div>
-        <main className="flex-1 px-4 sm:px-6 pb-8 flex flex-col gap-3">
+        <main className="flex-1 px-4 sm:px-6 pb-8 flex flex-col gap-3 safe-bottom">
           <Shimmer className="h-4 w-20 rounded-md" />
           {Array.from({ length: 4 }).map((_, i) => (
             <Shimmer key={i} className="h-14 w-full rounded-2xl" />

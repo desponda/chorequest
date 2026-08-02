@@ -64,6 +64,12 @@
   --input: oklch(1 0 0 / 11%);
   --ring: oklch(0.82 0.14 75);
   --radius: 0.75rem;
+  --cq-surface-soft: rgba(255, 255, 255, 0.045);
+  --cq-surface-raised: rgba(255, 255, 255, 0.065);
+  --cq-border-soft: rgba(255, 255, 255, 0.1);
+  --cq-border-strong: rgba(255, 255, 255, 0.16);
+  --cq-text-secondary: rgba(255, 255, 255, 0.72);
+  --cq-text-tertiary: rgba(255, 255, 255, 0.56);
   --sidebar: oklch(0.10 0.03 278);
   --sidebar-foreground: oklch(0.97 0 0);
   --sidebar-primary: oklch(0.82 0.14 75);
@@ -86,6 +92,16 @@
   body {
     background-color: #050310;
     @apply text-foreground min-h-screen overflow-x-hidden;
+  }
+  /* Tailwind's min-h-screen uses legacy vh. Dynamic viewport units prevent
+     clipped auth and PIN screens when mobile browser chrome is visible. */
+  .min-h-screen {
+    min-height: 100svh;
+  }
+  @supports (min-height: 100dvh) {
+    .min-h-screen {
+      min-height: 100dvh;
+    }
   }
   button:not(:disabled) {
     cursor: pointer;
@@ -113,8 +129,8 @@
   button:focus-visible,
   a:focus-visible,
   [role='button']:focus-visible {
-    outline: 2px solid rgba(251, 191, 36, 0.55);
-    outline-offset: 2px;
+    outline: 3px solid rgba(251, 191, 36, 0.72);
+    outline-offset: 3px;
     border-radius: inherit;
   }
   /* Honor user motion preference — kills heavy framer/animations for sensitive users. */
@@ -172,13 +188,90 @@
   }
 
   .glass {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--cq-surface-soft);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }
 
   .border-glass {
-    border: 1px solid rgba(255, 255, 255, 0.09);
+    border: 1px solid var(--cq-border-soft);
+  }
+
+  .surface-panel {
+    background: var(--cq-surface-soft);
+    border: 1px solid var(--cq-border-soft);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
+  }
+
+  .surface-card {
+    background: var(--cq-surface-soft);
+    border: 1px solid var(--cq-border-soft);
+  }
+
+  .field-label {
+    display: block;
+    margin-bottom: 0.375rem;
+    color: var(--cq-text-tertiary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+
+  .field-control {
+    background: var(--cq-surface-raised);
+    border: 1px solid var(--cq-border-soft);
+  }
+
+  .safe-top {
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+  }
+
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  /* Secondary copy previously used 20-40% white throughout the app. On the
+     near-black glass surfaces those values fell below readable contrast. */
+  .text-white\/20,
+  .text-white\/25,
+  .text-white\/30 {
+    color: rgb(255 255 255 / 0.5);
+  }
+
+  .text-white\/35,
+  .text-white\/40 {
+    color: rgb(255 255 255 / 0.56);
+  }
+
+  .placeholder\:text-white\/25::placeholder {
+    color: rgb(255 255 255 / 0.5);
+  }
+
+  .modal-shell {
+    max-height: min(80vh, calc(100dvh - 2rem));
+    overscroll-behavior: contain;
+  }
+
+  .quest-action-label-short {
+    display: none;
+  }
+
+  @media (max-width: 359px) {
+    .quest-action-slot {
+      width: 52px !important;
+    }
+    .quest-action-slot:has(.quest-undo-button) {
+      width: 96px !important;
+    }
+    .quest-action-label-full {
+      display: none;
+    }
+    .quest-action-label-short {
+      display: inline;
+    }
+    .quest-coin-slot {
+      width: 42px !important;
+    }
   }
 
   .scrollbar-none {
@@ -188,12 +281,12 @@
 
   .scrollbar-thin-glass {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+    scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
   }
-  .scrollbar-thin-glass::-webkit-scrollbar { width: 3px; }
+  .scrollbar-thin-glass::-webkit-scrollbar { width: 6px; }
   .scrollbar-thin-glass::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.22);
+    border-radius: 999px;
   }
 
   .text-gradient-gold {

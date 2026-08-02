@@ -22,6 +22,8 @@ import { getLevelTitle } from '@/lib/xp'
 import { classifyRedemptionChanges } from '@/lib/redemption-notifications'
 
 const PIN_SESSION_KEY = 'cq_kid_pin_'
+type KidTab = 'quests' | 'bounty' | 'rewards' | 'history'
+const KID_TAB_ORDER: KidTab[] = ['quests', 'bounty', 'rewards', 'history']
 
 interface KidDataPayload {
   kid: Kid
@@ -67,7 +69,24 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   const prevPendingIdsRef = useRef<string[]>([])
   const locallyCancelledRedemptionIdsRef = useRef(new Set<string>())
   const isFirstFetchRef = useRef(true)
-  const [tab, setTab] = useState<'quests' | 'bounty' | 'rewards' | 'history'>('quests')
+  const [tab, setTab] = useState<KidTab>('quests')
+  const tabRefs = useRef<Partial<Record<KidTab, HTMLButtonElement | null>>>({})
+
+  const handleTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, current: KidTab) => {
+    const currentIndex = KID_TAB_ORDER.indexOf(current)
+    let nextIndex = currentIndex
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') nextIndex = (currentIndex + 1) % KID_TAB_ORDER.length
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') nextIndex = (currentIndex - 1 + KID_TAB_ORDER.length) % KID_TAB_ORDER.length
+    else if (event.key === 'Home') nextIndex = 0
+    else if (event.key === 'End') nextIndex = KID_TAB_ORDER.length - 1
+    else return
+
+    event.preventDefault()
+    const next = KID_TAB_ORDER[nextIndex]
+    setTab(next)
+    tabRefs.current[next]?.focus()
+  }
   const [pinVerified, setPinVerified] = useState(() =>
     typeof window !== 'undefined'
       ? sessionStorage.getItem(PIN_SESSION_KEY + id) === 'verified'
@@ -309,7 +328,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   // PIN screen
   if (!pinVerified) {
     return (
-      <div className="min-h-screen bg-quest-void flex items-center justify-center px-4">
+      <div className="min-h-screen bg-quest-void flex items-start sm:items-center justify-center px-4 py-6 overflow-y-auto safe-top safe-bottom">
         <StarField />
         <motion.div
           className="relative z-10 w-full max-w-xs text-center"
@@ -365,6 +384,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                   }
                 }}
                 disabled={!d}
+                aria-label={d === '⌫' ? 'Delete last digit' : d || undefined}
                 className="h-14 rounded-2xl font-heading font-bold text-xl transition-all disabled:opacity-0"
                 style={{
                   background: d ? 'rgba(255,255,255,0.06)' : 'transparent',
@@ -381,7 +401,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
 
           <Link
             href="/display"
-            className="mt-8 inline-block text-white/25 text-sm hover:text-white/50 transition-all"
+            className="mt-8 inline-flex min-h-11 items-center rounded-xl px-3 text-white/60 text-sm hover:text-white/90 transition-all"
           >
             ← Back to realm
           </Link>
@@ -428,7 +448,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
 
       <div className="relative z-10 flex flex-col flex-1 w-full max-w-md mx-auto">
         <motion.header
-          className="flex items-center gap-3 px-4 sm:px-6 py-4 sm:py-5 flex-shrink-0"
+          className="safe-top flex items-center gap-2 sm:gap-3 px-4 sm:px-6 pb-4 sm:pb-5 flex-shrink-0"
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -439,24 +459,24 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
             ← Realm
           </Link>
 
-          <div className="flex-1 flex items-center gap-3 justify-center">
-            <span className="text-3xl">{kid.avatar}</span>
+          <div className="flex-1 min-w-0 flex items-center gap-2 sm:gap-3 justify-center">
+            <span className="text-2xl sm:text-3xl flex-shrink-0">{kid.avatar}</span>
             <div>
-              <h1 className="font-heading text-2xl font-bold text-white/95">{kid.name}</h1>
+              <h1 className="font-heading text-xl sm:text-2xl font-bold text-white/95 truncate">{kid.name}</h1>
               <p className="text-xs" style={{ color: colors.primary }}>
-                {getLevelTitle(kid.level ?? 1)} Â· Lv {kid.level ?? 1}
+                {getLevelTitle(kid.level ?? 1)} · Lv {kid.level ?? 1}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {kid.streak > 1 && <StreakBadge streak={kid.streak} compact />}
+            {kid.streak > 1 && <span className="hidden sm:inline-flex"><StreakBadge streak={kid.streak} compact /></span>}
             <CoinCounter value={availableCoins} size="sm" />
           </div>
         </motion.header>
 
         <div
-          className="flex px-4 sm:px-6 gap-1.5 sm:gap-2 mb-4 flex-shrink-0"
+          className="grid grid-cols-4 px-4 sm:px-6 gap-1.5 sm:gap-2 mb-4 flex-shrink-0"
           role="tablist"
           aria-label="Adventurer sections"
         >
@@ -470,10 +490,16 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
             return (
               <button
                 key={t}
+                ref={(node) => { tabRefs.current[t] = node }}
                 onClick={() => setTab(t)}
+                onKeyDown={(event) => handleTabKeyDown(event, t)}
                 role="tab"
+                id={`kid-tab-${t}`}
+                aria-controls={`kid-panel-${t}`}
                 aria-selected={tab === t}
-                className="relative flex-1 min-h-[44px] py-2 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1.5"
+                aria-label={`${t.charAt(0).toUpperCase()}${t.slice(1)}`}
+                tabIndex={tab === t ? 0 : -1}
+                className="relative min-w-0 min-h-11 px-1 py-2 rounded-xl text-[11px] sm:text-sm font-semibold transition-all flex items-center justify-center gap-1"
                 style={{
                   background: tab === t
                     ? (t === 'bounty' ? 'rgba(251,191,36,0.12)' : colors.bg)
@@ -501,7 +527,12 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
           })}
         </div>
 
-        <main className="flex-1 px-6 pb-8 overflow-y-auto scrollbar-thin-glass">
+        <main
+          id={`kid-panel-${tab}`}
+          role="tabpanel"
+          aria-labelledby={`kid-tab-${tab}`}
+          className="flex-1 px-4 sm:px-6 pb-8 overflow-y-auto scrollbar-thin-glass safe-bottom"
+        >
           <AnimatePresence mode="wait">
             {tab === 'quests' ? (
               <motion.div
@@ -750,8 +781,9 @@ function RewardsTab({
               <span className="text-xs text-white/35">🪙 {r.reward?.cost ?? '?'}</span>
               <button
                 onClick={() => onCancel(r.id)}
-                className="text-xs text-white/25 hover:text-red-400 transition-all flex-shrink-0 px-1.5 py-0.5 rounded-lg"
+                className="min-h-11 min-w-11 inline-flex items-center justify-center text-xs text-white/55 hover:text-red-400 transition-all flex-shrink-0 rounded-xl"
                 title="Cancel request"
+                aria-label={`Cancel ${r.reward?.title ?? 'reward'} request`}
               >
                 ✕
               </button>
@@ -804,7 +836,7 @@ function RewardsTab({
             <button
               onClick={() => onRedeem(reward.id)}
               disabled={availableCoins < reward.cost}
-              className="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
+              className="min-h-11 flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
               style={{
                 background: availableCoins >= reward.cost
                   ? 'rgba(251, 191, 36, 0.18)'

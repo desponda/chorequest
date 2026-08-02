@@ -73,14 +73,14 @@ export function ApprovalsTab({
                   <div className="flex gap-2 flex-shrink-0">
                     <button
                       onClick={() => actions.fulfillRedemption(r.id)}
-                      className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+                      className="min-h-11 px-3 py-2 rounded-xl text-xs font-bold transition-all"
                       style={{ background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.35)', color: '#4ade80' }}
                     >
                       ✓ Give
                     </button>
                     <button
                       onClick={() => actions.denyRedemption(r.id)}
-                      className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+                      className="min-h-11 px-3 py-2 rounded-xl text-xs font-bold transition-all"
                       style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', color: '#f87171' }}
                     >
                       ✕

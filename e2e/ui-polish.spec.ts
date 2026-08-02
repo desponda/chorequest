@@ -141,3 +141,71 @@ test.describe('Mobile input zoom guard', () => {
     expect(fontSize).toBeGreaterThanOrEqual(16)
   })
 })
+
+test.describe('Narrow mobile UI quality', () => {
+  test.use({ viewport: { width: 320, height: 568 } })
+
+  test('auth screens stay inside the viewport and expose full-size controls', async ({ page }) => {
+    for (const path of ['/login', '/reset-password']) {
+      await page.goto(path)
+      await page.waitForLoadState('networkidle')
+
+      const { scroll, viewport } = await horizontalOverflow(page)
+      expect(scroll).toBeLessThanOrEqual(viewport + 2)
+
+      const heading = page.getByRole('heading', { name: 'ChoreQuest' })
+      const headingBox = await heading.boundingBox()
+      expect(headingBox).not.toBeNull()
+      expect(headingBox!.x).toBeGreaterThanOrEqual(0)
+      expect(headingBox!.x + headingBox!.width).toBeLessThanOrEqual(320)
+
+      const interactive = page.locator('button:visible:not([aria-label="Open Next.js Dev Tools"]), a:visible')
+      for (let index = 0; index < await interactive.count(); index += 1) {
+        const box = await interactive.nth(index).boundingBox()
+        if (box) expect(box.height).toBeGreaterThanOrEqual(44)
+      }
+    }
+  })
+
+  test('quest cards preserve readable titles and touch targets', async ({ page }) => {
+    await page.goto('/e2e-fixtures/quest-card')
+    await page.waitForLoadState('networkidle')
+
+    const firstTitle = page.getByText('Test Quest').first()
+    await expect(firstTitle).toBeVisible()
+    const titleText = await firstTitle.evaluate((element) => element.textContent)
+    expect(titleText).toBe('Test Quest')
+
+    const actionButtons = page.locator('[data-testid="quest-action-content"]:is(button)')
+    for (let index = 0; index < await actionButtons.count(); index += 1) {
+      const box = await actionButtons.nth(index).boundingBox()
+      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44)
+      expect(box?.width ?? 0).toBeGreaterThanOrEqual(44)
+    }
+  })
+
+  test('mobile menu opens below the fixed header', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('button', { name: 'Open menu' }).click()
+    await page.waitForTimeout(250)
+
+    const headerBox = await page.locator('header').boundingBox()
+    const panelBox = await page.locator('#mobile-nav-panel').boundingBox()
+    expect(headerBox).not.toBeNull()
+    expect(panelBox).not.toBeNull()
+    expect(panelBox!.y).toBeGreaterThanOrEqual(headerBox!.y + headerBox!.height - 1)
+  })
+
+  test('auth tabs support arrow-key navigation', async ({ page }) => {
+    await page.goto('/login')
+    const loginTab = page.getByRole('tab', { name: 'Enter Realm' })
+    const signupTab = page.getByRole('tab', { name: 'Create Realm' })
+
+    await loginTab.focus()
+    await page.keyboard.press('ArrowRight')
+    await expect(signupTab).toBeFocused()
+    await expect(signupTab).toHaveAttribute('aria-selected', 'true')
+    await page.keyboard.press('ArrowLeft')
+    await expect(loginTab).toBeFocused()
+  })
+})

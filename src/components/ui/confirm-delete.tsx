@@ -48,7 +48,7 @@ export function ConfirmDelete({
         type="button"
         onClick={() => setArmed(true)}
         aria-label={ariaLabel}
-        className={`text-white/25 hover:text-red-400 transition-all text-sm ${className}`}
+        className={`min-h-11 min-w-11 inline-flex items-center justify-center rounded-lg text-white/50 hover:text-red-400 transition-all text-sm ${className}`}
       >
         {trigger}
       </button>
@@ -57,7 +57,7 @@ export function ConfirmDelete({
 
   return (
     <motion.div
-      className="flex items-center gap-1.5"
+      className="flex flex-wrap items-center justify-end gap-1.5"
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.12 }}
@@ -69,7 +69,7 @@ export function ConfirmDelete({
           setArmed(false)
           onConfirm()
         }}
-        className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all"
+        className="min-h-11 px-3 py-2 rounded-lg text-xs font-bold transition-all"
         style={{
           background: 'rgba(239,68,68,0.15)',
           border: '1px solid rgba(239,68,68,0.4)',
@@ -81,7 +81,7 @@ export function ConfirmDelete({
       <button
         type="button"
         onClick={() => setArmed(false)}
-        className="text-xs text-white/35 hover:text-white/65 px-1.5 py-1 rounded-lg"
+        className="min-h-11 px-3 py-2 rounded-lg text-xs text-white/60 hover:text-white/90"
         aria-label="Cancel"
       >
         Cancel

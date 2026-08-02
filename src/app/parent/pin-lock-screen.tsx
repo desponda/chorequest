@@ -25,7 +25,7 @@ export function PinLockScreen({ lockPinInput, lockPinError, parentLockedUntil, n
   }, [lockPinInput, onDigit, onBackspace])
 
   return (
-    <div className="min-h-screen bg-quest-void flex items-center justify-center px-4">
+    <div className="min-h-screen bg-quest-void flex items-start sm:items-center justify-center px-4 py-6 overflow-y-auto safe-top safe-bottom">
       <StarField />
       <motion.div
         className="relative z-10 w-full max-w-xs text-center"
@@ -75,6 +75,7 @@ export function PinLockScreen({ lockPinInput, lockPinError, parentLockedUntil, n
                 else if (d && lockPinInput.length < 4) onDigit(d)
               }}
               disabled={!d}
+              aria-label={d === '⌫' ? 'Delete last digit' : d || undefined}
               className="h-14 rounded-2xl font-heading font-bold text-xl transition-all disabled:opacity-0"
               style={{
                 background: d ? 'rgba(255,255,255,0.06)' : 'transparent',
@@ -89,7 +90,7 @@ export function PinLockScreen({ lockPinInput, lockPinError, parentLockedUntil, n
           ))}
         </div>
 
-        <Link href="/display" className="block mt-8 text-white/25 text-sm hover:text-white/50 transition-all">
+        <Link href="/display" className="mt-8 min-h-11 inline-flex items-center rounded-xl px-3 text-white/60 text-sm hover:text-white/90 transition-all">
           ← Back to Realm
         </Link>
       </motion.div>

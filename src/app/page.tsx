@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import { motion, useInView, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { StarField } from '@/components/star-field'
+import { useEscapeToClose } from '@/lib/use-escape-to-close'
 
 // ─── Scroll-reveal wrapper ────────────────────────────────────────────────────
 function Reveal({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
@@ -225,6 +226,7 @@ const HOW_IT_WORKS = [
 export default function MarketingPage() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const closeNav = () => setMobileNavOpen(false)
+  useEscapeToClose(mobileNavOpen, closeNav)
 
   return (
     <div className="min-h-screen bg-quest-void text-white overflow-x-hidden">
@@ -232,7 +234,7 @@ export default function MarketingPage() {
 
       {/* ── Nav ── */}
       <header
-        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4"
+        className="safe-top fixed top-0 left-0 right-0 z-50 flex items-center justify-between gap-2 px-3 sm:px-6 pb-3 sm:pb-4"
         style={{ background: 'rgba(5,3,16,0.8)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
       >
         <div className="flex items-center gap-2">
@@ -248,7 +250,7 @@ export default function MarketingPage() {
         <div className="flex items-center gap-2">
           <Link
             href="/login"
-            className="px-4 sm:px-5 py-2 rounded-xl text-sm font-bold transition-all"
+            className="min-h-11 inline-flex items-center whitespace-nowrap px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all"
             style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.35)', color: '#fbbf24' }}
           >
             Start Free →
@@ -279,7 +281,7 @@ export default function MarketingPage() {
         {mobileNavOpen && (
           <motion.div
             id="mobile-nav-panel"
-            className="fixed inset-x-0 top-[56px] z-40 md:hidden px-4"
+            className="fixed inset-x-0 top-[calc(68px+env(safe-area-inset-top))] z-40 md:hidden px-4"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
@@ -407,7 +409,7 @@ export default function MarketingPage() {
       </section>
 
       {/* ── How it works ── */}
-      <section id="how-it-works" className="relative z-10 py-24 px-6">
+      <section id="how-it-works" className="relative z-10 scroll-mt-20 py-24 px-6">
         <div className="max-w-4xl mx-auto">
           <Reveal className="text-center mb-16">
             <p className="text-xs font-bold tracking-[0.3em] uppercase text-white/30 mb-3">The System</p>
@@ -440,7 +442,7 @@ export default function MarketingPage() {
       </section>
 
       {/* ── Features ── */}
-      <section id="features" className="relative z-10 py-24 px-6">
+      <section id="features" className="relative z-10 scroll-mt-20 py-24 px-6">
         <div className="max-w-5xl mx-auto">
           <Reveal className="text-center mb-16">
             <p className="text-xs font-bold tracking-[0.3em] uppercase text-white/30 mb-3">Everything you need</p>
@@ -532,7 +534,7 @@ export default function MarketingPage() {
       </section>
 
       {/* ── Pricing ── */}
-      <section id="pricing" className="relative z-10 py-24 px-6">
+      <section id="pricing" className="relative z-10 scroll-mt-20 py-24 px-6">
         <div className="max-w-3xl mx-auto">
           <Reveal className="text-center mb-16">
             <p className="text-xs font-bold tracking-[0.3em] uppercase text-white/30 mb-3">Pricing</p>

@@ -1,5 +1,6 @@
 'use client'
 
+import { useId } from 'react'
 import type { Kid, Plan, QuestKind, QuestTier } from '@/lib/types'
 import { QUEST_ICONS, TIER_CONFIG } from '@/lib/constants'
 import { PLAN_LIMITS } from '@/lib/plans'
@@ -70,6 +71,7 @@ export function normalizeKindFrequency(kind: QuestKind, frequency: QuestFormStat
 }
 
 export function QuestFormFields({ state, onChange, kids, iconLimit, inputBg, plan }: Props) {
+  const fieldId = useId()
   const icons = iconLimit ? QUEST_ICONS.slice(0, iconLimit) : QUEST_ICONS
   const inputStyle = inputBg ?? 'rgba(255,255,255,0.06)'
   const inputBorder = '1px solid rgba(255,255,255,0.1)'
@@ -86,12 +88,17 @@ export function QuestFormFields({ state, onChange, kids, iconLimit, inputBg, pla
 
   return (
     <>
-      <div className="flex flex-wrap gap-1.5">
+      <fieldset>
+        <legend className="field-label">Quest icon</legend>
+        <div className="flex flex-wrap gap-1.5">
         {icons.map((ic) => (
           <button
+            type="button"
             key={ic}
             onClick={() => onChange({ icon: ic })}
-            className="text-xl w-10 h-10 rounded-xl transition-all"
+            aria-label={`Use ${ic} as the quest icon`}
+            aria-pressed={state.icon === ic}
+            className="text-xl w-11 h-11 rounded-xl transition-all"
             style={{
               background: state.icon === ic ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.05)',
               border: `1px solid ${state.icon === ic ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.08)'}`,
@@ -100,42 +107,53 @@ export function QuestFormFields({ state, onChange, kids, iconLimit, inputBg, pla
             {ic}
           </button>
         ))}
-      </div>
+        </div>
+      </fieldset>
 
-      <input
-        value={state.title}
-        onChange={(e) => onChange({ title: e.target.value })}
-        placeholder="Quest title..."
-        className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 placeholder:text-white/25 outline-none"
-        style={{ background: inputStyle, border: inputBorder }}
-      />
-      <input
-        value={state.description}
-        onChange={(e) => onChange({ description: e.target.value })}
-        placeholder="Description (optional)"
-        className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 placeholder:text-white/25 outline-none"
-        style={{ background: inputStyle, border: inputBorder }}
-      />
+      <label htmlFor={`${fieldId}-title`} className="block">
+        <span className="field-label">Quest title</span>
+        <input
+          id={`${fieldId}-title`}
+          value={state.title}
+          onChange={(e) => onChange({ title: e.target.value })}
+          placeholder="e.g. Load the dishwasher"
+          className="w-full min-h-11 px-3 py-2.5 rounded-xl text-sm text-white/90 placeholder:text-white/25 outline-none"
+          style={{ background: inputStyle, border: inputBorder }}
+        />
+      </label>
+      <label htmlFor={`${fieldId}-description`} className="block">
+        <span className="field-label">Description <span className="font-normal">(optional)</span></span>
+        <input
+          id={`${fieldId}-description`}
+          value={state.description}
+          onChange={(e) => onChange({ description: e.target.value })}
+          placeholder="Add helpful details"
+          className="w-full min-h-11 px-3 py-2.5 rounded-xl text-sm text-white/90 placeholder:text-white/25 outline-none"
+          style={{ background: inputStyle, border: inputBorder }}
+        />
+      </label>
 
       <div className="flex gap-2">
         <div className="flex-1">
-          <label className="text-xs text-white/40 mb-1 block">Coins</label>
+          <label htmlFor={`${fieldId}-coins`} className="field-label">Coins</label>
           <input
+            id={`${fieldId}-coins`}
             type="number"
             min={1}
             max={100}
             value={state.coins}
             onChange={(e) => onChange({ coins: Number(e.target.value) })}
-            className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
+            className="w-full min-h-11 px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
             style={{ background: inputStyle, border: inputBorder }}
           />
         </div>
         <div className="flex-1">
-          <label className="text-xs text-white/40 mb-1 block">For</label>
+          <label htmlFor={`${fieldId}-kid`} className="field-label">For</label>
           <select
+            id={`${fieldId}-kid`}
             value={state.forKid}
             onChange={(e) => onChange({ forKid: e.target.value })}
-            className="w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
+            className="w-full min-h-11 px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none"
             style={{ background: 'rgba(12,8,32,0.95)', border: inputBorder }}
           >
             <option value="all">All kids</option>
@@ -154,9 +172,11 @@ export function QuestFormFields({ state, onChange, kids, iconLimit, inputBg, pla
             const selected = state.kind === k
             return (
               <button
+                type="button"
                 key={k}
                 onClick={() => setKind(k)}
-                className="py-3 rounded-xl text-xs font-bold transition-all flex flex-col items-center gap-1"
+                aria-pressed={selected}
+                className="min-h-11 py-3 rounded-xl text-xs font-bold transition-all flex flex-col items-center gap-1"
                 style={{
                   background: selected ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.05)',
                   border: `1px solid ${selected ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.08)'}`,
@@ -178,9 +198,11 @@ export function QuestFormFields({ state, onChange, kids, iconLimit, inputBg, pla
           <div className="flex gap-2">
             {(['daily', 'weekly'] as const).map((f) => (
               <button
+                type="button"
                 key={f}
                 onClick={() => onChange({ frequency: f })}
-                className="flex-1 py-2 rounded-xl text-sm font-semibold transition-all"
+                aria-pressed={state.frequency === f}
+                className="min-h-11 flex-1 py-2 rounded-xl text-sm font-semibold transition-all"
                 style={{
                   background: state.frequency === f ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.05)',
                   border: `1px solid ${state.frequency === f ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.08)'}`,
@@ -196,14 +218,15 @@ export function QuestFormFields({ state, onChange, kids, iconLimit, inputBg, pla
 
       {state.kind === 'shared' && (
         <div className="flex items-center gap-3">
-          <label className="text-xs text-white/40 flex-shrink-0">Slots</label>
+          <label htmlFor={`${fieldId}-slots`} className="text-xs text-white/55 flex-shrink-0">Slots</label>
           <input
+            id={`${fieldId}-slots`}
             type="number"
             min={1}
             max={20}
             value={state.slots}
             onChange={(e) => onChange({ slots: Math.max(1, Number(e.target.value)) })}
-            className="w-20 px-3 py-2 rounded-xl text-sm text-white/90 outline-none"
+            className="w-20 min-h-11 px-3 py-2 rounded-xl text-sm text-white/90 outline-none"
             style={{ background: inputStyle, border: inputBorder }}
           />
           <span className="text-xs text-white/25">
@@ -225,13 +248,16 @@ export function QuestFormFields({ state, onChange, kids, iconLimit, inputBg, pla
               const on = state.activeDays.includes(i)
               return (
                 <button
+                  type="button"
                   key={i}
                   onClick={() => onChange({
                     activeDays: on
                       ? state.activeDays.filter(d => d !== i)
                       : [...state.activeDays, i].sort((a, b) => a - b),
                   })}
-                  className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  aria-pressed={on}
+                  aria-label={`${day}, ${on ? 'active' : 'inactive'}`}
+                  className="min-h-11 flex-1 py-2 rounded-lg text-xs font-bold transition-all"
                   style={{
                     background: on ? 'rgba(56,189,248,0.18)' : 'rgba(255,255,255,0.05)',
                     border: `1px solid ${on ? 'rgba(56,189,248,0.4)' : 'rgba(255,255,255,0.08)'}`,
@@ -260,10 +286,12 @@ export function QuestFormFields({ state, onChange, kids, iconLimit, inputBg, pla
             const locked = t !== 'normal' && !limits.questTiers
             return (
               <button
+                type="button"
                 key={t}
                 onClick={() => !locked && onChange({ tier: t })}
                 disabled={locked}
-                className="py-2 rounded-xl text-xs font-semibold transition-all"
+                aria-pressed={selected}
+                className="min-h-11 py-2 rounded-xl text-xs font-semibold transition-all"
                 style={{
                   background: selected && !locked ? tc.bg : 'rgba(255,255,255,0.04)',
                   border: `1px solid ${selected && !locked ? tc.border : 'rgba(255,255,255,0.08)'}`,
