@@ -158,7 +158,7 @@ export function ApprovalsTab({
                   <StatusChip status={c.status} />
                   <button
                     onClick={() => c.status === 'approved' ? actions.undoApproval(c.id) : actions.undoRejection(c.id)}
-                    className="text-xs text-white/20 hover:text-cq-gold transition-all text-center w-6"
+                    className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-xl text-xs text-white/60 hover:text-cq-gold transition-all"
                     title="Undo"
                   >
                     ↩
@@ -182,7 +182,7 @@ export function ApprovalsTab({
                   <span className="text-xs font-semibold text-red-400 whitespace-nowrap">☠️ -{ci.coins_deducted}🪙</span>
                   <button
                     onClick={() => actions.undoResolvedCurse(ci.id)}
-                    className="text-xs text-white/20 hover:text-cq-gold transition-all text-center w-6"
+                    className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-xl text-xs text-white/60 hover:text-cq-gold transition-all"
                     title="Undo"
                   >
                     ↩

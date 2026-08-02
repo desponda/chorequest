@@ -26,13 +26,17 @@ interface Props {
 export function FamilyTab({ family, kids, onShowQr, actions }: Props) {
   return (
     <motion.div key="family" {...fadeSlide} className="flex flex-col gap-6">
-      <RealmName family={family} actions={actions} />
-      <DailyResetSettings family={family} actions={actions} />
-      <ParentLockSettings family={family} actions={actions} />
-      <AddKidForm family={family} kidCount={kids.length} actions={actions} />
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+        <RealmName family={family} actions={actions} />
+        <DailyResetSettings family={family} actions={actions} />
+        <ParentLockSettings family={family} actions={actions} />
+        <AddKidForm family={family} kidCount={kids.length} actions={actions} />
+      </div>
       <KidList kids={kids} onShowQr={onShowQr} actions={actions} timeZone={family?.timezone ?? undefined} />
-      {family && <InviteLink family={family} actions={actions} />}
-      {family?.api_key && <ApiKey family={family} actions={actions} />}
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+        {family && <InviteLink family={family} actions={actions} />}
+        {family?.api_key && <ApiKey family={family} actions={actions} />}
+      </div>
     </motion.div>
   )
 }
@@ -79,7 +83,7 @@ function DailyResetSettings({ family, actions }: { family: Family | null; action
               <button
                 key={h}
                 onClick={() => actions.saveResetHour(h)}
-                className="py-2.5 rounded-xl text-sm font-semibold transition-all"
+                className="min-h-11 py-2.5 rounded-xl text-sm font-semibold transition-all"
                 style={{
                   background: selected ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.05)',
                   border: `1px solid ${selected ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.08)'}`,
@@ -493,7 +497,7 @@ function KidList({
         >
           <motion.div
             ref={ledgerTrapRef}
-            className="modal-shell rounded-3xl w-full max-w-md overflow-hidden"
+            className="modal-shell rounded-3xl w-full max-w-md sm:max-w-2xl overflow-hidden"
             style={{
               background: 'rgba(10,6,28,0.98)',
               border: '1px solid rgba(251,191,36,0.18)',
@@ -629,7 +633,7 @@ function ApiKey({ family, actions }: { family: Family; actions: ParentActions })
           </code>
           <button
             onClick={() => { navigator.clipboard.writeText(family.api_key!); toast.success('API key copied!') }}
-            className="text-xs text-white/40 hover:text-cq-azure transition-all flex-shrink-0"
+            className="min-h-11 px-3 inline-flex items-center rounded-xl text-xs text-white/60 hover:text-cq-azure transition-all flex-shrink-0"
           >
             Copy
           </button>

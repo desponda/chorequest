@@ -67,7 +67,8 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
 
   return (
     <motion.div key="curses" {...fadeSlide} className="flex flex-col gap-6">
-      <Section title="⚡ Quick Cast">
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+        <Section title="⚡ Quick Cast">
         <div className="flex flex-col gap-3">
           <p className="text-white/40 text-xs">Cast a one-off curse instantly — no template needed.</p>
           <div className="flex gap-2 flex-wrap">
@@ -120,9 +121,9 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
             </div>
           )}
         </div>
-      </Section>
+        </Section>
 
-      <Section title="Saved Curses">
+        <Section title="Saved Curses">
         <div className="flex flex-col gap-3">
           <p className="text-white/45 text-xs">
             Create named penalties you can cast instantly when bad behavior happens.
@@ -225,7 +226,8 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
             </div>
           )}
         </div>
-      </Section>
+        </Section>
+      </div>
 
       <Section title="Active Afflictions">
         {activeCurseInstances.length === 0 ? (

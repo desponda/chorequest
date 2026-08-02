@@ -76,6 +76,7 @@ export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, k
 
   return (
     <motion.div key="dungeons" {...fadeSlide} className="flex flex-col gap-6">
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
 
       {/* ── Active Dungeon ─────────────────────────────── */}
       <Section title="Weekly Dungeon">
@@ -275,6 +276,7 @@ export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, k
           </div>
         )}
       </Section>
+      </div>
 
       {/* ── History ───────────────────────────────────── */}
       {(pastDungeons.length > 0 || defeatedBosses.length > 0) && (

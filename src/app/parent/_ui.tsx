@@ -6,8 +6,8 @@ import { useId } from 'react'
 export function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="text-xs font-bold uppercase tracking-widest text-white/50 mb-3">{title}</h2>
-      <div className="surface-panel rounded-2xl p-4">
+      <h2 className="text-xs font-bold uppercase tracking-widest text-white/60 mb-3">{title}</h2>
+      <div className="surface-panel rounded-2xl p-4 sm:p-5">
         {children}
       </div>
     </section>

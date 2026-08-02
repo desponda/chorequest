@@ -29,23 +29,20 @@ export function ParentSkeleton() {
       aria-label="Loading parent dashboard"
     >
       <StarField />
-      <div className="relative z-10 flex flex-col flex-1 w-full max-w-2xl mx-auto">
-        <header
-          className="safe-top flex items-center gap-3 px-4 sm:px-6 pb-3 sm:pb-4 flex-shrink-0"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
-        >
+      <div className="workspace-frame workspace-frame-parent relative z-10 flex flex-col flex-1">
+        <header className="workspace-header safe-top flex items-center gap-3 px-4 sm:px-6 pb-3 sm:pb-4 flex-shrink-0 border-b border-white/10 sm:border-b-0">
           <Shimmer className="h-5 w-16 rounded-md" />
           <div className="flex-1 flex justify-center">
             <Shimmer className="h-5 w-40 rounded-md" />
           </div>
           <Shimmer className="h-5 w-16 rounded-md" />
         </header>
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0">
+        <div className="workspace-tabs grid grid-cols-3 sm:grid-cols-6 gap-2 mx-4 sm:mx-6 my-3 sm:my-0 sm:mb-4 flex-shrink-0">
           {Array.from({ length: 6 }).map((_, i) => (
             <Shimmer key={i} className="flex-1 h-12 rounded-xl" />
           ))}
         </div>
-        <main className="flex-1 px-4 sm:px-6 pb-8 flex flex-col gap-4 safe-bottom">
+        <main className="workspace-main workspace-main-parent flex-1 px-4 sm:px-6 pb-8 flex flex-col gap-4 safe-bottom">
           <Shimmer className="h-5 w-24 rounded-md" />
           <Shimmer className="h-20 w-full rounded-2xl" />
           <Shimmer className="h-20 w-full rounded-2xl" />
@@ -66,8 +63,8 @@ export function KidViewSkeleton() {
       aria-label="Loading quest board"
     >
       <StarField />
-      <div className="relative z-10 flex flex-col flex-1 w-full max-w-md mx-auto">
-        <header className="safe-top flex items-center gap-3 px-4 sm:px-6 pb-4 sm:pb-5 flex-shrink-0">
+      <div className="workspace-frame workspace-frame-kid relative z-10 flex flex-col flex-1">
+        <header className="workspace-header safe-top flex items-center gap-3 px-4 sm:px-6 pb-4 sm:pb-5 flex-shrink-0">
           <Shimmer className="h-5 w-16 rounded-md" />
           <div className="flex-1 flex items-center gap-3 justify-center">
             <Shimmer className="h-10 w-10 rounded-full" />
@@ -78,12 +75,12 @@ export function KidViewSkeleton() {
           </div>
           <Shimmer className="h-7 w-14 rounded-xl" />
         </header>
-        <div className="flex px-4 sm:px-6 gap-1.5 sm:gap-2 mb-4 flex-shrink-0">
+        <div className="workspace-tabs flex mx-4 sm:mx-6 gap-1.5 sm:gap-2 mb-4 flex-shrink-0">
           {Array.from({ length: 4 }).map((_, i) => (
             <Shimmer key={i} className="flex-1 h-11 rounded-xl" />
           ))}
         </div>
-        <main className="flex-1 px-4 sm:px-6 pb-8 flex flex-col gap-3 safe-bottom">
+        <main className="workspace-main workspace-main-kid flex-1 px-4 sm:px-6 pb-8 flex flex-col gap-3 safe-bottom">
           <Shimmer className="h-4 w-20 rounded-md" />
           {Array.from({ length: 4 }).map((_, i) => (
             <Shimmer key={i} className="h-14 w-full rounded-2xl" />
