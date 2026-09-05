@@ -78,6 +78,7 @@ export function KidColumn({
             <Link href={`/kid/${kid.id}`} aria-label={`Open ${kid.name}'s quest board`}>
               <motion.span
                 className="cq-avatar-medallion h-14 w-14 rounded-2xl flex items-center justify-center cursor-pointer"
+                tabIndex={-1}
                 style={{ color: colors.primary, borderColor: colors.border }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.96 }}
@@ -112,7 +113,15 @@ export function KidColumn({
               <span>Level progress</span>
               <span>{xpInfo.currentXP}/{xpInfo.neededXP} XP</span>
             </div>
-            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+            <div
+              className="h-1.5 rounded-full overflow-hidden"
+              role="progressbar"
+              aria-label={`${kid.name} level progress`}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(xpInfo.pct)}
+              style={{ background: 'rgba(255,255,255,0.08)' }}
+            >
               <motion.div
                 className="h-full rounded-full"
                 style={{ background: `linear-gradient(90deg, ${colors.primary}, #fbbf24)` }}

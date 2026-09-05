@@ -411,7 +411,15 @@ export default function WallDisplay() {
                   <p className="font-heading text-sm font-bold text-white/80 truncate">{activeBoss.title}</p>
                   <p className="text-xs text-white/35 flex-shrink-0 ml-2">{activeBoss.current_hp.toLocaleString()} / {activeBoss.max_hp.toLocaleString()} HP</p>
                 </div>
-                <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+                <div
+                  className="h-2 rounded-full overflow-hidden"
+                  role="progressbar"
+                  aria-label={`${activeBoss.title} health`}
+                  aria-valuemin={0}
+                  aria-valuemax={activeBoss.max_hp}
+                  aria-valuenow={activeBoss.current_hp}
+                  style={{ background: 'rgba(255,255,255,0.07)' }}
+                >
                   <motion.div
                     className="h-full rounded-full"
                     style={{ background: 'linear-gradient(90deg, #fb923c, #ef4444)' }}
@@ -459,7 +467,15 @@ export default function WallDisplay() {
                           : <span className="text-xs text-white/30">{pct}%</span>
                         }
                       </div>
-                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+                      <div
+                        className="h-1.5 rounded-full overflow-hidden"
+                        role="progressbar"
+                        aria-label={`${kid.name} ${activeDungeon.title} progress`}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={pct}
+                        style={{ background: 'rgba(255,255,255,0.07)' }}
+                      >
                         <motion.div
                           className="h-full rounded-full"
                           style={{ background: cleared ? '#4ade80' : 'linear-gradient(90deg, #38bdf8, #a78bfa)' }}

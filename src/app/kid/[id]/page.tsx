@@ -491,7 +491,14 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
               <span>Level progress</span>
               <span className="tabular-nums">{xpProgress.currentXP}/{xpProgress.neededXP} XP</span>
             </div>
-            <div className="cq-kid-progress-track mt-2" aria-label={`${xpProgress.pct}% level progress`}>
+            <div
+              className="cq-kid-progress-track mt-2"
+              role="progressbar"
+              aria-label="Level progress"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(xpProgress.pct)}
+            >
               <span style={{ width: `${xpProgress.pct}%`, background: colors.primary }} />
             </div>
             <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-white/40">

@@ -30,7 +30,15 @@ function HpBar({ current, max, color }: { current: number; max: number; color: s
         <span>{current.toLocaleString()} / {max.toLocaleString()}</span>
         <span>{pct}%</span>
       </div>
-      <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+      <div
+        className="h-2.5 rounded-full overflow-hidden"
+        role="progressbar"
+        aria-label="Health progress"
+        aria-valuemin={0}
+        aria-valuemax={max}
+        aria-valuenow={current}
+        style={{ background: 'rgba(255,255,255,0.07)' }}
+      >
         <motion.div
           className="h-full rounded-full"
           style={{ background: color }}

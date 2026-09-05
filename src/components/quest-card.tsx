@@ -118,6 +118,7 @@ export function QuestCard({
   return (
     <motion.div
       className={`cq-quest-card group relative rounded-2xl overflow-hidden${displayMode ? ' cq-display-quest-card' : ''}`}
+      tabIndex={-1}
       style={{
         background: cardBg,
         border: `1px solid ${cardBorder}`,
