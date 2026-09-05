@@ -685,10 +685,12 @@ export default function MarketingPage() {
             <span className="font-heading font-bold tracking-widest text-white/60">ChoreQuest</span>
           </div>
           <p className="text-white/25 text-sm text-center">
-            No ads. No tracking. Family-safe. Built with love for our own chaotic household.
+            No ads. No behavioral tracking. Family-safe. Built with love for our own chaotic household.
           </p>
           <div className="flex items-center gap-5 text-white/30 text-sm">
             <Link href="/blog" className="hover:text-white/60 transition-colors">Blog</Link>
+            <Link href="/privacy" className="hover:text-white/60 transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-white/60 transition-colors">Terms</Link>
             <Link href="/login" className="hover:text-white/60 transition-colors">Sign in</Link>
             <Link href="/login" className="hover:text-white/60 transition-colors">Sign up</Link>
           </div>

@@ -59,6 +59,31 @@ export default function ParentDashboard() {
     return <ParentSkeleton />
   }
 
+  if (data.error && !data.family) {
+    return (
+      <div className="min-h-screen cq-page-shell flex items-center justify-center px-4 text-center safe-top safe-bottom">
+        <div className="relative z-10 max-w-sm">
+          <div className="cq-hero-emblem h-14 w-14 flex items-center justify-center mx-auto mb-4 text-cq-azure" aria-hidden="true"><RealmEmblem name="spark" size={34} /></div>
+          <h1 className="font-heading text-2xl font-bold text-white mb-2">The command center is out of reach</h1>
+          <p className="text-white/60 text-sm mb-6">{data.error}</p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={data.refetch}
+              className="min-h-11 px-6 rounded-xl text-sm font-bold text-cq-gold"
+              style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)' }}
+            >
+              Try again
+            </button>
+            <Link href="/" className="min-h-11 inline-flex items-center rounded-xl px-3 text-sm text-white/60 hover:text-white/90 transition-colors">
+              ← Back to ChoreQuest
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (lock.parentLocked) {
     return (
       <PinLockScreen
