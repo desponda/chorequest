@@ -1,0 +1,22 @@
+name: Supabase Keep Alive
+
+on:
+  schedule:
+    # GitHub schedules use UTC. Avoid the top of the hour when Actions load is highest.
+    - cron: '17 6,14,22 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: keep database active
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Query Supabase through the production health route
+        run: |
+          curl --fail --silent --show-error \
+            --retry 3 \
+            --retry-delay 5 \
+            --max-time 30 \
+            --user-agent 'chorequest-keepalive/1.0' \
+            'https://chorequest.dresponda.com/api/keep-alive'
