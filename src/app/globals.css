@@ -494,6 +494,20 @@
     align-self: center;
   }
 
+  /* The display has room for explicit action columns. Keeping these wider
+     prevents long labels and larger rewards from colliding with each other. */
+  .cq-display-quest-card .quest-action-slot {
+    width: 7.25rem !important;
+  }
+
+  .cq-display-quest-card .quest-coin-slot {
+    width: 4.5rem !important;
+  }
+
+  .cq-display-quest-card [data-testid="quest-action-content"] {
+    white-space: nowrap;
+  }
+
   @media (max-width: 680px) {
     .cq-display-header { align-items: flex-start; flex-direction: column; }
     .cq-display-actions { width: 100%; justify-content: flex-start; }
@@ -899,6 +913,12 @@
     }
     .quest-coin-slot {
       width: 42px !important;
+    }
+    .cq-display-quest-card .quest-action-slot {
+      width: 52px !important;
+    }
+    .cq-display-quest-card .quest-coin-slot {
+      width: 48px !important;
     }
   }
 
