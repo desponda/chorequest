@@ -8,17 +8,6 @@ import { useEscapeToClose } from '@/lib/use-escape-to-close'
 import { RealmIcon } from '@/components/ui/realm-icon'
 import { CoinMark, RealmEmblem, type RealmEmblemName } from '@/components/ui/realm-emblem'
 
-const EMBLEM_BY_LEGACY_ICON: Record<string, RealmEmblemName> = {
-  '🧙‍♀️': 'spark', '🧝‍♂️': 'crest', '🛏️': 'quest', '🐱': 'family', '📚': 'scroll',
-  '🗑️': 'curse', '🍽️': 'reward', '🧹': 'quest', '🚗': 'bounty', '🌿': 'streak',
-  '🖥️': 'shield', '⭐': 'quest', '🔥': 'streak', '⚡': 'bounty', '🎁': 'reward',
-  '🔒': 'shield', '🏰': 'dungeon', '🗡️': 'quest', '⚔️': 'quest', '🪙': 'reward',
-}
-
-function EmblemFor({ legacy, size = 24, className }: { legacy: string; size?: number; className?: string }) {
-  return <RealmEmblem name={EMBLEM_BY_LEGACY_ICON[legacy] ?? 'spark'} size={size} className={className} />
-}
-
 // ─── Scroll-reveal wrapper ────────────────────────────────────────────────────
 function Reveal({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
   const ref = useRef(null)
@@ -129,7 +118,7 @@ function MockKidColumn({ name, avatar, color, coins, streak, quests }: {
       <div className="px-3 py-2.5 flex items-center justify-between border-b" style={{ borderColor: `${primary}20` }}>
         <div className="flex items-center gap-1.5">
           <span className="h-8 w-8 flex items-center justify-center" style={{ color: primary }}>
-            <EmblemFor legacy={avatar} size={20} />
+            <RealmIcon name={avatar} size={20} />
           </span>
           <span className="font-heading text-sm font-bold" style={{ color: primary }}>{name}</span>
           {streak >= 3 && <span className="inline-flex items-center gap-0.5 text-xs text-cq-ember"><RealmIcon name="🔥" size={12} />{streak}</span>}
@@ -147,7 +136,7 @@ function MockKidColumn({ name, avatar, color, coins, streak, quests }: {
             <div key={i} className="rounded-lg px-2.5 py-2 flex items-center gap-2"
               style={{ background: statusBg, border: `1px solid ${statusBorder}` }}>
               <span className="h-7 w-7 flex items-center justify-center" style={{ color: tc }}>
-                <EmblemFor legacy={q.icon} size={18} />
+                <RealmIcon name={q.icon} size={18} />
               </span>
               <span className="flex-1 text-xs font-medium truncate" style={{
                 color: q.status === 'approved' ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.85)',
@@ -182,7 +171,7 @@ function MockBountyCard({ title, icon, coins, claimed, slots, tier }: {
       opacity: isFull ? 0.5 : 1,
     }}>
       <div className="flex items-start justify-between mb-1">
-        <span className="h-7 w-7 flex items-center justify-center" style={{ color: tc }}><EmblemFor legacy={icon} size={18} /></span>
+        <span className="h-7 w-7 flex items-center justify-center" style={{ color: tc }}><RealmIcon name={icon} size={18} /></span>
         <span className="inline-flex items-center gap-0.5 text-[10px] font-bold" style={{ color: tc }}><CoinMark size={12} />{coins}</span>
       </div>
       <p className="text-xs font-semibold text-white/80 leading-tight mb-1">{title}</p>
@@ -198,13 +187,13 @@ const FEATURES = [
   {
     icon: 'shield' as RealmEmblemName,
     title: 'Live Wall Display',
-    desc: 'Put it on your TV or tablet. Every quest, every kid, updating in real time — the whole family can see who\'s crushing it.',
+    desc: 'Put it on your TV or tablet. Every quest and every win updates in real time, so progress stays visible to everyone.',
     color: '#38bdf8',
   },
   {
     icon: 'quest' as RealmEmblemName,
     title: 'Quest Tiers',
-    desc: 'Normal, Heroic, Legendary, Epic. Bigger jobs earn bigger coins. Kids learn that effort has a reward scale.',
+    desc: 'Normal, Rare, Epic, Legendary. Bigger jobs earn bigger coins, so effort has a reward scale everyone can understand.',
     color: '#fbbf24',
   },
   {
@@ -216,7 +205,7 @@ const FEATURES = [
   {
     icon: 'bounty' as RealmEmblemName,
     title: 'Family Bounty Board',
-    desc: 'Shared quests siblings compete for. First to claim a slot wins — natural motivation without parent nagging.',
+    desc: 'Shared quests siblings can take on together. Clear ownership keeps momentum moving without another reminder from you.',
     color: '#a78bfa',
   },
   {
@@ -400,7 +389,7 @@ export default function MarketingPage() {
               boxShadow: '0 0 30px rgba(251,191,36,0.12)',
             }}
           >
-            Start for free — no credit card
+            Create your family
           </Link>
           <a
             href="#how-it-works"
@@ -466,7 +455,7 @@ export default function MarketingPage() {
           <Reveal className="text-center mb-16">
             <p className="text-xs font-bold tracking-[0.3em] uppercase text-white/30 mb-3">Everything you need</p>
             <h2 className="font-heading text-4xl sm:text-5xl font-bold text-white/90">Built different, on purpose</h2>
-            <p className="text-white/40 mt-4 max-w-lg mx-auto">Every other chore app looks like a spreadsheet. ChoreQuest looks like the game your kids already play.</p>
+            <p className="text-white/40 mt-4 max-w-lg mx-auto">A family command center with enough personality to make progress feel worth showing up for.</p>
           </Reveal>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -504,14 +493,14 @@ export default function MarketingPage() {
                 style={{ background: 'rgba(251,191,36,0.05)', border: '1px solid rgba(251,191,36,0.18)' }}
               >
                 <p className="text-xs font-bold tracking-[0.3em] uppercase text-cq-gold/60 mb-4">For Parents</p>
-                <h3 className="font-heading text-2xl font-bold text-white/90 mb-6">Full control, less nagging</h3>
+            <h3 className="font-heading text-2xl font-bold text-white/90 mb-6">Clear expectations, less reminding</h3>
                 <ul className="flex flex-col gap-3">
                   {[
                     '✓ Create quests with tiers, schedules, and coins',
                     '✓ Approve or reject completions with one tap',
                     '✓ Set a custom reward store with real-world prizes',
                     '✓ PIN-lock your dashboard so kids stay out',
-                    '✓ Cast "curses" — deduct coins for bad behavior',
+                    '✓ Record coin adjustments with a clear reason',
                     '✓ Invite kids via QR code or share link',
                   ].map(item => (
                     <li key={item} className="text-white/55 text-sm flex gap-2.5">
@@ -530,7 +519,7 @@ export default function MarketingPage() {
                 style={{ background: 'rgba(167,139,250,0.05)', border: '1px solid rgba(167,139,250,0.18)' }}
               >
                 <p className="text-xs font-bold tracking-[0.3em] uppercase text-cq-mystic/60 mb-4">For Kids</p>
-                <h3 className="font-heading text-2xl font-bold text-white/90 mb-6">Their own realm to conquer</h3>
+            <h3 className="font-heading text-2xl font-bold text-white/90 mb-6">A board they can own</h3>
                 <ul className="flex flex-col gap-3">
                   {[
                     '✓ Personal PIN — their space is theirs',
@@ -538,7 +527,7 @@ export default function MarketingPage() {
                     '✓ Watch coins build up in real time',
                     '✓ Redeem coins for rewards parents actually give',
                     '✓ Streak flames show daily consistency',
-                    '✓ Race siblings for shared bounty quests',
+                    '✓ Work together on shared bounty quests',
                   ].map(item => (
                     <li key={item} className="text-white/55 text-sm flex gap-2.5">
                       <span className="text-cq-mystic/70 flex-shrink-0">{item.slice(0, 1)}</span>
@@ -631,13 +620,9 @@ export default function MarketingPage() {
                     </li>
                   ))}
                 </ul>
-                <button
-                  disabled
-                  className="block w-full text-center px-6 py-3 rounded-xl font-bold text-sm opacity-50 cursor-not-allowed"
-                  style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)', color: '#fbbf24' }}
-                >
-                  Notify me when available
-                </button>
+                <div className="rounded-xl px-4 py-3 text-center text-sm text-white/45" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  Family Pro is in development. The free plan is fully available today.
+                </div>
               </div>
             </Reveal>
           </div>
@@ -671,7 +656,7 @@ export default function MarketingPage() {
               Ready to begin the quest?
             </h2>
             <p className="text-white/45 mb-8 max-w-md mx-auto">
-              Free forever. No credit card. Set up your family realm in under 5 minutes.
+              Free forever, with no credit card. Set up your family in under 5 minutes.
             </p>
             <Link
               href="/login"
@@ -683,7 +668,7 @@ export default function MarketingPage() {
                 boxShadow: '0 0 30px rgba(251,191,36,0.15)',
               }}
             >
-              Create your realm — it&apos;s free →
+              Create your family — it&apos;s free →
             </Link>
           </div>
         </Reveal>

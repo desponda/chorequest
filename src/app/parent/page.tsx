@@ -75,11 +75,11 @@ export default function ParentDashboard() {
     )
   }
 
-  const tabs: { id: Tab; icon: RealmEmblemName; label: string; badge?: number }[] = [
+  const tabs: { id: Tab; icon: RealmEmblemName; label: string; mobileLabel?: string; badge?: number }[] = [
     { id: 'approvals', icon: 'shield', label: 'Approvals', badge: pendingCompletions.length + pendingRedemptions.length },
     { id: 'quests', icon: 'quest', label: 'Quests' },
     { id: 'rewards', icon: 'reward', label: 'Rewards' },
-    { id: 'curses', icon: 'curse', label: 'Coin adjustments', badge: data.activeCurseInstances.length || undefined },
+    { id: 'curses', icon: 'curse', label: 'Coin adjustments', mobileLabel: 'Adjust', badge: data.activeCurseInstances.length || undefined },
     { id: 'dungeons', icon: 'dungeon', label: 'Challenges' },
     { id: 'family', icon: 'family', label: 'Family' },
   ]
@@ -152,7 +152,7 @@ export default function ParentDashboard() {
               {/* Mobile: icon + tiny label stacked */}
               <span className="sm:hidden leading-none text-cq-gold" aria-hidden="true"><RealmEmblem name={t.icon} size={18} /></span>
               <span className="sm:hidden text-[10px] font-bold tracking-wide uppercase leading-none">
-                {t.label}
+                {t.mobileLabel ?? t.label}
               </span>
               {/* Desktop: icon + full label inline */}
               <span className="hidden sm:inline-flex items-center gap-1.5"><RealmEmblem name={t.icon} size={18} /> {t.label}</span>

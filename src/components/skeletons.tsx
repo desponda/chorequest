@@ -28,14 +28,14 @@ export function ParentSkeleton() {
       aria-label="Loading parent dashboard"
     >
       <div className="workspace-frame workspace-frame-parent relative z-10 flex flex-col flex-1">
-        <header className="workspace-header safe-top flex items-center gap-3 px-4 sm:px-6 pb-3 sm:pb-4 flex-shrink-0 border-b border-white/10 sm:border-b-0">
+        <header className="workspace-header cq-command-header safe-top flex items-center gap-3 px-4 sm:px-6 pb-3 sm:pb-4 flex-shrink-0 border-b border-white/10 sm:border-b-0">
           <Shimmer className="h-5 w-16 rounded-md" />
           <div className="flex-1 flex justify-center">
             <Shimmer className="h-5 w-40 rounded-md" />
           </div>
           <Shimmer className="h-5 w-16 rounded-md" />
         </header>
-        <div className="workspace-tabs grid grid-cols-3 sm:grid-cols-6 gap-2 mx-4 sm:mx-6 my-3 sm:my-0 sm:mb-4 flex-shrink-0">
+        <div className="workspace-tabs cq-command-tabs grid grid-cols-3 sm:grid-cols-6 gap-2 mx-4 sm:mx-6 my-3 sm:my-0 sm:mb-4 flex-shrink-0">
           {Array.from({ length: 6 }).map((_, i) => (
             <Shimmer key={i} className="flex-1 h-12 rounded-xl" />
           ))}

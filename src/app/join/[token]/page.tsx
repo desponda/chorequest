@@ -8,6 +8,7 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { RealmEmblem } from '@/components/ui/realm-emblem'
+import { RealmIcon } from '@/components/ui/realm-icon'
 import { CenteredLoader } from '@/components/skeletons'
 import { KID_COLORS } from '@/lib/constants'
 import type { KidColor } from '@/lib/types'
@@ -123,7 +124,7 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <span className="inline-flex h-10 w-10 items-center justify-center" style={{ color: colors.primary }}><RealmEmblem name="family" size={27} /></span>
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: `${colors.primary}16`, color: colors.primary }}><RealmIcon name={kid.avatar} size={27} /></span>
                   <span className="font-heading font-bold text-lg" style={{ color: colors.primary }}>
                     {kid.name}
                   </span>

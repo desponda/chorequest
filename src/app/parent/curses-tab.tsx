@@ -78,7 +78,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                 type="button"
                 key={ic}
                 onClick={() => setQcIcon(ic)}
-                aria-label={`Use ${ic} as the quick curse icon`}
+                aria-label={`Use ${ic} as the quick adjustment icon`}
                 aria-pressed={qcIcon === ic}
                 className="w-11 h-11 rounded-xl transition-all inline-flex items-center justify-center"
                 style={{
@@ -90,7 +90,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
               </button>
             ))}
           </div>
-          <FormInput placeholder="What happened? (e.g. Whining, Hit sibling...)" value={qcTitle} onChange={setQcTitle} />
+          <FormInput placeholder="What needs adjusting? (e.g. Missed bedtime, Extra help...)" value={qcTitle} onChange={setQcTitle} />
           <div>
             <label htmlFor={`${fieldId}-quick-penalty`} className="field-label">Coin penalty</label>
             <input
@@ -116,7 +116,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                   whileHover={{ background: 'rgba(239,68,68,0.22)' }}
                   whileTap={{ scale: 0.97 }}
                 >
-                  <span className="inline-flex items-center justify-center gap-1.5"><RealmIcon name={k.avatar} size={15} /> Cast on {k.name}</span>
+                  <span className="inline-flex items-center justify-center gap-1.5"><RealmIcon name={k.avatar} size={15} /> Apply to {k.name}</span>
                 </motion.button>
               ))}
             </div>
@@ -135,7 +135,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                 type="button"
                 key={ic}
                 onClick={() => setIcon(ic)}
-                aria-label={`Use ${ic} as the saved curse icon`}
+                aria-label={`Use ${ic} as the saved adjustment icon`}
                 aria-pressed={icon === ic}
                 className="w-11 h-11 rounded-xl transition-all inline-flex items-center justify-center"
                 style={{
@@ -147,7 +147,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
               </button>
             ))}
           </div>
-          <FormInput placeholder="Curse name (e.g. Whining, Tantrum)..." value={title} onChange={setTitle} />
+          <FormInput placeholder="Adjustment name (e.g. Missed bedtime, Extra help)..." value={title} onChange={setTitle} />
           <div>
             <label htmlFor={`${fieldId}-saved-penalty`} className="field-label">Coin penalty</label>
             <input
@@ -169,7 +169,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
             whileHover={{ background: 'rgba(239,68,68,0.22)' }}
             whileTap={{ scale: 0.98 }}
           >
-            + Add Curse
+            + Add adjustment
           </motion.button>
 
           {curses.length > 0 && (
@@ -212,12 +212,12 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                         className="min-h-11 px-3 py-2 rounded-xl text-xs font-bold transition-all"
                         style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171' }}
                       >
-                        <span className="inline-flex items-center gap-1.5">Cast <RealmIcon name="⚡" size={14} /></span>
+                        <span className="inline-flex items-center gap-1.5">Apply <RealmIcon name="⚡" size={14} /></span>
                       </button>
                       <ConfirmDelete
                         onConfirm={() => actions.deleteCurse(curse.id)}
-                        ariaLabel={`Delete curse ${curse.title}`}
-                        confirmLabel="Delete curse"
+                        ariaLabel={`Delete adjustment ${curse.title}`}
+                        confirmLabel="Delete adjustment"
                         className="px-1 py-1"
                       />
                     </div>
@@ -230,9 +230,9 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
         </Section>
       </div>
 
-      <Section title="Active Afflictions">
+      <Section title="Open adjustments">
         {activeCurseInstances.length === 0 ? (
-          <Empty icon="✨" message="No active curses — all is well!" />
+          <Empty icon="✨" message="No open adjustments — all is well!" />
         ) : (
           <div className="flex flex-col gap-2">
             {activeCurseInstances.map(ci => {
@@ -246,7 +246,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                 >
                   <span className="h-9 w-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171' }}><RealmIcon name={curse?.icon ?? '☠️'} size={18} /></span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white/85 text-sm font-semibold truncate">{curse?.title ?? 'Curse'}</p>
+                    <p className="text-white/85 text-sm font-semibold truncate">{curse?.title ?? 'Adjustment'}</p>
                     <p className="text-white/40 text-xs">
                       <span className="inline-flex items-center gap-1.5"><RealmIcon name={kid?.avatar ?? '🧙'} size={14} /> {kid?.name} · −{ci.coins_deducted} coins</span>
                     </p>
@@ -256,9 +256,9 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                       onClick={() => actions.resolveCurse(ci.id, true)}
                       className="min-h-11 px-3 py-2 rounded-lg text-xs font-bold transition-all"
                       style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.25)', color: '#4ade80' }}
-                      title="Lift curse and refund coins"
+                      title="Refund this adjustment"
                     >
-                      <span className="inline-flex items-center gap-1.5"><RealmIcon name="↩" size={14} /> Forgive</span>
+                      <span className="inline-flex items-center gap-1.5"><RealmIcon name="↩" size={14} /> Refund</span>
                     </button>
                     <button
                       onClick={() => actions.resolveCurse(ci.id, false)}

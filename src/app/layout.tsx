@@ -26,23 +26,23 @@ export const metadata: Metadata = {
     template: '%s — ChoreQuest',
   },
   description:
-    'A fantasy quest board that makes kids compete to help around the house — with real-time family displays, coin rewards, and streak bonuses.',
+    'A calmer family command center for shared responsibilities, visible progress, and rewards that make good habits stick.',
   applicationName: 'ChoreQuest',
   keywords: ['chore app', 'kids chores', 'family chores', 'allowance app', 'chore chart', 'reward chart', 'gamified chores'],
   authors: [{ name: 'ChoreQuest' }],
   openGraph: {
     type: 'website',
     siteName: 'ChoreQuest',
-    title: 'ChoreQuest — Turn chores into legendary quests',
+    title: 'ChoreQuest — A calmer way to share the work',
     description:
-      'The fantasy chore app kids actually want to use. Quest tiers, streak multipliers, family bounty board, and a live wall display.',
+      'Set the plan, celebrate the wins, and give everyone a clearer way to share the work.',
     url: 'https://chorequest.dresponda.com',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'ChoreQuest — Turn chores into legendary quests',
+    title: 'ChoreQuest — A calmer way to share the work',
     description:
-      'The fantasy chore app kids actually want to use. Live wall display, streak bonuses, real-world rewards.',
+      'Shared responsibilities, visible progress, and real-world rewards for families.',
   },
   robots: {
     index: true,

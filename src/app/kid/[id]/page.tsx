@@ -718,14 +718,14 @@ function ActiveCursesSection({ curses }: { curses: CurseInstance[] }) {
       className="rounded-2xl p-4 flex flex-col gap-2"
       style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}
     >
-      <p className="text-xs font-bold uppercase tracking-widest text-red-400/80 inline-flex items-center gap-1.5"><RealmIcon name="🌩️" size={14} /> Afflictions</p>
+      <p className="text-xs font-bold uppercase tracking-widest text-red-400/80 inline-flex items-center gap-1.5"><RealmIcon name="🌩️" size={14} /> Coin adjustments</p>
       {curses.map(ci => {
         const curse = ci.curse as { title: string; icon: string; penalty: number } | undefined
         return (
           <div key={ci.id} className="flex items-center gap-3">
             <span className="h-9 w-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171' }}><RealmIcon name={curse?.icon ?? '☠️'} size={18} /></span>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-red-300">{curse?.title ?? 'Curse'}</p>
+              <p className="text-sm font-semibold text-red-300">{curse?.title ?? 'Adjustment'}</p>
               <p className="text-xs text-red-400/60">−{ci.coins_deducted} coins deducted</p>
             </div>
           </div>

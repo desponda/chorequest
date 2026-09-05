@@ -120,7 +120,7 @@ test.describe('Login page password reveal', () => {
     await page.goto('/login')
     await page.waitForLoadState('networkidle')
 
-    const enterButton = page.getByRole('tab', { name: /Enter Realm/i })
+    const enterButton = page.getByRole('tab', { name: /Sign in/i })
     const box = await enterButton.boundingBox()
     expect(box).not.toBeNull()
     expect(box!.height).toBeGreaterThanOrEqual(44)
@@ -198,8 +198,8 @@ test.describe('Narrow mobile UI quality', () => {
 
   test('auth tabs support arrow-key navigation', async ({ page }) => {
     await page.goto('/login')
-    const loginTab = page.getByRole('tab', { name: 'Enter Realm' })
-    const signupTab = page.getByRole('tab', { name: 'Create Realm' })
+    const loginTab = page.getByRole('tab', { name: 'Sign in' })
+    const signupTab = page.getByRole('tab', { name: 'Create family' })
 
     await loginTab.focus()
     await page.keyboard.press('ArrowRight')

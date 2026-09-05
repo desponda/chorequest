@@ -2,7 +2,7 @@
 
 import { QuestsTab } from '@/app/parent/quests-tab'
 import type { ParentActions } from '@/app/parent/use-parent-actions'
-import { StarField } from '@/components/star-field'
+import { RealmEmblem, type RealmEmblemName } from '@/components/ui/realm-emblem'
 import type { Kid, Quest } from '@/lib/types'
 
 const kids: Kid[] = [
@@ -80,27 +80,26 @@ const actions = {
   saveQuest: noop,
 } as unknown as ParentActions
 
-const tabs = [
-  ['✓', 'Approvals'],
-  ['⚔️', 'Quests'],
-  ['🎁', 'Rewards'],
-  ['☠️', 'Curses'],
-  ['🏰', 'Dungeons'],
-  ['👨‍👩‍👧', 'Family'],
+const tabs: Array<[RealmEmblemName, string]> = [
+  ['shield', 'Approvals'],
+  ['quest', 'Quests'],
+  ['reward', 'Rewards'],
+  ['curse', 'Coin adjustments'],
+  ['dungeon', 'Challenges'],
+  ['family', 'Family'],
 ]
 
 export default function ParentWorkspaceFixture() {
   return (
-    <div className="min-h-screen bg-quest-void flex flex-col">
-      <StarField />
+    <div className="min-h-screen cq-page-shell flex flex-col">
       <div className="workspace-frame workspace-frame-parent relative z-10 flex flex-col flex-1">
-        <header className="workspace-header safe-top grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-4 sm:px-6 pb-3 sm:pb-4 border-b border-white/10 sm:border-b-0">
+        <header className="workspace-header cq-command-header safe-top grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-4 sm:px-6 pb-3 sm:pb-4 border-b border-white/10 sm:border-b-0">
           <span className="justify-self-start text-sm text-white/60">← Realm</span>
           <h1 className="font-heading text-lg font-bold text-white/90">Parent Command</h1>
           <span className="justify-self-end text-sm text-white/60">Sign out</span>
         </header>
 
-        <div className="workspace-tabs grid grid-cols-3 sm:grid-cols-6 gap-2 mx-4 sm:mx-6 my-3 sm:my-0 sm:mb-4" role="tablist" aria-label="Parent dashboard sections">
+        <div className="workspace-tabs cq-command-tabs grid grid-cols-3 sm:grid-cols-6 gap-2 mx-4 sm:mx-6 my-3 sm:my-0 sm:mb-4" role="tablist" aria-label="Parent dashboard sections">
           {tabs.map(([icon, label]) => {
             const active = label === 'Quests'
             return (
@@ -117,7 +116,7 @@ export default function ParentWorkspaceFixture() {
                   border: `1px solid ${active ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.04)'}`,
                 }}
               >
-                <span aria-hidden="true">{icon}</span> {label}
+                <span aria-hidden="true"><RealmEmblem name={icon} size={18} /></span> {label}
               </button>
             )
           })}
