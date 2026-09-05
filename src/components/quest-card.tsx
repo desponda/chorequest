@@ -106,19 +106,19 @@ export function QuestCard({
     setTimeout(() => setBursting(false), 1000)
   }
 
-  const actionLabel = loading ? 'Submitting' : isRejected ? 'Retry' : isShared ? 'Claim' : 'Done'
+  const actionLabel = loading ? 'Submitting' : isRejected ? 'Retry' : isShared ? 'Claim' : 'Complete'
   const actionIcon = loading ? '✨' : isRejected ? '↺' : isShared ? '⚡' : '⚔️'
   const actionAriaLabel = loading ? 'Submitting quest' : isRejected ? 'Retry quest' : isShared ? 'Claim quest' : 'Mark quest done'
   const kidRgb = kidColor === 'azure' ? '56,189,248' : '167,139,250'
 
   return (
     <motion.div
-      className="relative rounded-2xl overflow-hidden"
+      className="cq-quest-card relative rounded-2xl overflow-hidden"
       style={{
         background: cardBg,
         border: `1px solid ${cardBorder}`,
         boxShadow: cardShadow,
-        backdropFilter: 'blur(10px)',
+        backdropFilter: 'blur(4px)',
         opacity: isShareLocked ? 0.45 : 1,
       }}
       whileHover={isTodo && onComplete ? { boxShadow: `0 0 0 2px rgba(${kidRgb}, 0.5), 0 8px 28px rgba(${kidRgb}, 0.18)` } : {}}
@@ -182,7 +182,7 @@ export function QuestCard({
             <div className="flex items-center gap-1 min-w-0">
               <p
                 className={`font-semibold text-sm leading-snug truncate ${
-                  isApproved ? 'line-through opacity-40' : isShareLocked ? 'text-white/35' : 'text-white/90'
+                  isApproved ? 'text-white/60' : isShareLocked ? 'text-white/35' : 'text-white/90'
                 }`}
               >
                 {quest.title}
@@ -260,7 +260,7 @@ export function QuestCard({
                 </motion.button>
               ) : (isPending || isApproved || isShareLocked) ? (
                 <>
-                  {/* Status pill — same py-1.5 text-sm as Done button so card height stays consistent */}
+                  {/* Status pill — same height as the action button so card rhythm stays consistent. */}
                   {isPending ? (
                     <motion.span
                       data-testid="quest-action-content"
@@ -271,7 +271,8 @@ export function QuestCard({
                       animate={{ opacity: [0.6, 1] }}
                       transition={{ duration: 0.8, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
                     >
-                      <RealmIcon name="⏳" size={17} />
+                      <span className="quest-action-label-full inline-flex items-center gap-1.5"><RealmIcon name="⏳" size={17} /> Pending</span>
+                      <span className="quest-action-label-short" aria-hidden="true"><RealmIcon name="⏳" size={17} /></span>
                     </motion.span>
                   ) : isApproved ? (
                     <span
@@ -279,7 +280,7 @@ export function QuestCard({
                       className="min-h-11 min-w-11 inline-flex items-center justify-center text-sm px-3 py-2 rounded-xl font-semibold whitespace-nowrap"
                       style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80' }}
                     >
-                      <span className="quest-action-label-full inline-flex items-center gap-1.5"><RealmIcon name="✓" size={15} /> done</span>
+                      <span className="quest-action-label-full inline-flex items-center gap-1.5"><RealmIcon name="✓" size={15} /> Earned</span>
                       <span className="quest-action-label-short" aria-hidden="true"><RealmIcon name="✓" size={17} /></span>
                     </span>
                   ) : (
@@ -288,7 +289,7 @@ export function QuestCard({
                       className="min-h-11 min-w-11 inline-flex items-center justify-center text-sm px-3 py-2 rounded-xl font-semibold whitespace-nowrap"
                       style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)' }}
                     >
-                      <span className="quest-action-label-full">claimed</span>
+                      <span className="quest-action-label-full">Claimed</span>
                       <span className="quest-action-label-short" aria-hidden="true"><span className="text-base leading-none">—</span></span>
                     </span>
                   )}
@@ -310,12 +311,12 @@ export function QuestCard({
             </div>
 
             {/* Coin mark stays fixed-width so the amount remains visually aligned. */}
-            <div className="quest-coin-slot" style={{ width: '48px', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+            <div className="quest-coin-slot" style={{ width: '56px', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
               <span data-testid="quest-coin-icon" className="flex items-center justify-center" style={{ width: '18px', flexShrink: 0, color: '#fbbf24' }}>
                 <CoinMark size={16} />
               </span>
               <span className="font-heading font-bold text-sm" style={{ flex: 1, textAlign: 'right', color: isNormal ? '#fbbf24' : tier.color }}>
-                {quest.coins}
+                +{quest.coins}
               </span>
             </div>
           </div>

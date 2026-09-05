@@ -18,23 +18,23 @@ vi.mock('framer-motion', () => ({
 import { StatusChip } from '../status-chip'
 
 describe('StatusChip', () => {
-  it('renders "⏳ awaiting" for pending', () => {
+  it('renders "Pending" for pending', () => {
     render(<StatusChip status="pending" />)
-    expect(screen.getByText('⏳ awaiting')).toBeInTheDocument()
+    expect(screen.getByText('Pending')).toBeInTheDocument()
   })
 
-  it('renders "✓ done" for approved', () => {
+  it('renders "Earned" for approved', () => {
     render(<StatusChip status="approved" />)
-    expect(screen.getByText('✓ done')).toBeInTheDocument()
+    expect(screen.getByText('Earned')).toBeInTheDocument()
   })
 
-  it('renders "✗ retry" for rejected', () => {
+  it('renders "Retry" for rejected', () => {
     render(<StatusChip status="rejected" />)
-    expect(screen.getByText('✗ retry')).toBeInTheDocument()
+    expect(screen.getByText('Retry')).toBeInTheDocument()
   })
 
-  it('renders "claimed" for locked', () => {
+  it('renders "Claimed" for locked', () => {
     render(<StatusChip status="locked" />)
-    expect(screen.getByText('claimed')).toBeInTheDocument()
+    expect(screen.getByText('Claimed')).toBeInTheDocument()
   })
 })

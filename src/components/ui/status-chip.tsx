@@ -12,26 +12,26 @@ const CHIP_CONFIG: Record<StatusChipStatus, {
   pulse?: true
 }> = {
   pending: {
-    label: '⏳ awaiting',
+    label: 'Pending',
     bg: 'rgba(251,191,36,0.15)',
     border: 'rgba(251,191,36,0.3)',
     color: '#fbbf24',
     pulse: true,
   },
   approved: {
-    label: '✓ done',
+    label: 'Earned',
     bg: 'rgba(74,222,128,0.12)',
     border: 'rgba(74,222,128,0.3)',
     color: '#4ade80',
   },
   rejected: {
-    label: '✗ retry',
+    label: 'Retry',
     bg: 'rgba(239,68,68,0.12)',
     border: 'rgba(239,68,68,0.3)',
     color: '#f87171',
   },
   locked: {
-    label: 'claimed',
+    label: 'Claimed',
     bg: 'rgba(255,255,255,0.05)',
     border: 'rgba(255,255,255,0.1)',
     color: 'rgba(255,255,255,0.3)',

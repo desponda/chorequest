@@ -26,7 +26,7 @@ const KIND_LABEL: Record<LedgerEntry['kind'], string> = {
   curse_reopened: 'Adjustment reopened',
   dungeon_reward: 'Dungeon reward',
   raid_bounty: 'Raid bounty',
-  manual_adjustment: 'Parent adjustment',
+  manual_adjustment: 'Coin adjustment',
   migration_opening_balance: 'Imported balance',
 }
 
@@ -98,6 +98,14 @@ function Amount({ amount }: { amount: number }) {
       {amount > 0 ? `+${amount.toLocaleString()}` : amount.toLocaleString()} <CoinMark size={15} />
     </span>
   )
+}
+
+function displayDescription(entry: LedgerEntry): string {
+  const description = entry.description?.trim()
+  if (!description || /^(done|completed|complete|quest done|quest completed)$/i.test(description)) {
+    return KIND_LABEL[entry.kind]
+  }
+  return description
 }
 
 export function CoinLedger({
@@ -274,7 +282,7 @@ export function CoinLedger({
                       >
                         <span className="text-cq-gold flex-shrink-0 w-7 inline-flex items-center justify-center" aria-hidden="true"><RealmIcon name={entry.icon} size={17} /></span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-white/90 truncate">{entry.description}</p>
+                          <p className="text-sm font-medium text-white/90 truncate">{displayDescription(entry)}</p>
                           <p className="text-xs text-white/60 mt-0.5">
                             {KIND_LABEL[entry.kind]} · {formatTime(entry.occurred_at, timeZone)}
                           </p>

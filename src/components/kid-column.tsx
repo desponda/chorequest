@@ -58,83 +58,76 @@ export function KidColumn({
     return getCompletion(quest)?.status === 'approved'
   }).length
   const totalCount = quests.length
-  const progress = totalCount > 0 ? completedCount / totalCount : 0
 
   return (
     <div className="flex flex-col h-full gap-4">
-      {/* Kid header card */}
+      {/* Kid summary */}
       <motion.div
-        className="rounded-3xl p-5 flex flex-col items-center gap-3"
+        className="cq-kid-summary rounded-2xl p-4"
         style={{
-          background: colors.gradient,
           border: `1px solid ${colors.border}`,
-          boxShadow: `0 0 40px ${colors.glow}, 0 0 0 1px ${colors.border}`,
-          backdropFilter: 'blur(16px)',
+          boxShadow: `0 12px 30px ${colors.glow}`,
         }}
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15, type: 'spring', stiffness: 260, damping: 22 }}
       >
-        {/* Avatar — links to kid's personal view */}
-        {linkToKidView ? (
-          <Link href={`/kid/${kid.id}`} aria-label={`Open ${kid.name}'s quest board`}>
-            <motion.div
-              className="relative cursor-pointer"
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.95 }}
-            >
+        <div className="flex items-center gap-3">
+          {/* Avatar — links to kid's personal view */}
+          {linkToKidView ? (
+            <Link href={`/kid/${kid.id}`} aria-label={`Open ${kid.name}'s quest board`}>
               <motion.span
-                className="text-5xl block"
-                animate={{ y: [0, -5, 0] }}
-                transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+                className="cq-avatar-medallion h-14 w-14 rounded-2xl flex items-center justify-center cursor-pointer"
+                style={{ color: colors.primary, borderColor: colors.border }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.96 }}
               >
-                {kid.avatar}
+                <RealmIcon name={kid.avatar} size={30} />
               </motion.span>
-              <div
-                className="absolute -inset-2 rounded-full -z-10 opacity-30 blur-md"
-                style={{ background: colors.primary }}
-              />
-            </motion.div>
-          </Link>
-        ) : (
-          <motion.span
-            className="text-5xl block"
-            animate={{ y: [0, -5, 0] }}
-            transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            {kid.avatar}
-          </motion.span>
-        )}
+            </Link>
+          ) : (
+            <span className="cq-avatar-medallion h-14 w-14 rounded-2xl flex items-center justify-center" style={{ color: colors.primary, borderColor: colors.border }}>
+              <RealmIcon name={kid.avatar} size={30} />
+            </span>
+          )}
 
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-2">
-            <h2 className="font-heading text-xl font-bold text-white/95 tracking-wide">
-              {kid.name}
-            </h2>
-            {kid.streak > 1 && <StreakBadge streak={kid.streak} compact />}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 min-w-0">
+              <h2 className="font-heading text-xl font-bold text-white/95 tracking-wide truncate">
+                {kid.name}
+              </h2>
+              {kid.streak > 1 && <StreakBadge streak={kid.streak} compact />}
+            </div>
+            <p className="text-xs mt-0.5 font-medium" style={{ color: colors.primary }}>
+              {getLevelTitle(kid.level ?? 1)} · Lv {kid.level ?? 1}
+            </p>
+            <div className="mt-2"><CoinCounter value={kid.coins} size="sm" /></div>
           </div>
-          <p className="text-xs mt-0.5 font-medium" style={{ color: colors.primary }}>
-            {getLevelTitle(kid.level ?? 1)} · Lv {kid.level ?? 1}
-          </p>
         </div>
 
-        <CoinCounter value={kid.coins} size="md" />
-
-        {/* XP bar */}
-        <div className="w-full">
-          <div className="flex justify-between text-xs text-white/25 mb-1">
-            <span>XP</span>
-            <span>{xpInfo.currentXP}/{xpInfo.neededXP}</span>
+        {/* Progress summary */}
+        <div className="mt-4 grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 items-end">
+          <div>
+            <div className="flex justify-between text-xs text-white/55 mb-1">
+              <span>Level progress</span>
+              <span>{xpInfo.currentXP}/{xpInfo.neededXP} XP</span>
+            </div>
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: `linear-gradient(90deg, ${colors.primary}, #fbbf24)` }}
+                initial={{ width: 0 }}
+                animate={{ width: `${xpInfo.pct}%` }}
+                transition={{ duration: 0.8, ease: 'easeOut' }}
+              />
+            </div>
           </div>
-          <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <motion.div
-              className="h-full rounded-full"
-              style={{ background: `linear-gradient(90deg, ${colors.primary}, #fbbf24)` }}
-              initial={{ width: 0 }}
-              animate={{ width: `${xpInfo.pct}%` }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-            />
-          </div>
+          {totalCount > 0 && (
+            <div className="text-right text-xs text-white/55">
+              <span className="block text-white/80 font-bold">{completedCount}/{totalCount}</span>
+              <span>today</span>
+            </div>
+          )}
         </div>
 
         {activeCurseCount > 0 && (
@@ -148,24 +141,6 @@ export function KidColumn({
           </motion.span>
         )}
 
-        {/* Progress bar */}
-        {totalCount > 0 && (
-          <div className="w-full">
-            <div className="flex justify-between text-xs text-white/40 mb-1">
-              <span>Today&apos;s quests</span>
-              <span>{completedCount}/{totalCount}</span>
-            </div>
-            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-              <motion.div
-                className="h-full rounded-full"
-                style={{ background: colors.primary }}
-                initial={{ width: 0 }}
-                animate={{ width: `${progress * 100}%` }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
-              />
-            </div>
-          </div>
-        )}
       </motion.div>
 
       {/* Quest list */}
