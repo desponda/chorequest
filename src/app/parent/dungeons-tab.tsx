@@ -2,11 +2,12 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import type { DungeonRun, DungeonClear, RaidBoss, Kid, Completion } from '@/lib/types'
+import type { DungeonRun, DungeonClear, RaidBoss, Kid, Completion, Plan } from '@/lib/types'
 import { Section, FormInput, Empty, fadeSlide } from './_ui'
 import { ConfirmDelete } from '@/components/ui/confirm-delete'
 import type { ParentActions } from './use-parent-actions'
 import { RealmIcon } from '@/components/ui/realm-icon'
+import { PLAN_LIMITS } from '@/lib/plans'
 
 const DUNGEON_ICONS = ['🏰', '⚔️', '🗡️', '🛡️', '🔮', '🌋', '🕳️', '🐲']
 const BOSS_ICONS = ['🐉', '👾', '💀', '🦂', '👹', '🔥', '🌩️', '🦇']
@@ -19,6 +20,7 @@ interface Props {
   activeBoss: RaidBoss | null
   pastDungeons: DungeonRun[]
   defeatedBosses: RaidBoss[]
+  plan: Plan
   actions: ParentActions
 }
 
@@ -51,8 +53,9 @@ function HpBar({ current, max, color }: { current: number; max: number; color: s
   )
 }
 
-export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, kids, activeBoss, pastDungeons, defeatedBosses, actions }: Props) {
+export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, kids, activeBoss, pastDungeons, defeatedBosses, plan, actions }: Props) {
   const kidCount = kids.length
+  const challengesLocked = !PLAN_LIMITS[plan].challenges
 
   const getKidDamage = (kidId: string) =>
     weeklyCompletions
@@ -129,6 +132,12 @@ export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, k
                 </div>
               )
             })}
+          </div>
+        ) : challengesLocked ? (
+          <div className="rounded-2xl p-5 text-center" style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.18)' }}>
+            <span className="text-3xl" aria-hidden="true"><RealmIcon name="🏰" size={32} /></span>
+            <p className="font-heading text-base font-bold text-cq-gold mt-3">Legendary challenge</p>
+            <p className="text-white/45 text-sm mt-1">Weekly dungeons unlock cooperative goals, shared loot, and a reason to keep the whole realm moving.</p>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -226,6 +235,12 @@ export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, k
             <p className="text-xs text-white/30 text-center">
               {activeBoss.current_hp.toLocaleString()} HP remaining · {Math.floor(activeBoss.bounty_coins / Math.max(1, kidCount))} coins per kid on defeat
             </p>
+          </div>
+        ) : challengesLocked ? (
+          <div className="rounded-2xl p-5 text-center" style={{ background: 'rgba(251,146,60,0.06)', border: '1px solid rgba(251,146,60,0.18)' }}>
+            <span className="text-3xl" aria-hidden="true"><RealmIcon name="💀" size={32} /></span>
+            <p className="font-heading text-base font-bold text-cq-ember mt-3">Legendary challenge</p>
+            <p className="text-white/45 text-sm mt-1">Raid bosses are reserved for Legendary realms.</p>
           </div>
         ) : (
           <div className="flex flex-col gap-3">

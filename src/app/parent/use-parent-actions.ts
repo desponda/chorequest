@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Family, Kid, Quest, QuestKind, QuestFrequency, QuestTier, Completion, Reward, Redemption, Curse, CurseInstance } from '@/lib/types'
 import { DEFAULT_QUESTS } from '@/lib/constants'
-import { PLAN_LIMITS, PLAN_LABELS, PLAN_UPGRADE_HINT } from '@/lib/plans'
+import { LEGENDARY_UPGRADE_HINT, PLAN_LIMITS, PLAN_LABELS, PLAN_UPGRADE_HINT } from '@/lib/plans'
 import { isValidPin, questDateStringForZone, questWeekKeyForZone } from '@/lib/utils'
 import { boundedInteger } from '@/lib/validation'
 import type { DungeonRun, DungeonClear, RaidBoss } from '@/lib/types'
@@ -296,11 +296,11 @@ export function useParentActions(deps: Deps): ParentActions {
       return
     }
     if (data.tier !== 'normal' && !limits.questTiers) {
-      toast.error(`Quest tiers require Legendary plan. ${PLAN_UPGRADE_HINT[plan]}`)
+      toast.error(`Quest tiers require Legendary plan. ${LEGENDARY_UPGRADE_HINT[plan]}`)
       return
     }
     if (data.activeDays.length > 0 && !limits.activeDays) {
-      toast.error(`Active day scheduling requires Legendary plan. ${PLAN_UPGRADE_HINT[plan]}`)
+      toast.error(`Active day scheduling requires Legendary plan. ${LEGENDARY_UPGRADE_HINT[plan]}`)
       return
     }
     const { error } = await supabase.from('quests').insert({
@@ -331,11 +331,16 @@ export function useParentActions(deps: Deps): ParentActions {
   }, [family, quests, refetch, supabase])
 
   const toggleQuest = useCallback(async (id: string, active: boolean) => {
+    const plan = family?.plan ?? 'free'
+    if (!active && plan === 'free' && quests.filter((quest) => quest.active).length >= PLAN_LIMITS.free.maxQuests) {
+      toast.error(`Quest limit reached (${PLAN_LIMITS.free.maxQuests} max on Free plan). ${PLAN_UPGRADE_HINT[plan]}`)
+      return
+    }
     const { error } = await supabase.from('quests').update({ active: !active }).eq('id', id)
     if (error) toast.error('Failed to update quest')
     else toast.success(active ? 'Quest paused' : 'Quest reactivated')
     await refetch()
-  }, [refetch, supabase])
+  }, [family, quests, refetch, supabase])
 
   const deleteQuest = useCallback(async (id: string) => {
     const { error } = await supabase.from('quests').update({ archived: true, active: false }).eq('id', id).eq('archived', false)
@@ -353,13 +358,22 @@ export function useParentActions(deps: Deps): ParentActions {
       toast.error('Quest slots must be between 1 and 100')
       return
     }
+    const plan = family?.plan ?? 'free'
+    if (updates.tier && updates.tier !== 'normal' && !PLAN_LIMITS[plan].questTiers) {
+      toast.error(`Quest tiers require Legendary plan. ${LEGENDARY_UPGRADE_HINT[plan]}`)
+      return
+    }
+    if (Array.isArray(updates.active_days) && updates.active_days.length > 0 && !PLAN_LIMITS[plan].activeDays) {
+      toast.error(`Active day scheduling requires Legendary plan. ${LEGENDARY_UPGRADE_HINT[plan]}`)
+      return
+    }
     const { error } = await supabase.from('quests').update(updates).eq('id', id)
     if (error) toast.error('Failed to save quest')
     else {
       toast.success('Quest updated!')
       await refetch()
     }
-  }, [refetch, supabase])
+  }, [family, refetch, supabase])
 
   const seedDefaultQuests = useCallback(async () => {
     if (!family) return
@@ -615,6 +629,11 @@ export function useParentActions(deps: Deps): ParentActions {
 
   const addDungeonRun = useCallback(async (data: { title: string; icon: string; hp: number; rewardCoins: number; rewardXp: number }) => {
     if (!family) return
+    const plan = family.plan ?? 'free'
+    if (!PLAN_LIMITS[plan].challenges) {
+      toast.error(`Challenges require Legendary plan. ${LEGENDARY_UPGRADE_HINT[plan]}`)
+      return
+    }
     if (
       boundedInteger(data.hp, { min: 1, max: 1_000_000 }) === null ||
       boundedInteger(data.rewardCoins, { min: 0, max: 1_000_000 }) === null ||
@@ -651,6 +670,11 @@ export function useParentActions(deps: Deps): ParentActions {
 
   const addRaidBoss = useCallback(async (data: { title: string; icon: string; hpPerKid: number; bountyCoins: number }) => {
     if (!family || !data.title.trim()) return
+    const plan = family.plan ?? 'free'
+    if (!PLAN_LIMITS[plan].challenges) {
+      toast.error(`Challenges require Legendary plan. ${LEGENDARY_UPGRADE_HINT[plan]}`)
+      return
+    }
     if (
       boundedInteger(data.hpPerKid, { min: 1, max: 1_000_000 }) === null ||
       boundedInteger(data.bountyCoins, { min: 0, max: 1_000_000 }) === null

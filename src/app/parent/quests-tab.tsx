@@ -92,6 +92,7 @@ export function QuestsTab({ kids, quests, actions, plan }: Props) {
                 key={q.id}
                 quest={q}
                 kids={kids}
+                plan={plan}
                 onToggle={actions.toggleQuest}
                 onDelete={actions.deleteQuest}
                 onSave={actions.saveQuest}
@@ -108,6 +109,7 @@ export function QuestsTab({ kids, quests, actions, plan }: Props) {
               key={q.id}
               quest={q}
               kids={kids}
+              plan={plan}
               onToggle={actions.toggleQuest}
               onDelete={actions.deleteQuest}
               onSave={actions.saveQuest}

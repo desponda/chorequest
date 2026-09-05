@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { Kid, Quest, QuestTier } from '@/lib/types'
+import type { Kid, Plan, Quest, QuestTier } from '@/lib/types'
 import { QuestFormFields, type QuestFormState } from './quest-form'
 import { TierBadge } from '@/components/ui/tier-badge'
 import { KindBadge } from '@/components/ui/kind-badge'
@@ -12,12 +12,13 @@ import { RealmIcon } from '@/components/ui/realm-icon'
 interface Props {
   quest: Quest
   kids: Kid[]
+  plan: Plan
   onToggle: (id: string, active: boolean) => void
   onDelete: (id: string) => void
   onSave: (id: string, updates: Partial<Quest>) => Promise<void>
 }
 
-export function QuestRow({ quest, kids, onToggle, onDelete, onSave }: Props) {
+export function QuestRow({ quest, kids, plan, onToggle, onDelete, onSave }: Props) {
   const [editing, setEditing] = useState(false)
   const [state, setState] = useState<QuestFormState>(() => ({
     title: quest.title,
@@ -128,7 +129,7 @@ export function QuestRow({ quest, kids, onToggle, onDelete, onSave }: Props) {
               className="px-3 pb-3 pt-1 flex flex-col gap-3"
               style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}
             >
-              <QuestFormFields state={state} onChange={update} kids={kids} />
+              <QuestFormFields state={state} onChange={update} kids={kids} plan={plan} />
               <div className="flex gap-2">
                 <button
                   onClick={handleSave}

@@ -1,5 +1,7 @@
 import { authenticate, isAuthError, cors } from '@/lib/api-auth'
 import { createServiceClient } from '@/lib/supabase/service'
+import { PLAN_LIMITS } from '@/lib/plans'
+import type { Plan } from '@/lib/types'
 
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: cors() })
@@ -24,6 +26,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   if (!curseRes.data) return Response.json({ error: 'Curse not found' }, { status: 404, headers: cors() })
   if (!kidRes.data) return Response.json({ error: 'Kid not found' }, { status: 404, headers: cors() })
+
+  const { data: family } = await supabase.from('families').select('plan').eq('id', auth.familyId).single()
+  const plan = (family?.plan ?? 'free') as Plan
+  if (!PLAN_LIMITS[plan].curses) {
+    return Response.json({ error: 'Coin adjustments require Family plan or higher' }, { status: 402, headers: cors() })
+  }
 
   const curse = curseRes.data
   const kid = kidRes.data

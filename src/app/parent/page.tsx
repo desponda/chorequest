@@ -245,6 +245,7 @@ export default function ParentDashboard() {
                 activeBoss={data.activeBoss}
                 pastDungeons={data.pastDungeons}
                 defeatedBosses={data.defeatedBosses}
+                plan={data.family?.plan ?? 'free'}
                 actions={actions}
               />
             )}
