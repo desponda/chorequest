@@ -219,6 +219,13 @@ export default function WallDisplay() {
     return q?.kind === 'shared' || q?.kind === 'oneoff'
   })
 
+  const personalQuestCount = kids.reduce((total, kid) => total + getKidPersonalQuests(kid).length, 0)
+  const completedQuestCount = kids.reduce((total, kid) => total + getKidPersonalQuests(kid).filter(quest => {
+    const completion = getKidCompletions(kid).find(c => c.quest_id === quest.id && c.date === today)
+    return completion?.status === 'approved'
+  }).length, 0)
+  const totalQuestCount = personalQuestCount + bountyQuests.length
+
   if (loading) {
     return <DisplaySkeleton />
   }
@@ -278,27 +285,23 @@ export default function WallDisplay() {
   return (
     <div className="min-h-screen cq-page-shell flex flex-col">
 
-      {/* Header */}
+      {/* Family command header */}
       <motion.header
-        className="safe-top relative z-10 flex items-center justify-between px-4 sm:px-8 pb-3 sm:pb-5 flex-shrink-0"
+        className="cq-display-header safe-top relative z-10 mx-4 sm:mx-8 mt-4 sm:mt-6 mb-3 sm:mb-4 px-4 sm:px-6 py-4 sm:py-5 flex-shrink-0"
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <div className="flex-1" />
-
-        <div className="text-center">
-          <h1 className="font-heading text-2xl sm:text-4xl font-black text-gradient-gold tracking-widest">
-            ChoreQuest
-          </h1>
-          {family && (
-            <p className="hidden sm:block text-white/35 text-xs tracking-[0.3em] uppercase mt-1">
-              The {family.name} Realm
-            </p>
-          )}
+        <div className="cq-display-brand">
+          <span className="cq-display-mark" aria-hidden="true"><RealmEmblem name="dungeon" size={31} /></span>
+          <div className="min-w-0">
+            <p className="cq-display-kicker">Family command center</p>
+            <h1 className="cq-display-title">ChoreQuest</h1>
+            <p className="cq-display-subtitle">{family ? `${family.name} family realm` : 'Your family realm'}</p>
+          </div>
         </div>
 
-        <div className="flex-1 flex justify-end items-center gap-1.5 sm:gap-3">
+        <div className="cq-display-actions">
           {bountyQuests.length > 0 && (
             <button
               onClick={() => setShowBounty(true)}
@@ -365,6 +368,25 @@ export default function WallDisplay() {
           </Link>
         </div>
       </motion.header>
+
+      <motion.section
+        className="cq-display-overview relative z-10 mx-4 sm:mx-8 mb-4 sm:mb-5"
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.16 }}
+        aria-label="Today at a glance"
+      >
+        <div className="cq-display-overview-intro">
+          <p className="cq-display-kicker">Today at a glance</p>
+          <h2>Keep the momentum going.</h2>
+          <p>Every small win moves the whole family forward.</p>
+        </div>
+        <div className="cq-display-metrics">
+          <div className="cq-display-metric"><strong>{kids.length}</strong><span>adventurers</span></div>
+          <div className="cq-display-metric"><strong>{completedQuestCount}<span className="cq-display-metric-muted">/{totalQuestCount}</span></strong><span>quests cleared</span></div>
+          <div className="cq-display-metric cq-display-metric-accent"><strong>{pendingCount}</strong><span>awaiting approval</span></div>
+        </div>
+      </motion.section>
 
       {/* Dungeon + Raid Boss progress bar */}
       {(activeDungeon || activeBoss) && (
@@ -456,30 +478,39 @@ export default function WallDisplay() {
       )}
 
       {/* Kid columns */}
-      <main
-        className="realm-kid-grid relative z-10 flex-1 grid gap-4 sm:gap-6 px-4 sm:px-8 pb-4 min-h-0"
-        style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))' }}
-      >
-        {kids.map((kid, i) => (
-          <motion.div
-            key={kid.id}
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 + i * 0.08, type: 'spring', stiffness: 220, damping: 24 }}
-            className="min-h-0 flex flex-col"
-          >
-            <KidColumn
-              kid={kid}
-              quests={getKidPersonalQuests(kid)}
-              completions={getKidCompletions(kid)}
-              today={today}
-              familySharedCompletions={familySharedCompletions}
-              activeCurseCount={activeCurseCounts[kid.id] ?? 0}
-              onComplete={(questId) => handleComplete(questId, kid.id)}
-              linkToKidView
-            />
-          </motion.div>
-        ))}
+      <main className="cq-display-workspace relative z-10 flex-1 min-h-0 mx-4 sm:mx-8">
+        <div className="cq-display-section-head">
+          <div>
+            <p className="cq-display-kicker">Adventurer boards</p>
+            <h2>Today&apos;s quests</h2>
+          </div>
+          <p className="cq-display-section-note">Tap any quest to log a win</p>
+        </div>
+        <div
+          className="realm-kid-grid grid gap-4 sm:gap-6 min-h-0"
+          style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))' }}
+        >
+          {kids.map((kid, i) => (
+            <motion.div
+              key={kid.id}
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 + i * 0.08, type: 'spring', stiffness: 220, damping: 24 }}
+              className="min-h-0 flex flex-col"
+            >
+              <KidColumn
+                kid={kid}
+                quests={getKidPersonalQuests(kid)}
+                completions={getKidCompletions(kid)}
+                today={today}
+                familySharedCompletions={familySharedCompletions}
+                activeCurseCount={activeCurseCounts[kid.id] ?? 0}
+                onComplete={(questId) => handleComplete(questId, kid.id)}
+                linkToKidView
+              />
+            </motion.div>
+          ))}
+        </div>
       </main>
 
       {/* Bounty Board */}
