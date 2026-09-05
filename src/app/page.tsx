@@ -564,7 +564,7 @@ export default function MarketingPage() {
                 <p className="text-white/35 text-sm mb-8">Everything you need to run the realm</p>
                 <ul className="flex flex-col gap-2.5 mb-8">
                   {[
-                    'Up to 5 kids', 'Unlimited quests', 'All quest tiers', 'Custom rewards',
+                    'Up to 2 kids', 'Up to 5 active quests', 'Up to 3 rewards', 'Personal and shared quests',
                     'Wall display', 'Streak system', 'Bounty board', 'Family invite links',
                   ].map(f => (
                     <li key={f} className="text-white/55 text-sm flex items-center gap-2">
@@ -608,11 +608,9 @@ export default function MarketingPage() {
                   {[
                     'Everything in Free',
                     'Unlimited kids',
-                    'Quest completion history',
-                    'Coin analytics & charts',
-                    'Custom realm themes',
-                    'Multiple families / households',
-                    'Priority support',
+                    'Unlimited quests and rewards',
+                    'Coin adjustments and curses',
+                    'Full family activity history',
                     'Early access to new features',
                   ].map(f => (
                     <li key={f} className="text-white/55 text-sm flex items-center gap-2">
