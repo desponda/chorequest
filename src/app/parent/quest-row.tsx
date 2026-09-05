@@ -7,6 +7,7 @@ import { QuestFormFields, type QuestFormState } from './quest-form'
 import { TierBadge } from '@/components/ui/tier-badge'
 import { KindBadge } from '@/components/ui/kind-badge'
 import { ConfirmDelete } from '@/components/ui/confirm-delete'
+import { RealmIcon } from '@/components/ui/realm-icon'
 
 interface Props {
   quest: Quest
@@ -62,7 +63,7 @@ export function QuestRow({ quest, kids, onToggle, onDelete, onSave }: Props) {
       style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
     >
       <div className="flex flex-wrap items-start gap-3 p-3">
-        <span className="text-xl mt-0.5 flex-shrink-0">{quest.icon}</span>
+        <span className="text-cq-azure mt-0.5 flex-shrink-0 inline-flex items-center justify-center" aria-hidden="true"><RealmIcon name={quest.icon} size={22} /></span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <p className={`text-sm font-semibold ${quest.active ? 'text-white/90' : 'text-white/40 line-through'}`}>
@@ -72,7 +73,7 @@ export function QuestRow({ quest, kids, onToggle, onDelete, onSave }: Props) {
             <KindBadge kind={quest.kind} />
           </div>
           <p className="text-white/35 text-xs">
-            🪙 {quest.coins} · {assignedKid ? assignedKid.name : 'All kids'} · {cadenceLabel}
+            <span className="inline-flex items-center gap-1"><RealmIcon name="🪙" size={13} />{quest.coins}</span> · {assignedKid ? assignedKid.name : 'All kids'} · {cadenceLabel}
             {quest.active_days && quest.active_days.length > 0
               ? ` · ${quest.active_days.map(d => ['Su','Mo','Tu','We','Th','Fr','Sa'][d]).join(' ')}`
               : ''}

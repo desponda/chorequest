@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { RealmIcon } from '@/components/ui/realm-icon'
 
 interface Particle {
   id: number
@@ -50,7 +51,7 @@ export function CoinBurst({ coins, active }: CoinBurstProps) {
       {particles.map((p) => (
         <motion.div
           key={p.id}
-          className="absolute text-xl select-none"
+          className="absolute text-cq-gold select-none"
           initial={{ x: 0, y: 0, opacity: 1, scale: p.scale, rotate: 0 }}
           animate={{
             x: p.x,
@@ -61,7 +62,7 @@ export function CoinBurst({ coins, active }: CoinBurstProps) {
           }}
           transition={{ duration: 0.75, delay: p.delay, ease: [0.2, 0, 0.8, 1] }}
         >
-          🪙
+          <RealmIcon name="🪙" size={20} strokeWidth={2.1} />
         </motion.div>
       ))}
       <motion.div

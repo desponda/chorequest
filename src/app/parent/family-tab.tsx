@@ -13,6 +13,7 @@ import type { LedgerEntry, PendingLedgerEntry } from '@/lib/ledger'
 import { useEscapeToClose } from '@/lib/use-escape-to-close'
 import { useFocusTrap } from '@/lib/use-focus-trap'
 import { ConfirmDelete } from '@/components/ui/confirm-delete'
+import { RealmIcon } from '@/components/ui/realm-icon'
 
 const RESET_HOUR_PRESETS = [0, 3, 5, 6] as const
 
@@ -375,7 +376,7 @@ function KidList({
                 className="flex flex-wrap items-center gap-3 sm:gap-4 p-4 rounded-2xl"
                 style={{ background: colors.bg, border: `1px solid ${colors.border}` }}
               >
-                <span className="text-3xl">{kid.avatar}</span>
+                <span className="text-cq-azure inline-flex items-center justify-center" aria-hidden="true"><RealmIcon name={kid.avatar} size={30} /></span>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-white/90">{kid.name}</p>
                   {editingCoinsKidId === kid.id ? (
@@ -417,7 +418,7 @@ function KidList({
                         aria-label="Save coin adjustment"
                         className="min-w-11 min-h-11 rounded-lg text-sm text-cq-gold hover:opacity-80 transition-all font-bold"
                       >
-                        ✓
+                        <RealmIcon name="✓" size={16} />
                       </button>
                       <button
                         type="button"
@@ -428,7 +429,7 @@ function KidList({
                         aria-label="Cancel coin adjustment"
                         className="min-w-11 min-h-11 rounded-lg text-sm text-white/60 hover:text-white/90 transition-all"
                       >
-                        ✕
+                        <RealmIcon name="✗" size={16} />
                       </button>
                     </div>
                   ) : (
@@ -443,7 +444,7 @@ function KidList({
                       aria-label={`Adjust ${kid.name}'s coin balance`}
                       style={{ color: colors.primary }}
                     >
-                      🪙 {kid.coins} coins · 🔥 {kid.streak} streak · Lv {Math.floor(kid.coins / 50) + 1}
+                      <RealmIcon name="🪙" size={13} /> {kid.coins} coins · <RealmIcon name="🔥" size={13} /> {kid.streak} streak · Lv {Math.floor(kid.coins / 50) + 1}
                     </button>
                   )}
                 </div>
@@ -463,7 +464,7 @@ function KidList({
                     aria-label={`View ${kid.name}'s coin history`}
                     title="View coin history"
                   >
-                    <span aria-hidden="true">📒</span>
+                    <RealmIcon name="📒" size={16} />
                     <span className="hidden sm:inline text-xs font-semibold">History</span>
                   </button>
                   <button
@@ -473,7 +474,7 @@ function KidList({
                     title="Show QR code"
                     aria-label={`Show QR code for ${kid.name}`}
                   >
-                    📱
+                    <RealmIcon name="📱" size={18} />
                   </button>
                 </div>
               </div>
@@ -517,7 +518,7 @@ function KidList({
             >
               <div className="min-w-0">
                 <h2 id="ledger-modal-title" className="font-heading text-lg font-bold text-white/90 truncate">
-                  {ledgerKid.avatar} {ledgerKid.name}&apos;s Ledger
+                  <span className="inline-flex items-center gap-2"><RealmIcon name={ledgerKid.avatar} size={18} /> {ledgerKid.name}&apos;s Ledger</span>
                 </h2>
                 <p className="text-white/60 text-xs mt-0.5">Pending and posted coin activity</p>
               </div>
@@ -527,7 +528,7 @@ function KidList({
                 className="w-11 h-11 rounded-full flex items-center justify-center text-white/55 hover:text-white/90 transition-all flex-shrink-0"
                 style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
               >
-                ✕
+                <RealmIcon name="✗" size={16} />
               </button>
             </div>
 

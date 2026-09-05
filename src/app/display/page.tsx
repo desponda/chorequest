@@ -818,7 +818,7 @@ export default function WallDisplay() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-3 justify-center mb-2">
-                <span className="text-3xl">{claimingBounty.icon}</span>
+                <span className="text-cq-azure inline-flex items-center justify-center"><RealmIcon name={claimingBounty.icon} size={30} /></span>
                 <p className="font-heading font-bold text-lg text-white/90">{claimingBounty.title}</p>
               </div>
               <p className="text-center text-white/40 text-sm mb-6">Who&apos;s doing this bounty?</p>

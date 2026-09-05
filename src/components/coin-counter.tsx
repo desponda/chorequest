@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
+import { RealmIcon } from '@/components/ui/realm-icon'
 
 interface CoinCounterProps {
   value: number
@@ -29,11 +30,11 @@ export function CoinCounter({ value, size = 'md', showIcon = true }: CoinCounter
       {showIcon && (
         <motion.span
           key={value}
-          className="text-xl leading-none"
+          className="inline-flex items-center justify-center text-cq-gold"
           animate={{ scale: [1, 1.35, 1] }}
           transition={{ duration: 0.45, ease: 'easeOut' }}
         >
-          🪙
+          <RealmIcon name="🪙" size={20} strokeWidth={2.1} />
         </motion.span>
       )}
       <motion.span className={`font-heading font-bold text-cq-gold tabular-nums ${sizes[size]}`}>

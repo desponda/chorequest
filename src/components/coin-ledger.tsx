@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import type { LedgerEntry, PendingLedgerEntry } from '@/lib/ledger'
+import { RealmIcon } from '@/components/ui/realm-icon'
 
 interface CoinLedgerProps {
   ledger: LedgerEntry[]
@@ -93,7 +94,7 @@ function Amount({ amount }: { amount: number }) {
   const color = amount > 0 ? '#86efac' : amount < 0 ? '#fca5a5' : 'rgba(255,255,255,0.7)'
   return (
     <span className="font-heading text-sm font-bold" style={{ color }}>
-      {amount > 0 ? `+${amount.toLocaleString()}` : amount.toLocaleString()} 🪙
+      {amount > 0 ? `+${amount.toLocaleString()}` : amount.toLocaleString()} <RealmIcon name="🪙" size={14} strokeWidth={2.1} />
     </span>
   )
 }
@@ -145,7 +146,7 @@ export function CoinLedger({
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
             aria-label="Refresh coin activity"
           >
-            ↻ Refresh
+            <RealmIcon name="🔄" size={14} strokeWidth={2.1} /> Refresh
           </button>
         </div>
       )}
@@ -157,7 +158,7 @@ export function CoinLedger({
         >
           <p className="text-white/65 text-xs">Current balance</p>
           <p className="font-heading text-xl sm:text-2xl font-bold text-cq-gold mt-1">
-            {currentBalance.toLocaleString()} 🪙
+            {currentBalance.toLocaleString()} <RealmIcon name="🪙" size={18} strokeWidth={2.1} />
           </p>
           <p className="text-white/50 text-xs mt-1">Posted transactions</p>
         </div>
@@ -167,7 +168,7 @@ export function CoinLedger({
         >
           <p className="text-white/65 text-xs">Available to spend</p>
           <p className="font-heading text-xl sm:text-2xl font-bold text-sky-300 mt-1">
-            {availableBalance.toLocaleString()} 🪙
+            {availableBalance.toLocaleString()} <RealmIcon name="🪙" size={18} strokeWidth={2.1} />
           </p>
           <p className="text-white/50 text-xs mt-1">
             {pendingDebits > 0 ? `${pendingDebits.toLocaleString()} reserved` : 'Nothing reserved'}
@@ -223,7 +224,7 @@ export function CoinLedger({
                 className="flex items-center gap-3 rounded-xl px-3 py-3"
                 style={{ background: 'rgba(251,191,36,0.06)', border: '1px dashed rgba(251,191,36,0.28)' }}
               >
-                <span className="text-lg flex-shrink-0 w-7 text-center" aria-hidden="true">{entry.icon}</span>
+                <span className="text-cq-gold flex-shrink-0 w-7 inline-flex items-center justify-center" aria-hidden="true"><RealmIcon name={entry.icon} size={17} /></span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-white/90 truncate">{entry.description}</p>
                   <p className="text-xs text-white/60 mt-0.5">
@@ -270,7 +271,7 @@ export function CoinLedger({
                           border: `1px solid ${isCredit ? 'rgba(74,222,128,0.16)' : isDebit ? 'rgba(248,113,113,0.15)' : 'rgba(255,255,255,0.09)'}`,
                         }}
                       >
-                        <span className="text-lg flex-shrink-0 w-7 text-center" aria-hidden="true">{entry.icon}</span>
+                        <span className="text-cq-gold flex-shrink-0 w-7 inline-flex items-center justify-center" aria-hidden="true"><RealmIcon name={entry.icon} size={17} /></span>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-white/90 truncate">{entry.description}</p>
                           <p className="text-xs text-white/60 mt-0.5">
@@ -298,7 +299,7 @@ export function CoinLedger({
 
       {!hasActivity && (
         <div className="flex flex-col items-center justify-center py-12 text-white/60">
-          <p className="text-4xl mb-3" aria-hidden="true">📒</p>
+          <span className="text-cq-gold mb-3" aria-hidden="true"><RealmIcon name="📒" size={34} /></span>
           <p className="text-sm font-medium text-white/75">No coin activity yet</p>
           <p className="text-xs text-white/55 mt-1 text-center">Earned, spent, and adjusted coins will appear here.</p>
         </div>
