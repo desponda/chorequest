@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { useId } from 'react'
+import { RealmIcon } from '@/components/ui/realm-icon'
 
 export function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -25,7 +26,7 @@ export function Empty({
 }) {
   return (
     <div className="text-center py-8 text-white/30">
-      <p className="text-3xl mb-2" aria-hidden="true">{icon}</p>
+      <span className="h-12 w-12 rounded-2xl flex items-center justify-center mx-auto mb-2" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)' }} aria-hidden="true"><RealmIcon name={icon} size={25} /></span>
       <p className="text-sm text-white/45">{message}</p>
       {hint && <p className="text-xs text-white/30 mt-1.5">{hint}</p>}
     </div>

@@ -7,6 +7,7 @@ import { PLAN_LABELS, PLAN_LIMITS } from '@/lib/plans'
 import { ActionButton, Empty, FormInput, Section, fadeSlide } from './_ui'
 import { ConfirmDelete } from '@/components/ui/confirm-delete'
 import type { ParentActions } from './use-parent-actions'
+import { RealmIcon } from '@/components/ui/realm-icon'
 
 const REWARD_ICONS = ['🎁', '🎮', '📱', '🍕', '🎬', '🎡', '🎪', '🛒', '💤', '🎯', '🎨', '🎵']
 
@@ -43,12 +44,12 @@ function RewardRow({ reward, onSave, onDelete }: RewardRowProps) {
       style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${editing ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.08)'}` }}
     >
       <div className="flex items-center gap-3 p-3">
-        <span className="text-2xl">{reward.icon}</span>
+        <span className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(74,222,128,0.1)', color: '#4ade80' }}><RealmIcon name={reward.icon} size={21} /></span>
         <div className="flex-1">
           <p className="text-white/90 text-sm font-semibold">{reward.title}</p>
           {reward.description && <p className="text-white/40 text-xs">{reward.description}</p>}
         </div>
-        <span className="text-cq-gold text-sm font-bold font-heading">🪙 {reward.cost}</span>
+        <span className="text-cq-gold text-sm font-bold font-heading inline-flex items-center gap-1"><RealmIcon name="🪙" size={14} /> {reward.cost}</span>
         <button
           type="button"
           onClick={() => setEditing((e) => !e)}
@@ -60,7 +61,7 @@ function RewardRow({ reward, onSave, onDelete }: RewardRowProps) {
             color: editing ? '#fbbf24' : 'rgba(255,255,255,0.4)',
           }}
         >
-          ✏️
+          <RealmIcon name="✏️" size={16} />
         </button>
         <ConfirmDelete
           onConfirm={() => onDelete(reward.id)}
@@ -91,13 +92,13 @@ function RewardRow({ reward, onSave, onDelete }: RewardRowProps) {
                     onClick={() => setIcon(ic)}
                     aria-label={`Use ${ic} as the reward icon`}
                     aria-pressed={icon === ic}
-                    className="text-xl w-11 h-11 rounded-xl transition-all"
+                    className="w-11 h-11 rounded-xl transition-all inline-flex items-center justify-center"
                     style={{
                       background: icon === ic ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.05)',
                       border: `1px solid ${icon === ic ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.08)'}`,
                     }}
                   >
-                    {ic}
+                    <RealmIcon name={ic} size={19} />
                   </button>
                 ))}
               </div>
@@ -174,13 +175,13 @@ export function RewardsTab({ rewards, actions, plan }: Props) {
                 onClick={() => setIcon(ic)}
                 aria-label={`Use ${ic} as the reward icon`}
                 aria-pressed={icon === ic}
-                className="text-xl w-11 h-11 rounded-xl transition-all"
+                className="w-11 h-11 rounded-xl transition-all inline-flex items-center justify-center"
                 style={{
                   background: icon === ic ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.05)',
                   border: `1px solid ${icon === ic ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.08)'}`,
                 }}
               >
-                {ic}
+                <RealmIcon name={ic} size={19} />
               </button>
             ))}
           </div>

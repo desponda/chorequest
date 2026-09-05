@@ -8,6 +8,7 @@ import { getXPProgress, getLevelTitle } from '@/lib/xp'
 import { CoinCounter } from './coin-counter'
 import { StreakBadge } from './streak-badge'
 import { QuestCard } from './quest-card'
+import { RealmIcon } from './ui/realm-icon'
 
 interface KidColumnProps {
   kid: Kid
@@ -143,7 +144,7 @@ export function KidColumn({
             animate={{ scale: [1, 1.06, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            ☠️ {activeCurseCount} curse{activeCurseCount > 1 ? 's' : ''}
+            <span className="inline-flex items-center gap-1.5"><RealmIcon name="☠️" size={14} /> {activeCurseCount} curse{activeCurseCount > 1 ? 's' : ''}</span>
           </motion.span>
         )}
 
@@ -199,7 +200,9 @@ export function KidColumn({
           return (
             <div className="flex flex-col gap-2.5 flex-1 overflow-y-auto scrollbar-thin-glass min-h-0 pb-1">
               <div className="flex flex-col items-center justify-center h-32 text-white/25">
-                <span className="text-3xl mb-2">🧙</span>
+                <span className="h-11 w-11 rounded-2xl flex items-center justify-center mb-2" style={{ background: `${colors.primary}16`, color: colors.primary }}>
+                  <RealmIcon name="🧙" size={24} />
+                </span>
                 <p className="text-sm">No quests yet</p>
               </div>
             </div>

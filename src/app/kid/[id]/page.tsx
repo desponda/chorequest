@@ -20,6 +20,7 @@ import { CoinLedger } from '@/components/coin-ledger'
 import type { LedgerEntry, PendingLedgerEntry } from '@/lib/ledger'
 import { getLevelTitle } from '@/lib/xp'
 import { classifyRedemptionChanges } from '@/lib/redemption-notifications'
+import { RealmIcon } from '@/components/ui/realm-icon'
 
 const PIN_SESSION_KEY = 'cq_kid_pin_'
 type KidTab = 'quests' | 'bounty' | 'rewards' | 'history'
@@ -460,7 +461,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
           </Link>
 
           <div className="flex-1 min-[480px]:flex-none min-w-0 flex items-center gap-2 sm:gap-3 justify-center">
-            <span className="text-2xl sm:text-3xl flex-shrink-0">{kid.avatar}</span>
+            <span className="h-10 w-10 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: `${colors.primary}16`, color: colors.primary }}><RealmIcon name={kid.avatar} size={23} /></span>
             <div>
               <h1 className="font-heading text-xl sm:text-2xl font-bold text-white/95 truncate">{kid.name}</h1>
               <p className="text-xs" style={{ color: colors.primary }}>
@@ -517,7 +518,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                     : 'rgba(255,255,255,0.68)',
                 }}
               >
-                <span aria-hidden="true">{labels[t].icon}</span>
+                <span aria-hidden="true"><RealmIcon name={labels[t].icon} size={17} /></span>
                 <span>{labels[t].label}</span>
                 {badge && (
                   <span
@@ -607,13 +608,13 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                     className="w-full rounded-2xl p-3 text-center"
                     style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)' }}
                   >
-                    <p className="text-amber-400 text-sm font-bold">🎉 All caught up — check the Bounty Board ⚡</p>
+                    <p className="text-amber-400 text-sm font-bold inline-flex items-center justify-center gap-1.5"><RealmIcon name="✨" size={15} /> All caught up — check the Bounty Board <RealmIcon name="⚡" size={15} /></p>
                   </motion.button>
                 )}
 
                 {!hasQuestTabContent && (
                   <div className="text-center py-16 text-white/30">
-                    <p className="text-4xl mb-3">🧙</p>
+                    <div className="h-14 w-14 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: `${colors.primary}16`, color: colors.primary }}><RealmIcon name="🧙" size={29} /></div>
                     <p>
                       {availableBountyCount > 0
                         ? 'No personal quests right now.'
@@ -720,12 +721,12 @@ function ActiveCursesSection({ curses }: { curses: CurseInstance[] }) {
       className="rounded-2xl p-4 flex flex-col gap-2"
       style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}
     >
-      <p className="text-xs font-bold uppercase tracking-widest text-red-400/80">⚠️ Afflictions</p>
+      <p className="text-xs font-bold uppercase tracking-widest text-red-400/80 inline-flex items-center gap-1.5"><RealmIcon name="🌩️" size={14} /> Afflictions</p>
       {curses.map(ci => {
         const curse = ci.curse as { title: string; icon: string; penalty: number } | undefined
         return (
           <div key={ci.id} className="flex items-center gap-3">
-            <span className="text-xl">{curse?.icon ?? '☠️'}</span>
+            <span className="h-9 w-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171' }}><RealmIcon name={curse?.icon ?? '☠️'} size={18} /></span>
             <div className="flex-1">
               <p className="text-sm font-semibold text-red-300">{curse?.title ?? 'Curse'}</p>
               <p className="text-xs text-red-400/60">−{ci.coins_deducted} coins deducted</p>
@@ -762,7 +763,7 @@ function RewardsTab({
         className="rounded-2xl p-4 mb-2 flex items-center gap-3"
         style={{ background: 'rgba(251, 191, 36, 0.08)', border: '1px solid rgba(251, 191, 36, 0.2)' }}
       >
-        <span className="text-2xl">🪙</span>
+        <span className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24' }}><RealmIcon name="🪙" size={22} /></span>
         <div className="flex-1">
           <p className="text-white/70 text-sm">{pendingTotal > 0 ? 'Available coins' : 'Your coin balance'}</p>
           <p className="font-heading text-2xl font-bold text-cq-gold">{availableCoins.toLocaleString()}</p>
@@ -779,19 +780,19 @@ function RewardsTab({
           className="rounded-2xl p-4 mb-2 flex flex-col gap-2"
           style={{ background: 'rgba(251, 191, 36, 0.04)', border: '1px solid rgba(251, 191, 36, 0.15)' }}
         >
-          <p className="text-xs font-bold uppercase tracking-widest text-amber-400/55">⏳ Awaiting Approval</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-amber-400/55 inline-flex items-center gap-1.5"><RealmIcon name="⏳" size={14} /> Awaiting Approval</p>
           {pendingRedemptions.map((r) => (
             <div key={r.id} className="flex items-center gap-3">
-              <span className="text-lg">{r.reward?.icon ?? '🎁'}</span>
+              <span className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(74,222,128,0.1)', color: '#4ade80' }}><RealmIcon name={r.reward?.icon ?? '🎁'} size={17} /></span>
               <p className="flex-1 text-sm text-white/70">{r.reward?.title ?? 'Reward'}</p>
-              <span className="text-xs text-white/35">🪙 {r.reward?.cost ?? '?'}</span>
+              <span className="text-xs text-white/35 inline-flex items-center gap-1"><RealmIcon name="🪙" size={12} /> {r.reward?.cost ?? '?'}</span>
               <button
                 onClick={() => onCancel(r.id)}
                 className="min-h-11 min-w-11 inline-flex items-center justify-center text-xs text-white/55 hover:text-red-400 transition-all flex-shrink-0 rounded-xl"
                 title="Cancel request"
                 aria-label={`Cancel ${r.reward?.title ?? 'reward'} request`}
               >
-                ✕
+                <RealmIcon name="✗" size={16} />
               </button>
             </div>
           ))}
@@ -803,10 +804,10 @@ function RewardsTab({
           className="rounded-2xl p-4 mb-2 flex flex-col gap-2"
           style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)' }}
         >
-          <p className="text-xs font-bold uppercase tracking-widest text-red-400/55">✗ Not approved</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-red-400/55 inline-flex items-center gap-1.5"><RealmIcon name="✗" size={14} /> Not approved</p>
           {deniedRedemptions.map((r) => (
             <div key={r.id} className="flex items-center gap-3 opacity-60">
-              <span className="text-lg">{r.reward?.icon ?? '🎁'}</span>
+              <span className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171' }}><RealmIcon name={r.reward?.icon ?? '🎁'} size={17} /></span>
               <p className="flex-1 text-sm text-white/50 line-through">{r.reward?.title ?? 'Reward'}</p>
               <span className="text-xs text-red-400/60">✗ denied</span>
             </div>
@@ -816,7 +817,7 @@ function RewardsTab({
 
       {rewards.length === 0 ? (
         <div className="text-center py-16 text-white/30">
-          <p className="text-4xl mb-3">🎁</p>
+          <div className="h-14 w-14 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: 'rgba(74,222,128,0.1)', color: '#4ade80' }}><RealmIcon name="🎁" size={29} /></div>
           <p>No rewards yet — ask a parent to add some!</p>
         </div>
       ) : (
@@ -832,7 +833,7 @@ function RewardsTab({
               border: '1px solid rgba(255, 255, 255, 0.08)',
             }}
           >
-            <span className="text-3xl">{reward.icon}</span>
+            <span className="h-12 w-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(74,222,128,0.1)', color: '#4ade80' }}><RealmIcon name={reward.icon} size={24} /></span>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-white/90">{reward.title}</p>
               {reward.description && (
@@ -851,7 +852,7 @@ function RewardsTab({
                 color: availableCoins >= reward.cost ? '#fbbf24' : 'rgba(255,255,255,0.4)',
               }}
             >
-              🪙 {reward.cost}
+              <span className="inline-flex items-center gap-1.5"><RealmIcon name="🪙" size={15} /> {reward.cost}</span>
             </button>
           </motion.div>
         ))
@@ -882,7 +883,7 @@ function PendingApprovalSection({
           transition={{ duration: 1.6, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
           className="text-base"
         >
-          ⏳
+          <RealmIcon name="⏳" size={16} />
         </motion.span>
         <p className="text-xs font-bold uppercase tracking-widest text-amber-400/80">
           Waiting for approval · {pendingCompletions.length}
@@ -894,16 +895,16 @@ function PendingApprovalSection({
           if (!quest) return null
           return (
             <div key={c.id} className="flex items-center gap-3 px-4 py-2.5">
-              <span className="text-lg flex-shrink-0">{quest.icon}</span>
+              <span className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24' }}><RealmIcon name={quest.icon} size={17} /></span>
               <span className="text-sm text-white/80 font-medium flex-1 truncate">{quest.title}</span>
-              <span className="text-xs text-amber-400/70 flex-shrink-0">🪙 {c.coins_requested ?? quest.coins}</span>
+              <span className="text-xs text-amber-400/70 flex-shrink-0 inline-flex items-center gap-1"><RealmIcon name="🪙" size={12} /> {c.coins_requested ?? quest.coins}</span>
               <button
                 onClick={() => onUndo(c.id)}
                 className="min-h-11 min-w-11 inline-flex items-center justify-center text-xs text-white/60 hover:text-amber-400 transition-all flex-shrink-0 px-2 rounded-lg"
                 style={{ background: 'rgba(255,255,255,0.04)' }}
                 title="Cancel submission"
               >
-                ↩ undo
+                <span className="inline-flex items-center gap-1.5"><RealmIcon name="↩" size={14} /> undo</span>
               </button>
             </div>
           )
@@ -942,7 +943,7 @@ function BountyTab({
         exit={{ opacity: 0, x: -10 }}
         transition={{ duration: 0.2 }}
       >
-        <p className="text-4xl mb-3">⚡</p>
+        <div className="h-14 w-14 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24' }}><RealmIcon name="⚡" size={29} /></div>
         <p>No bounties right now — check back soon!</p>
       </motion.div>
     )
@@ -961,7 +962,7 @@ function BountyTab({
         className="rounded-2xl px-4 py-3 sm:px-5 sm:py-4 flex items-center gap-3.5"
         style={{ background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.2)' }}
       >
-        <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-xl" style={{ background: 'rgba(251,191,36,0.12)' }}>⚡</span>
+        <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl" style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24' }}><RealmIcon name="⚡" size={21} /></span>
         <div className="min-w-0">
           <h2 className="text-xs font-bold uppercase tracking-widest text-amber-300">Bounty board</h2>
           <p className="mt-0.5 text-sm text-amber-100/75">First to claim earns the coins. Available slots are limited.</p>

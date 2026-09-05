@@ -4,6 +4,7 @@ import { useId } from 'react'
 import type { Kid, Plan, QuestKind, QuestTier } from '@/lib/types'
 import { QUEST_ICONS, TIER_CONFIG } from '@/lib/constants'
 import { PLAN_LIMITS } from '@/lib/plans'
+import { RealmIcon } from '@/components/ui/realm-icon'
 
 const DAY_LABELS = ['Su','Mo','Tu','We','Th','Fr','Sa']
 const TIERS: QuestTier[] = ['normal', 'rare', 'epic', 'legendary']
@@ -98,13 +99,13 @@ export function QuestFormFields({ state, onChange, kids, iconLimit, inputBg, pla
             onClick={() => onChange({ icon: ic })}
             aria-label={`Use ${ic} as the quest icon`}
             aria-pressed={state.icon === ic}
-            className="text-xl w-11 h-11 rounded-xl transition-all"
+            className="w-11 h-11 rounded-xl transition-all inline-flex items-center justify-center"
             style={{
               background: state.icon === ic ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.05)',
               border: `1px solid ${state.icon === ic ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.08)'}`,
             }}
           >
-            {ic}
+            <RealmIcon name={ic} size={19} />
           </button>
         ))}
         </div>
@@ -183,7 +184,7 @@ export function QuestFormFields({ state, onChange, kids, iconLimit, inputBg, pla
                   color: selected ? '#fbbf24' : 'rgba(255,255,255,0.5)',
                 }}
               >
-                <span className="text-lg">{meta.emoji}</span>
+                <RealmIcon name={meta.emoji} size={18} />
                 <span>{meta.title}</span>
               </button>
             )
@@ -209,7 +210,7 @@ export function QuestFormFields({ state, onChange, kids, iconLimit, inputBg, pla
                   color: state.frequency === f ? '#fbbf24' : 'rgba(255,255,255,0.5)',
                 }}
               >
-                {f === 'daily' ? '🔁 Daily' : '📅 Weekly'}
+                <span className="inline-flex items-center justify-center gap-1.5">{f === 'daily' ? <RealmIcon name="🔄" size={15} /> : <RealmIcon name="📅" size={15} />}{f === 'daily' ? 'Daily' : 'Weekly'}</span>
               </button>
             ))}
           </div>

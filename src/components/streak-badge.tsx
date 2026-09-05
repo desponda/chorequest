@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { RealmIcon } from './ui/realm-icon'
 interface StreakBadgeProps {
   streak: number
   compact?: boolean
@@ -16,7 +17,7 @@ export function StreakBadge({ streak, compact = false }: StreakBadgeProps) {
         animate={{ scale: [1, 1.05, 1] }}
         transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
       >
-        <span className="text-sm">🔥</span>
+        <RealmIcon name="🔥" size={14} />
         <span className="text-cq-ember text-xs font-bold">{streak}</span>
       </motion.div>
     )
@@ -37,7 +38,7 @@ export function StreakBadge({ streak, compact = false }: StreakBadgeProps) {
         animate={{ rotate: [0, 8, -8, 0] }}
         transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
       >
-        🔥
+        <RealmIcon name="🔥" size={18} />
       </motion.span>
       <span className="text-cq-ember font-bold text-sm">
         {streak} day streak

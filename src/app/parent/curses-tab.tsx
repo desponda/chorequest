@@ -7,6 +7,7 @@ import { PLAN_LIMITS } from '@/lib/plans'
 import { Empty, FormInput, Section, fadeSlide } from './_ui'
 import { ConfirmDelete } from '@/components/ui/confirm-delete'
 import type { ParentActions } from './use-parent-actions'
+import { RealmIcon } from '@/components/ui/realm-icon'
 
 const CURSE_ICONS = ['☠️','😈','🌩️','🔥','💀','👿','🦂','🕸️']
 
@@ -37,7 +38,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
           className="rounded-2xl p-10 text-center flex flex-col items-center gap-3"
           style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
         >
-          <p className="text-5xl">🔒</p>
+          <span className="h-14 w-14 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.62)' }}><RealmIcon name="🔒" size={29} /></span>
           <p className="font-heading text-white/60 font-bold text-lg">Curses · Family Plan</p>
           <p className="text-white/35 text-sm max-w-xs">
             Curses let you instantly deduct coins for bad behavior. Available on Family and Legendary plans.
@@ -68,7 +69,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
   return (
     <motion.div key="curses" {...fadeSlide} className="flex flex-col gap-6">
       <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
-        <Section title="⚡ Quick Cast">
+        <Section title="Quick Cast">
         <div className="flex flex-col gap-3">
           <p className="text-white/40 text-xs">Cast a one-off curse instantly — no template needed.</p>
           <div className="flex gap-2 flex-wrap">
@@ -79,13 +80,13 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                 onClick={() => setQcIcon(ic)}
                 aria-label={`Use ${ic} as the quick curse icon`}
                 aria-pressed={qcIcon === ic}
-                className="text-xl w-11 h-11 rounded-xl transition-all"
+                className="w-11 h-11 rounded-xl transition-all inline-flex items-center justify-center"
                 style={{
                   background: qcIcon === ic ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)',
                   border: `1px solid ${qcIcon === ic ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.08)'}`,
                 }}
               >
-                {ic}
+                <RealmIcon name={ic} size={19} />
               </button>
             ))}
           </div>
@@ -115,7 +116,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                   whileHover={{ background: 'rgba(239,68,68,0.22)' }}
                   whileTap={{ scale: 0.97 }}
                 >
-                  {k.avatar} Cast on {k.name}
+                  <span className="inline-flex items-center justify-center gap-1.5"><RealmIcon name={k.avatar} size={15} /> Cast on {k.name}</span>
                 </motion.button>
               ))}
             </div>
@@ -136,13 +137,13 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                 onClick={() => setIcon(ic)}
                 aria-label={`Use ${ic} as the saved curse icon`}
                 aria-pressed={icon === ic}
-                className="text-xl w-11 h-11 rounded-xl transition-all"
+                className="w-11 h-11 rounded-xl transition-all inline-flex items-center justify-center"
                 style={{
                   background: icon === ic ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)',
                   border: `1px solid ${icon === ic ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.08)'}`,
                 }}
               >
-                {ic}
+                <RealmIcon name={ic} size={19} />
               </button>
             ))}
           </div>
@@ -179,7 +180,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                   className="flex flex-wrap items-center gap-3 p-3 rounded-xl"
                   style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}
                 >
-                  <span className="text-xl">{curse.icon}</span>
+                  <span className="h-9 w-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171' }}><RealmIcon name={curse.icon} size={18} /></span>
                   <div className="flex-1">
                     <p className="text-white/85 text-sm font-semibold">{curse.title}</p>
                     <p className="text-red-400/60 text-xs">−{curse.penalty} coins</p>
@@ -193,7 +194,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                           className="min-h-11 px-3 py-2 rounded-lg text-xs font-bold transition-all"
                           style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171' }}
                         >
-                          {k.avatar} {k.name}
+                          <span className="inline-flex items-center gap-1.5"><RealmIcon name={k.avatar} size={14} /> {k.name}</span>
                         </button>
                       ))}
                       <button
@@ -201,7 +202,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                         className="min-h-11 min-w-11 px-2 py-2 rounded-lg text-xs text-white/60 hover:text-white/90 transition-all"
                         aria-label="Cancel casting curse"
                       >
-                        ✕
+                        <RealmIcon name="✗" size={16} />
                       </button>
                     </div>
                   ) : (
@@ -211,7 +212,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                         className="min-h-11 px-3 py-2 rounded-xl text-xs font-bold transition-all"
                         style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171' }}
                       >
-                        Cast ⚡
+                        <span className="inline-flex items-center gap-1.5">Cast <RealmIcon name="⚡" size={14} /></span>
                       </button>
                       <ConfirmDelete
                         onConfirm={() => actions.deleteCurse(curse.id)}
@@ -243,11 +244,11 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                   className="flex flex-wrap items-center gap-3 p-3 rounded-xl"
                   style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)' }}
                 >
-                  <span className="text-xl">{curse?.icon ?? '☠️'}</span>
+                  <span className="h-9 w-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171' }}><RealmIcon name={curse?.icon ?? '☠️'} size={18} /></span>
                   <div className="flex-1 min-w-0">
                     <p className="text-white/85 text-sm font-semibold truncate">{curse?.title ?? 'Curse'}</p>
                     <p className="text-white/40 text-xs">
-                      {kid?.avatar} {kid?.name} · −{ci.coins_deducted} coins
+                      <span className="inline-flex items-center gap-1.5"><RealmIcon name={kid?.avatar ?? '🧙'} size={14} /> {kid?.name} · −{ci.coins_deducted} coins</span>
                     </p>
                   </div>
                   <div className="flex w-full sm:w-auto gap-1.5 flex-shrink-0 justify-end">
@@ -257,7 +258,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
                       style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.25)', color: '#4ade80' }}
                       title="Lift curse and refund coins"
                     >
-                      ↩ Forgive
+                      <span className="inline-flex items-center gap-1.5"><RealmIcon name="↩" size={14} /> Forgive</span>
                     </button>
                     <button
                       onClick={() => actions.resolveCurse(ci.id, false)}

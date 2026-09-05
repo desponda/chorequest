@@ -6,6 +6,7 @@ import type { DungeonRun, DungeonClear, RaidBoss, Kid, Completion } from '@/lib/
 import { Section, FormInput, Empty, fadeSlide } from './_ui'
 import { ConfirmDelete } from '@/components/ui/confirm-delete'
 import type { ParentActions } from './use-parent-actions'
+import { RealmIcon } from '@/components/ui/realm-icon'
 
 const DUNGEON_ICONS = ['🏰', '⚔️', '🗡️', '🛡️', '🔮', '🌋', '🕳️', '🐲']
 const BOSS_ICONS = ['🐉', '👾', '💀', '🦂', '👹', '🔥', '🌩️', '🦇']
@@ -83,7 +84,7 @@ export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, k
         {activeDungeon ? (
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-3">
-              <span className="text-3xl">{activeDungeon.icon}</span>
+              <span className="h-12 w-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(56,189,248,0.12)', color: '#38bdf8' }}><RealmIcon name={activeDungeon.icon} size={25} /></span>
               <div className="flex-1">
                 <p className="text-white/90 font-semibold">{activeDungeon.title}</p>
                 <p className="text-white/40 text-xs">Goal: {activeDungeon.hp} coins each · Loot: +{activeDungeon.reward_coins} coins · +{activeDungeon.reward_xp} XP</p>
@@ -105,7 +106,7 @@ export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, k
               return (
                 <div key={kid.id} className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-2">
-                    <span className="text-base">{kid.avatar}</span>
+                    <RealmIcon name={kid.avatar} size={16} />
                     <span className="text-white/70 text-xs font-semibold flex-1">{kid.name}</span>
                     {cleared
                       ? <span className="text-xs font-bold text-cq-forest">Cleared ✓</span>
@@ -134,13 +135,13 @@ export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, k
                   onClick={() => setDIcon(ic)}
                   aria-label={`Use ${ic} as the dungeon icon`}
                   aria-pressed={dIcon === ic}
-                  className="text-xl w-11 h-11 rounded-xl transition-all"
+                  className="w-11 h-11 rounded-xl transition-all inline-flex items-center justify-center"
                   style={{
                     background: dIcon === ic ? 'rgba(56,189,248,0.2)' : 'rgba(255,255,255,0.05)',
                     border: `1px solid ${dIcon === ic ? 'rgba(56,189,248,0.4)' : 'rgba(255,255,255,0.08)'}`,
                   }}
                 >
-                  {ic}
+                  <RealmIcon name={ic} size={19} />
                 </button>
               ))}
             </div>
@@ -179,7 +180,7 @@ export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, k
               whileHover={{ background: 'rgba(56,189,248,0.22)' }}
               whileTap={{ scale: 0.98 }}
             >
-              🏰 Open This Week&apos;s Dungeon
+              <span className="inline-flex items-center justify-center gap-1.5"><RealmIcon name="🏰" size={16} /> Open This Week&apos;s Dungeon</span>
             </motion.button>
           </div>
         )}
@@ -195,7 +196,7 @@ export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, k
                 animate={{ scale: [1, 1.06, 1] }}
                 transition={{ duration: 2.5, repeat: Infinity }}
               >
-                {activeBoss.icon}
+                <RealmIcon name={activeBoss.icon} size={29} />
               </motion.span>
               <div className="flex-1">
                 <p className="text-white/90 font-semibold font-heading">{activeBoss.title}</p>
@@ -231,13 +232,13 @@ export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, k
                   onClick={() => setBIcon(ic)}
                   aria-label={`Use ${ic} as the raid boss icon`}
                   aria-pressed={bIcon === ic}
-                  className="text-xl w-11 h-11 rounded-xl transition-all"
+                  className="w-11 h-11 rounded-xl transition-all inline-flex items-center justify-center"
                   style={{
                     background: bIcon === ic ? 'rgba(251,146,60,0.2)' : 'rgba(255,255,255,0.05)',
                     border: `1px solid ${bIcon === ic ? 'rgba(251,146,60,0.4)' : 'rgba(255,255,255,0.08)'}`,
                   }}
                 >
-                  {ic}
+                  <RealmIcon name={ic} size={19} />
                 </button>
               ))}
             </div>
@@ -271,7 +272,7 @@ export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, k
               whileHover={{ background: 'rgba(251,146,60,0.22)' }}
               whileTap={{ scale: 0.98 }}
             >
-              🐉 Summon Raid Boss
+              <span className="inline-flex items-center justify-center gap-1.5"><RealmIcon name="🐉" size={17} /> Summon Raid Boss</span>
             </motion.button>
           </div>
         )}
@@ -285,23 +286,23 @@ export function DungeonsTab({ activeDungeon, dungeonClears, weeklyCompletions, k
             {defeatedBosses.map(boss => (
               <div key={boss.id} className="flex items-center gap-3 p-2.5 rounded-xl"
                 style={{ background: 'rgba(251,146,60,0.06)', border: '1px solid rgba(251,146,60,0.15)' }}>
-                <span className="text-xl">{boss.icon}</span>
+                <span className="h-9 w-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(251,146,60,0.12)', color: '#fb923c' }}><RealmIcon name={boss.icon} size={18} /></span>
                 <div className="flex-1 min-w-0">
                   <p className="text-white/80 text-sm font-semibold truncate">{boss.title}</p>
                   <p className="text-white/35 text-xs">Raid boss · {boss.bounty_coins} coin bounty</p>
                 </div>
-                <span className="text-xs text-cq-ember font-bold">Defeated ⚔️</span>
+                <span className="text-xs text-cq-ember font-bold inline-flex items-center gap-1"><RealmIcon name="⚔️" size={13} /> Defeated</span>
               </div>
             ))}
             {pastDungeons.map(d => (
               <div key={d.id} className="flex items-center gap-3 p-2.5 rounded-xl"
                 style={{ background: 'rgba(56,189,248,0.06)', border: '1px solid rgba(56,189,248,0.15)' }}>
-                <span className="text-xl">{d.icon}</span>
+                <span className="h-9 w-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(56,189,248,0.12)', color: '#38bdf8' }}><RealmIcon name={d.icon} size={18} /></span>
                 <div className="flex-1 min-w-0">
                   <p className="text-white/80 text-sm font-semibold truncate">{d.title}</p>
                   <p className="text-white/35 text-xs">Dungeon · +{d.reward_coins} coins each</p>
                 </div>
-                <span className="text-xs text-cq-azure font-bold">Cleared 🏆</span>
+                <span className="text-xs text-cq-azure font-bold inline-flex items-center gap-1"><RealmIcon name="🏆" size={13} /> Cleared</span>
               </div>
             ))}
           </div>

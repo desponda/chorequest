@@ -6,6 +6,7 @@ import type { Quest, Completion, KidColor } from '@/lib/types'
 import { KID_COLORS, TIER_CONFIG } from '@/lib/constants'
 import { CoinBurst } from './coin-burst'
 import { TierBadge } from './ui/tier-badge'
+import { RealmIcon } from './ui/realm-icon'
 
 interface QuestCardProps {
   quest: Quest
@@ -104,7 +105,8 @@ export function QuestCard({
     setTimeout(() => setBursting(false), 1000)
   }
 
-  const actionBtnLabel = loading ? '✨' : isRejected ? '↺ Retry' : isShared ? '⚡ Claim' : '⚔️ Done'
+  const actionLabel = loading ? 'Submitting' : isRejected ? 'Retry' : isShared ? 'Claim' : 'Done'
+  const actionIcon = loading ? '✨' : isRejected ? '↺' : isShared ? '⚡' : '⚔️'
   const actionAriaLabel = loading ? 'Submitting quest' : isRejected ? 'Retry quest' : isShared ? 'Claim quest' : 'Mark quest done'
   const kidRgb = kidColor === 'azure' ? '56,189,248' : '167,139,250'
 
@@ -166,7 +168,13 @@ export function QuestCard({
       <div className="px-3 py-2.5">
         {/* Single row: icon | title+badge | action | coins */}
         <div className="flex items-center gap-2.5">
-          <span className="text-xl leading-none flex-shrink-0" aria-hidden="true">{quest.icon}</span>
+          <span
+            className="h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: `rgba(${kidRgb}, 0.11)`, color: colors.primary }}
+            aria-hidden="true"
+          >
+            <RealmIcon name={quest.icon} size={18} />
+          </span>
 
           {/* Title + tier badge, flex-1 truncates long titles */}
           <div className="flex-1 min-w-0">
@@ -241,9 +249,12 @@ export function QuestCard({
                   whileHover={{ background: `linear-gradient(135deg, rgba(${kidRgb}, 0.26), rgba(${kidRgb}, 0.10))` }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <span className="quest-action-label-full">{actionBtnLabel}</span>
+                  <span className="quest-action-label-full inline-flex items-center gap-1.5">
+                    <RealmIcon name={actionIcon} size={15} strokeWidth={2.2} />
+                    {actionLabel}
+                  </span>
                   <span className="quest-action-label-short" aria-hidden="true">
-                    {loading ? '✨' : isRejected ? '↺' : isShared ? '⚡' : '✓'}
+                    <RealmIcon name={actionIcon} size={17} strokeWidth={2.2} />
                   </span>
                 </motion.button>
               ) : (isPending || isApproved || isShareLocked) ? (
@@ -259,7 +270,7 @@ export function QuestCard({
                       animate={{ opacity: [0.6, 1] }}
                       transition={{ duration: 0.8, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
                     >
-                      ⏳
+                      <RealmIcon name="⏳" size={17} />
                     </motion.span>
                   ) : isApproved ? (
                     <span
@@ -267,8 +278,8 @@ export function QuestCard({
                       className="min-h-11 min-w-11 inline-flex items-center justify-center text-sm px-3 py-2 rounded-xl font-semibold whitespace-nowrap"
                       style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80' }}
                     >
-                      <span className="quest-action-label-full">✓ done</span>
-                      <span className="quest-action-label-short" aria-hidden="true">✓</span>
+                      <span className="quest-action-label-full inline-flex items-center gap-1.5"><RealmIcon name="✓" size={15} /> done</span>
+                      <span className="quest-action-label-short" aria-hidden="true"><RealmIcon name="✓" size={17} /></span>
                     </span>
                   ) : (
                     <span
@@ -277,7 +288,7 @@ export function QuestCard({
                       style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)' }}
                     >
                       <span className="quest-action-label-full">claimed</span>
-                      <span className="quest-action-label-short" aria-hidden="true">—</span>
+                      <span className="quest-action-label-short" aria-hidden="true"><span className="text-base leading-none">—</span></span>
                     </span>
                   )}
                   {!isParent && isPending && onUndo && (
@@ -290,7 +301,7 @@ export function QuestCard({
                       title="Undo submission"
                       aria-label="Undo quest submission"
                     >
-                      ↩
+                      <RealmIcon name="↩" size={17} />
                     </motion.button>
                   )}
                 </>
@@ -299,7 +310,9 @@ export function QuestCard({
 
             {/* Coins: emoji fixed-width + number right-aligned — keeps 🪙 pinned regardless of digit count */}
             <div className="quest-coin-slot" style={{ width: '48px', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
-              <span data-testid="quest-coin-icon" className="text-sm" style={{ width: '18px', textAlign: 'center', flexShrink: 0 }}>🪙</span>
+              <span data-testid="quest-coin-icon" className="flex items-center justify-center" style={{ width: '18px', flexShrink: 0, color: '#fbbf24' }}>
+                <RealmIcon name="🪙" size={15} />
+              </span>
               <span className="font-heading font-bold text-sm" style={{ flex: 1, textAlign: 'right', color: isNormal ? '#fbbf24' : tier.color }}>
                 {quest.coins}
               </span>
@@ -319,7 +332,7 @@ export function QuestCard({
                 color: '#4ade80',
               }}
             >
-              ✓ Approve
+              <span className="inline-flex items-center justify-center gap-1.5"><RealmIcon name="✓" size={15} /> Approve</span>
             </button>
             <button
               onClick={() => onReject?.(completion.id)}
@@ -330,7 +343,7 @@ export function QuestCard({
                 color: '#f87171',
               }}
             >
-              ✗ Reject
+              <span className="inline-flex items-center justify-center gap-1.5"><RealmIcon name="✗" size={15} /> Reject</span>
             </button>
           </div>
         )}

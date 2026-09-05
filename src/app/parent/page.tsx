@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { StarField } from '@/components/star-field'
 import { ParentSkeleton } from '@/components/skeletons'
 import { ConfirmDelete } from '@/components/ui/confirm-delete'
+import { RealmIcon } from '@/components/ui/realm-icon'
 
 import { useParentData } from './use-parent-data'
 import { useParentActions } from './use-parent-actions'
@@ -112,7 +113,7 @@ export default function ParentDashboard() {
                 title="Lock parent area"
                 aria-label="Lock parent area"
               >
-                🔒
+                <RealmIcon name="🔒" size={18} />
               </button>
             )}
             <ConfirmDelete
@@ -151,12 +152,12 @@ export default function ParentDashboard() {
               }}
             >
               {/* Mobile: icon + tiny label stacked */}
-              <span className="sm:hidden text-base leading-none" aria-hidden="true">{t.icon}</span>
+              <span className="sm:hidden text-base leading-none" aria-hidden="true"><RealmIcon name={t.icon} size={17} /></span>
               <span className="sm:hidden text-[10px] font-bold tracking-wide uppercase leading-none">
                 {t.label}
               </span>
               {/* Desktop: icon + full label inline */}
-              <span className="hidden sm:inline">{t.icon} {t.label}</span>
+              <span className="hidden sm:inline-flex items-center gap-1.5"><RealmIcon name={t.icon} size={16} /> {t.label}</span>
               {/* Desktop badge: inline pill */}
               {t.badge && t.badge > 0 ? (
                 <>

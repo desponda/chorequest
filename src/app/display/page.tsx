@@ -16,6 +16,7 @@ import { sharedQuestPeriodFilter } from '@/lib/quest-rules'
 import { toast } from 'sonner'
 import { useEscapeToClose } from '@/lib/use-escape-to-close'
 import { useFocusTrap } from '@/lib/use-focus-trap'
+import { RealmIcon } from '@/components/ui/realm-icon'
 
 export default function WallDisplay() {
   const [family, setFamily] = useState<Family | null>(null)
@@ -227,7 +228,7 @@ export default function WallDisplay() {
       <div className="min-h-screen bg-quest-void flex items-center justify-center px-4 text-center safe-top safe-bottom">
         <StarField />
         <div className="relative z-10 max-w-sm">
-          <p className="text-5xl mb-4" aria-hidden="true">🌩️</p>
+          <div className="h-14 w-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(56,189,248,0.12)', color: '#38bdf8' }} aria-hidden="true"><RealmIcon name="🌩️" size={30} /></div>
           <h1 className="font-heading text-2xl font-bold text-white mb-2">The realm is out of reach</h1>
           <p className="text-white/60 text-sm mb-6">{loadError}</p>
           <button
@@ -255,7 +256,7 @@ export default function WallDisplay() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <p className="text-7xl mb-6">🏰</p>
+          <div className="h-20 w-20 rounded-3xl flex items-center justify-center mx-auto mb-6" style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24' }}><RealmIcon name="🏰" size={46} /></div>
           <h1 className="font-heading text-4xl font-bold text-white mb-4">Welcome, Realm Master</h1>
           <p className="text-white/50 text-lg mb-8">
             Add your young adventurers to begin the quests.
@@ -269,7 +270,7 @@ export default function WallDisplay() {
               color: '#fbbf24',
             }}
           >
-            ⚙️ Set Up Your Realm
+            <RealmIcon name="⚙️" size={18} /> Set Up Your Realm
           </Link>
         </motion.div>
       </div>
@@ -312,7 +313,7 @@ export default function WallDisplay() {
                 color: '#fbbf24',
               }}
             >
-              ⚡<span className="hidden sm:inline"> Bounty</span>
+              <RealmIcon name="⚡" size={17} /><span className="hidden sm:inline"> Bounty</span>
               {bountyQuests.some(q => getFamilyCount(q) < q.slots) && (
                 <span
                   className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full"
@@ -332,7 +333,7 @@ export default function WallDisplay() {
               color: 'rgba(251,191,36,0.7)',
             }}
           >
-            🎁<span className="hidden sm:inline"> Rewards</span>
+            <RealmIcon name="🎁" size={17} /><span className="hidden sm:inline"> Rewards</span>
           </button>
           {pendingCount > 0 && (
             <motion.div
@@ -363,7 +364,7 @@ export default function WallDisplay() {
             aria-label="Parent dashboard"
             className="flex items-center justify-center min-w-11 min-h-11 px-2.5 sm:px-4 py-2 rounded-xl text-sm text-white/50 hover:text-white/80 transition-all glass border-glass"
           >
-            ⚙️<span className="hidden sm:inline"> Parent</span>
+            <RealmIcon name="⚙️" size={17} /><span className="hidden sm:inline"> Parent</span>
           </Link>
         </div>
       </motion.header>
@@ -384,7 +385,7 @@ export default function WallDisplay() {
                 animate={{ scale: [1, 1.08, 1] }}
                 transition={{ duration: 2.5, repeat: Infinity }}
               >
-                {activeBoss.icon}
+                <RealmIcon name={activeBoss.icon} size={24} />
               </motion.span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1.5">
@@ -401,7 +402,7 @@ export default function WallDisplay() {
                   />
                 </div>
               </div>
-              <p className="text-xs text-cq-ember font-bold flex-shrink-0">{activeBoss.bounty_coins}⚙ bounty</p>
+              <p className="text-xs text-cq-ember font-bold flex-shrink-0 inline-flex items-center gap-1"><RealmIcon name="⚙️" size={12} />{activeBoss.bounty_coins} bounty</p>
             </motion.div>
           )}
 
@@ -415,9 +416,9 @@ export default function WallDisplay() {
               transition={{ delay: 0.05 }}
             >
               <div className="flex items-center gap-2 mb-2.5">
-                <span className="text-lg">{activeDungeon.icon}</span>
+                <span className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(56,189,248,0.12)', color: '#38bdf8' }}><RealmIcon name={activeDungeon.icon} size={17} /></span>
                 <p className="font-heading text-xs font-bold text-white/60 tracking-wide">{activeDungeon.title}</p>
-                <p className="text-xs text-white/30 ml-auto">+{activeDungeon.reward_coins}🪙 +{activeDungeon.reward_xp}✨ per adventurer</p>
+                <p className="text-xs text-white/30 ml-auto inline-flex items-center gap-1"><RealmIcon name="🪙" size={12} />+{activeDungeon.reward_coins} <RealmIcon name="✨" size={12} />+{activeDungeon.reward_xp} per adventurer</p>
               </div>
               <div
                 className="grid gap-3"
@@ -502,7 +503,7 @@ export default function WallDisplay() {
                 color: 'rgba(251,191,36,0.8)',
               }}
             >
-              ⚡ Bounty Board
+              <span className="inline-flex items-center gap-1.5"><RealmIcon name="⚡" size={14} /> Bounty Board</span>
             </span>
             <div className="flex-1 h-px" style={{ background: 'rgba(251,191,36,0.18)' }} />
           </div>
@@ -534,10 +535,10 @@ export default function WallDisplay() {
                   whileTap={!isFull ? { scale: 0.97 } : {}}
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className="text-2xl">{quest.icon}</span>
+                    <span className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: `${tier.color}18`, color: tier.color }}><RealmIcon name={quest.icon} size={22} /></span>
                     <div className="text-right">
                       <div className="flex items-center gap-1 justify-end">
-                        <span className="text-sm">🪙</span>
+                        <RealmIcon name="🪙" size={15} />
                         <span className="font-bold text-sm" style={{ color: isFull ? 'rgba(255,255,255,0.3)' : tier.color }}>
                           {quest.coins}
                         </span>
@@ -614,7 +615,7 @@ export default function WallDisplay() {
               <div className="px-6 sm:px-7 pt-5 sm:pt-6 pb-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 id="bounty-modal-title" className="font-heading text-lg sm:text-xl font-bold text-white/90 tracking-wide">⚡ Bounty Board</h2>
+                    <h2 id="bounty-modal-title" className="font-heading text-lg sm:text-xl font-bold text-white/90 tracking-wide inline-flex items-center gap-2"><RealmIcon name="⚡" size={19} /> Bounty Board</h2>
                     <p className="text-white/35 text-xs mt-0.5">First to claim earns the coins</p>
                   </div>
                   <button
@@ -623,7 +624,7 @@ export default function WallDisplay() {
                     className="w-11 h-11 rounded-full flex items-center justify-center text-white/35 hover:text-white/70 transition-all flex-shrink-0"
                     style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
                   >
-                    ✕
+                    <RealmIcon name="✗" size={17} />
                   </button>
                 </div>
               </div>
@@ -647,7 +648,7 @@ export default function WallDisplay() {
                       whileHover={!isFull ? { scale: 1.01 } : {}}
                       whileTap={!isFull ? { scale: 0.99 } : {}}
                     >
-                      <span className="text-3xl flex-shrink-0">{quest.icon}</span>
+                      <span className="h-12 w-12 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: `${tier.color}16`, color: tier.color }}><RealmIcon name={quest.icon} size={25} /></span>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm text-white/90 truncate">{quest.title}</p>
                         <p className="text-xs mt-0.5" style={{ color: isFull ? 'rgba(74,222,128,0.7)' : 'rgba(255,255,255,0.4)' }}>
@@ -655,7 +656,7 @@ export default function WallDisplay() {
                         </p>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <span className="text-sm">🪙</span>
+                        <RealmIcon name="🪙" size={15} />
                         <span className="font-heading font-bold text-sm" style={{ color: isNormal ? '#fbbf24' : tier.color }}>
                           {quest.coins}
                         </span>
@@ -716,7 +717,7 @@ export default function WallDisplay() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <h2 id="rewards-modal-title" className="font-heading text-lg sm:text-xl font-bold text-white/90 tracking-wide">
-                      🏆 Reward Vault
+                      <span className="inline-flex items-center gap-2"><RealmIcon name="🏆" size={19} /> Reward Vault</span>
                     </h2>
                     <p className="text-white/35 text-xs mt-0.5">Spend your coins wisely, adventurer</p>
                   </div>
@@ -726,7 +727,7 @@ export default function WallDisplay() {
                     className="w-11 h-11 rounded-full flex items-center justify-center text-white/35 hover:text-white/70 transition-all flex-shrink-0"
                     style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
                   >
-                    ✕
+                    <RealmIcon name="✗" size={17} />
                   </button>
                 </div>
               </div>
@@ -735,7 +736,7 @@ export default function WallDisplay() {
               <div className="overflow-y-auto px-4 sm:px-7 py-4 flex-1 flex flex-col gap-3">
                 {rewards.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-white/25">
-                    <span className="text-4xl mb-3">🎁</span>
+                    <span className="h-14 w-14 rounded-2xl flex items-center justify-center mb-3" style={{ background: 'rgba(74,222,128,0.12)', color: '#4ade80' }}><RealmIcon name="🎁" size={29} /></span>
                     <p className="text-sm">No rewards set up yet</p>
                     <Link href="/parent" className="text-xs text-cq-gold/50 hover:text-cq-gold/80 mt-2 transition-all" onClick={() => setShowRewards(false)}>
                       Add rewards in the parent dashboard →
@@ -754,7 +755,7 @@ export default function WallDisplay() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.04 }}
                     >
-                      <span className="text-3xl flex-shrink-0">{reward.icon}</span>
+                      <span className="h-12 w-12 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(74,222,128,0.1)', color: '#4ade80' }}><RealmIcon name={reward.icon} size={24} /></span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-white/88 leading-snug">{reward.title}</p>
                         {reward.description && (
@@ -764,7 +765,7 @@ export default function WallDisplay() {
                       <div className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
                         style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.22)' }}
                       >
-                        <span className="text-sm">🪙</span>
+                        <RealmIcon name="🪙" size={15} />
                         <span className="font-heading font-bold text-sm" style={{ color: '#fbbf24' }}>
                           {reward.cost}
                         </span>

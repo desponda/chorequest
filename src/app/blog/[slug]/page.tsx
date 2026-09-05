@@ -4,6 +4,7 @@ import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import { createClient } from '@/lib/supabase/server'
 import { StarField } from '@/components/star-field'
+import { RealmIcon } from '@/components/ui/realm-icon'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -77,7 +78,7 @@ export default async function BlogPostPage({ params }: Props) {
         style={{ background: 'rgba(5,3,16,0.8)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
       >
         <Link href="/" className="flex items-center gap-2 min-w-0">
-          <span className="text-xl flex-shrink-0">⚔️</span>
+          <span className="h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24' }}><RealmIcon name="⚔️" size={17} /></span>
           <span className="font-heading font-bold text-base sm:text-lg tracking-widest text-white/90 truncate">ChoreQuest</span>
         </Link>
         <div className="flex items-center gap-3 sm:gap-4">

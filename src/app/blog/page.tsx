@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { StarField } from '@/components/star-field'
+import { RealmIcon } from '@/components/ui/realm-icon'
 
 export const metadata: Metadata = {
   title: 'Blog — ChoreQuest',
@@ -55,7 +56,7 @@ export default async function BlogListingPage() {
         style={{ background: 'rgba(5,3,16,0.8)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
       >
         <Link href="/" className="flex items-center gap-2 min-w-0">
-          <span className="text-xl flex-shrink-0">⚔️</span>
+          <span className="h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24' }}><RealmIcon name="⚔️" size={17} /></span>
           <span className="font-heading font-bold text-base sm:text-lg tracking-widest text-white/90 truncate">ChoreQuest</span>
         </Link>
         <nav className="flex items-center gap-4 sm:gap-6 text-sm text-white/45">
@@ -91,7 +92,7 @@ export default async function BlogListingPage() {
             className="rounded-2xl p-7 sm:p-12 text-center"
             style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
           >
-            <p className="text-4xl mb-4">📜</p>
+            <span className="h-14 w-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24' }}><RealmIcon name="📜" size={28} /></span>
             <p className="font-heading text-xl text-white/60 mb-2">The scrolls are being written</p>
             <p className="text-white/30 text-sm">Articles coming soon — check back shortly.</p>
           </div>

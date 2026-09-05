@@ -6,6 +6,7 @@ import { StatusChip } from '@/components/ui/status-chip'
 import type { Kid, Quest, Completion, Reward, Redemption, CurseInstance, Curse } from '@/lib/types'
 import { Empty, fadeSlide } from './_ui'
 import type { ParentActions } from './use-parent-actions'
+import { RealmIcon } from '@/components/ui/realm-icon'
 
 function formatQuestDate(date: string): string {
   const now = new Date()
@@ -63,11 +64,11 @@ export function ApprovalsTab({
                   className="flex items-center gap-3 p-3 rounded-2xl"
                   style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.18)' }}
                 >
-                  <span className="text-2xl">{reward.icon}</span>
+                  <span className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(74,222,128,0.1)', color: '#4ade80' }}><RealmIcon name={reward.icon} size={21} /></span>
                   <div className="flex-1 min-w-0">
                     <p className="text-white/90 text-sm font-semibold truncate">{reward.title}</p>
                     <p className="text-white/45 text-xs">
-                      <span>{kid.avatar}</span> {kid.name} · 🪙 {r.cost_charged ?? reward.cost} coins
+                      <span className="inline-flex items-center gap-1.5"><RealmIcon name={kid.avatar} size={14} /> {kid.name} · <RealmIcon name="🪙" size={12} /> {r.cost_charged ?? reward.cost} coins</span>
                     </p>
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
@@ -76,14 +77,14 @@ export function ApprovalsTab({
                       className="min-h-11 px-3 py-2 rounded-xl text-xs font-bold transition-all"
                       style={{ background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.35)', color: '#4ade80' }}
                     >
-                      ✓ Give
+                      <span className="inline-flex items-center gap-1.5"><RealmIcon name="✓" size={14} /> Give</span>
                     </button>
                     <button
                       onClick={() => actions.denyRedemption(r.id)}
                       className="min-h-11 px-3 py-2 rounded-xl text-xs font-bold transition-all"
                       style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', color: '#f87171' }}
                     >
-                      ✕
+                      <RealmIcon name="✗" size={15} />
                     </button>
                   </div>
                 </div>
@@ -95,7 +96,7 @@ export function ApprovalsTab({
 
       {pendingCompletions.length === 0 ? (
         <Empty
-          icon="✅"
+          icon="✓"
           message={pendingRedemptions.length === 0 ? 'All clear — nothing pending!' : 'No pending quests'}
           hint={
             pendingRedemptions.length === 0
@@ -115,13 +116,13 @@ export function ApprovalsTab({
           return (
             <div key={c.id} className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <div className="flex items-center gap-3 px-4 pt-4 pb-2">
-                <span className="text-2xl">{kid.avatar}</span>
+                <span className="h-9 w-9 rounded-xl flex items-center justify-center" style={{ background: `${kid.color === 'azure' ? 'rgba(56,189,248,0.12)' : 'rgba(167,139,250,0.12)'}`, color: kid.color === 'azure' ? '#38bdf8' : '#a78bfa' }}><RealmIcon name={kid.avatar} size={19} /></span>
                 <div>
                   <p className="font-semibold text-white/90 text-sm">{kid.name}</p>
                   <p className="text-white/40 text-xs">completed a quest · {formatQuestDate(c.date)}</p>
                 </div>
                 {kid.streak > 1 && (
-                  <span className="ml-auto text-xs text-cq-ember">🔥 {kid.streak} streak</span>
+                  <span className="ml-auto text-xs text-cq-ember inline-flex items-center gap-1"><RealmIcon name="🔥" size={13} /> {kid.streak} streak</span>
                 )}
               </div>
               <div className="px-4 pb-4">
@@ -150,7 +151,7 @@ export function ApprovalsTab({
               return (
                 <div key={c.id} className="grid items-center gap-x-2 py-1.5" style={{ gridTemplateColumns: '1fr 5.5rem 6.5rem 1.5rem' }}>
                   <span className="text-sm truncate flex items-center gap-1.5 min-w-0">
-                    <span className="text-base flex-shrink-0">{kid.avatar}</span>
+                    <span className="flex-shrink-0"><RealmIcon name={kid.avatar} size={15} /></span>
                     <span className="text-white/50 flex-shrink-0">{kid.name}</span>
                     <span className="text-white/35 truncate">{(c.quest as Quest)?.title}</span>
                   </span>
@@ -161,7 +162,7 @@ export function ApprovalsTab({
                     className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-xl text-xs text-white/60 hover:text-cq-gold transition-all"
                     title="Undo"
                   >
-                    ↩
+                    <RealmIcon name="↩" size={15} />
                   </button>
                 </div>
               )
@@ -174,18 +175,18 @@ export function ApprovalsTab({
               return (
                 <div key={ci.id} className="grid items-center gap-x-2 py-1.5" style={{ gridTemplateColumns: '1fr 5.5rem 6.5rem 1.5rem' }}>
                   <span className="text-sm truncate flex items-center gap-1.5 min-w-0">
-                    <span className="text-base flex-shrink-0">{kid.avatar}</span>
+                    <span className="flex-shrink-0"><RealmIcon name={kid.avatar} size={15} /></span>
                     <span className="text-white/50 flex-shrink-0">{kid.name}</span>
-                    <span className="text-white/35 truncate flex items-center gap-1"><span>{curse.icon}</span>{curse.title}</span>
+                    <span className="text-white/35 truncate flex items-center gap-1"><RealmIcon name={curse.icon} size={14} />{curse.title}</span>
                   </span>
                   <span className="text-white/25 text-xs whitespace-nowrap">{ci.resolved_at ? formatQuestDate(ci.resolved_at.slice(0, 10)) : ''}</span>
-                  <span className="text-xs font-semibold text-red-400 whitespace-nowrap">☠️ -{ci.coins_deducted}🪙</span>
+                  <span className="text-xs font-semibold text-red-400 whitespace-nowrap inline-flex items-center gap-1"><RealmIcon name="☠️" size={13} /> -{ci.coins_deducted}<RealmIcon name="🪙" size={12} /></span>
                   <button
                     onClick={() => actions.undoResolvedCurse(ci.id)}
                     className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-xl text-xs text-white/60 hover:text-cq-gold transition-all"
                     title="Undo"
                   >
-                    ↩
+                    <RealmIcon name="↩" size={15} />
                   </button>
                 </div>
               )
@@ -197,14 +198,14 @@ export function ApprovalsTab({
             return (
               <div key={r.id} className="grid items-center gap-x-2 py-1.5" style={{ gridTemplateColumns: '1fr 5.5rem 6.5rem 1.5rem' }}>
                 <span className="text-sm truncate flex items-center gap-1.5 min-w-0">
-                  <span className="text-base flex-shrink-0">{kid.avatar}</span>
+                  <span className="flex-shrink-0"><RealmIcon name={kid.avatar} size={15} /></span>
                   <span className="text-white/50 flex-shrink-0">{kid.name}</span>
-                  <span className="text-white/35 truncate flex items-center gap-1"><span>{reward.icon}</span>{reward.title}</span>
+                    <span className="text-white/35 truncate flex items-center gap-1"><RealmIcon name={reward.icon} size={14} />{reward.title}</span>
                 </span>
                 <span className="text-white/25 text-xs whitespace-nowrap">{formatQuestDate((r.processed_at ?? r.redeemed_at).slice(0, 10))}</span>
                 {r.status === 'approved'
-                  ? <span className="text-xs font-semibold text-cq-gold whitespace-nowrap">🎁 -{r.cost_charged ?? reward.cost}🪙</span>
-                  : <span className="text-xs font-semibold text-red-400 whitespace-nowrap">✗ denied</span>
+                  ? <span className="text-xs font-semibold text-cq-gold whitespace-nowrap inline-flex items-center gap-1"><RealmIcon name="🎁" size={13} /> -{r.cost_charged ?? reward.cost}<RealmIcon name="🪙" size={12} /></span>
+                  : <span className="text-xs font-semibold text-red-400 whitespace-nowrap inline-flex items-center gap-1"><RealmIcon name="✗" size={13} /> denied</span>
                 }
                 <div className="w-6" />
               </div>

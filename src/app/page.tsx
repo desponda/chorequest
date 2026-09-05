@@ -5,6 +5,7 @@ import { motion, useInView, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { StarField } from '@/components/star-field'
 import { useEscapeToClose } from '@/lib/use-escape-to-close'
+import { RealmIcon } from '@/components/ui/realm-icon'
 
 // ─── Scroll-reveal wrapper ────────────────────────────────────────────────────
 function Reveal({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
@@ -78,7 +79,7 @@ function AppMockup() {
           <div className="flex-1 h-px" style={{ background: 'rgba(251,191,36,0.15)' }} />
           <span className="text-[10px] tracking-widest uppercase font-bold px-2 py-0.5 rounded-full"
             style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.2)', color: 'rgba(251,191,36,0.7)' }}>
-            ⚡ Bounty Board
+            <span className="inline-flex items-center gap-1"><RealmIcon name="⚡" size={12} /> Bounty Board</span>
           </span>
           <div className="flex-1 h-px" style={{ background: 'rgba(251,191,36,0.15)' }} />
         </div>
@@ -115,11 +116,13 @@ function MockKidColumn({ name, avatar, color, coins, streak, quests }: {
       {/* Kid header */}
       <div className="px-3 py-2.5 flex items-center justify-between border-b" style={{ borderColor: `${primary}20` }}>
         <div className="flex items-center gap-1.5">
-          <span className="text-lg">{avatar}</span>
+          <span className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: `${primary}18`, color: primary }}>
+            <RealmIcon name={avatar} size={17} />
+          </span>
           <span className="font-heading text-sm font-bold" style={{ color: primary }}>{name}</span>
-          {streak >= 3 && <span className="text-xs text-cq-ember">🔥{streak}</span>}
+          {streak >= 3 && <span className="inline-flex items-center gap-0.5 text-xs text-cq-ember"><RealmIcon name="🔥" size={12} />{streak}</span>}
         </div>
-        <span className="text-xs font-bold text-cq-gold">🪙{coins}</span>
+        <span className="inline-flex items-center gap-1 text-xs font-bold text-cq-gold"><RealmIcon name="🪙" size={13} />{coins}</span>
       </div>
       {/* Quest list */}
       <div className="p-2 flex flex-col gap-1.5">
@@ -131,7 +134,9 @@ function MockKidColumn({ name, avatar, color, coins, streak, quests }: {
           return (
             <div key={i} className="rounded-lg px-2.5 py-2 flex items-center gap-2"
               style={{ background: statusBg, border: `1px solid ${statusBorder}` }}>
-              <span className="text-sm">{q.icon}</span>
+              <span className="h-6 w-6 rounded-md flex items-center justify-center" style={{ background: `${tc}18`, color: tc }}>
+                <RealmIcon name={q.icon} size={14} />
+              </span>
               <span className="flex-1 text-xs font-medium truncate" style={{
                 color: q.status === 'approved' ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.85)',
                 textDecoration: q.status === 'approved' ? 'line-through' : 'none',
@@ -139,11 +144,11 @@ function MockKidColumn({ name, avatar, color, coins, streak, quests }: {
               {q.status === 'pending' ? (
                 <motion.span className="text-[10px] text-amber-400"
                   animate={{ opacity: [0.5, 1, 0.5] }}
-                  transition={{ duration: 1.6, repeat: Infinity }}>⏳</motion.span>
+                transition={{ duration: 1.6, repeat: Infinity }}><RealmIcon name="⏳" size={13} /></motion.span>
               ) : q.status === 'approved' ? (
-                <span className="text-[10px] text-cq-forest">✓</span>
+                <span className="text-[10px] text-cq-forest"><RealmIcon name="✓" size={12} /></span>
               ) : (
-                <span className="text-[10px] font-bold" style={{ color: tc }}>🪙{q.coins}</span>
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold" style={{ color: tc }}><RealmIcon name="🪙" size={11} />{q.coins}</span>
               )}
             </div>
           )
@@ -165,8 +170,8 @@ function MockBountyCard({ title, icon, coins, claimed, slots, tier }: {
       opacity: isFull ? 0.5 : 1,
     }}>
       <div className="flex items-start justify-between mb-1">
-        <span className="text-base">{icon}</span>
-        <span className="text-[10px] font-bold" style={{ color: tc }}>🪙{coins}</span>
+        <span className="h-6 w-6 rounded-md flex items-center justify-center" style={{ background: `${tc}18`, color: tc }}><RealmIcon name={icon} size={14} /></span>
+        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold" style={{ color: tc }}><RealmIcon name="🪙" size={11} />{coins}</span>
       </div>
       <p className="text-xs font-semibold text-white/80 leading-tight mb-1">{title}</p>
       <span className="text-[10px]" style={{ color: isFull ? '#4ade80' : 'rgba(255,255,255,0.35)' }}>
@@ -238,7 +243,7 @@ export default function MarketingPage() {
         style={{ background: 'rgba(5,3,16,0.8)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
       >
         <div className="flex items-center gap-2">
-          <span className="text-xl">⚔️</span>
+          <span className="h-8 w-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24' }}><RealmIcon name="⚔️" size={18} /></span>
           <span className="font-heading font-bold text-lg tracking-widest text-white/90">ChoreQuest</span>
         </div>
         <nav className="hidden md:flex items-center gap-8 text-sm text-white/45 font-medium">
@@ -430,7 +435,7 @@ export default function MarketingPage() {
                     >
                       {step.step}
                     </span>
-                    <span className="text-2xl">{step.icon}</span>
+                    <span className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24' }}><RealmIcon name={step.icon} size={21} /></span>
                   </div>
                   <h3 className="font-heading text-lg font-bold text-white/90 mb-3">{step.title}</h3>
                   <p className="text-white/45 text-sm leading-relaxed">{step.desc}</p>
@@ -460,7 +465,7 @@ export default function MarketingPage() {
                     border: `1px solid ${f.color}20`,
                   }}
                 >
-                  <span className="text-3xl block mb-4">{f.icon}</span>
+                  <span className="h-12 w-12 rounded-2xl flex items-center justify-center mb-4" style={{ background: `${f.color}14`, color: f.color }}><RealmIcon name={f.icon} size={25} /></span>
                   <h3 className="font-heading text-base font-bold mb-2" style={{ color: f.color }}>{f.title}</h3>
                   <p className="text-white/45 text-sm leading-relaxed">{f.desc}</p>
                 </div>
@@ -647,7 +652,7 @@ export default function MarketingPage() {
                 style={{ background: 'linear-gradient(90deg, transparent, rgba(251,191,36,0.06), transparent)' }}
               />
             </motion.div>
-            <p className="text-4xl mb-5">🏰</p>
+            <div className="h-14 w-14 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24' }}><RealmIcon name="🏰" size={32} /></div>
             <h2 className="font-heading text-3xl sm:text-4xl font-bold text-white/90 mb-4">
               Ready to begin the quest?
             </h2>
@@ -677,7 +682,7 @@ export default function MarketingPage() {
       >
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
-            <span className="text-xl">⚔️</span>
+            <span className="h-8 w-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24' }}><RealmIcon name="⚔️" size={17} /></span>
             <span className="font-heading font-bold tracking-widest text-white/60">ChoreQuest</span>
           </div>
           <p className="text-white/25 text-sm text-center">
