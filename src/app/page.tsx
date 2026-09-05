@@ -543,7 +543,7 @@ export default function MarketingPage() {
             <h2 className="font-heading text-4xl sm:text-5xl font-bold text-white/90">Simple, honest pricing</h2>
           </Reveal>
 
-          <div className="grid sm:grid-cols-2 gap-5">
+          <div className="grid md:grid-cols-3 gap-5">
             {/* Free */}
             <Reveal>
               <div
@@ -559,7 +559,7 @@ export default function MarketingPage() {
                 <ul className="flex flex-col gap-2.5 mb-8">
                   {[
                     'Up to 2 kids', 'Up to 5 active quests', 'Up to 3 rewards', 'Personal and shared quests',
-                    'Wall display', 'Progress streaks', 'Bounty board', 'Family invite links',
+                    'Wall display', 'Streak tracking', 'Bounty board', 'Family invite links',
                   ].map(f => (
                     <li key={f} className="text-white/55 text-sm flex items-center gap-2">
                       <span className="text-cq-forest text-xs">✓</span> {f}
@@ -576,7 +576,7 @@ export default function MarketingPage() {
               </div>
             </Reveal>
 
-            {/* Pro */}
+            {/* Family */}
             <Reveal delay={0.1}>
               <div
                 className="rounded-2xl p-8 h-full relative overflow-hidden"
@@ -603,9 +603,8 @@ export default function MarketingPage() {
                     'Everything in Free',
                     'Unlimited kids',
                     'Unlimited quests and rewards',
-                    'Coin adjustments and curses',
-                    'Full family activity history',
-                    'Early access to new features',
+                    'Transparent coin adjustments',
+                    'Curses and consequences',
                   ].map(f => (
                     <li key={f} className="text-white/55 text-sm flex items-center gap-2">
                       <span className="text-cq-gold/60 text-xs">✦</span> {f}
@@ -614,6 +613,46 @@ export default function MarketingPage() {
                 </ul>
                 <div className="rounded-xl px-4 py-3 text-center text-sm text-white/45" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                   Family Pro is in development. The free plan is fully available today.
+                </div>
+              </div>
+            </Reveal>
+
+            {/* Legendary */}
+            <Reveal delay={0.2}>
+              <div
+                className="rounded-2xl p-8 h-full relative overflow-hidden"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(167,139,250,0.1) 0%, rgba(167,139,250,0.03) 100%)',
+                  border: '1px solid rgba(167,139,250,0.32)',
+                  boxShadow: '0 0 40px rgba(167,139,250,0.06)',
+                }}
+              >
+                <div
+                  className="absolute top-4 right-4 text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full"
+                  style={{ background: 'rgba(167,139,250,0.16)', border: '1px solid rgba(167,139,250,0.32)', color: '#c4b5fd' }}
+                >
+                  Coming soon
+                </div>
+                <p className="font-heading text-xs tracking-widest uppercase text-cq-mystic/70 mb-2">Legendary</p>
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className="font-heading text-4xl font-black text-cq-mystic">Advanced</span>
+                </div>
+                <p className="text-white/35 text-sm mb-8">For families who want the full challenge system</p>
+                <ul className="flex flex-col gap-2.5 mb-8">
+                  {[
+                    'Everything in Family',
+                    'Rare, Epic, and Legendary quest tiers',
+                    'Scheduled active days',
+                    'Dungeons and raid bosses',
+                    'Advanced family challenges',
+                  ].map(f => (
+                    <li key={f} className="text-white/55 text-sm flex items-center gap-2">
+                      <span className="text-cq-mystic/75 text-xs">✦</span> {f}
+                    </li>
+                  ))}
+                </ul>
+                <div className="rounded-xl px-4 py-3 text-center text-sm text-white/45" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  Legendary is in development — more ways to structure meaningful goals are on the way.
                 </div>
               </div>
             </Reveal>
