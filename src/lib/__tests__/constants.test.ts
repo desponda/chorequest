@@ -1,33 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getStreakBonus, getStreakLabel, getLockDurationMs, TIER_CONFIG, KID_COLORS } from '../constants'
-
-describe('getStreakBonus', () => {
-  it('returns 1.0 for streaks below 3', () => {
-    expect(getStreakBonus(0)).toBe(1.0)
-    expect(getStreakBonus(1)).toBe(1.0)
-    expect(getStreakBonus(2)).toBe(1.0)
-  })
-
-  it('returns 1.0 for negative streaks', () => {
-    expect(getStreakBonus(-1)).toBe(1.0)
-    expect(getStreakBonus(-100)).toBe(1.0)
-  })
-
-  it('returns 1.25 for streaks 3–6', () => {
-    expect(getStreakBonus(3)).toBe(1.25)
-    expect(getStreakBonus(6)).toBe(1.25)
-  })
-
-  it('returns 1.5 for streaks 7–13', () => {
-    expect(getStreakBonus(7)).toBe(1.5)
-    expect(getStreakBonus(13)).toBe(1.5)
-  })
-
-  it('returns 2.0 for streaks 14+', () => {
-    expect(getStreakBonus(14)).toBe(2.0)
-    expect(getStreakBonus(100)).toBe(2.0)
-  })
-})
+import { getStreakLabel, getLockDurationMs, TIER_CONFIG, KID_COLORS } from '../constants'
 
 describe('getStreakLabel', () => {
   it('always returns null (bonus labels removed)', () => {

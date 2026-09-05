@@ -1,5 +1,3 @@
-export { getStreakBonus } from '@/lib/constants'
-
 /**
  * Returns the quest-day before today, respecting resetHour.
  * e.g. at 2 AM with resetHour=6, quest-today is still "yesterday" in calendar terms,

@@ -197,12 +197,6 @@ const FEATURES = [
     color: '#fbbf24',
   },
   {
-    icon: 'streak' as RealmEmblemName,
-    title: 'Streak Multipliers',
-    desc: '3-day streak: +25% coins. 7-day: 1.5×. 14-day: double coins. The longer they go, the more they earn.',
-    color: '#fb923c',
-  },
-  {
     icon: 'bounty' as RealmEmblemName,
     title: 'Family Bounty Board',
     desc: 'Shared quests siblings can take on together. Clear ownership keeps momentum moving without another reminder from you.',
@@ -526,7 +520,7 @@ export default function MarketingPage() {
                     '✓ Quest board sorted by daily and weekly goals',
                     '✓ Watch coins build up in real time',
                     '✓ Redeem coins for rewards parents actually give',
-                    '✓ Streak flames show daily consistency',
+                    '✓ Progress streaks make consistency visible',
                     '✓ Work together on shared bounty quests',
                   ].map(item => (
                     <li key={item} className="text-white/55 text-sm flex gap-2.5">
@@ -565,7 +559,7 @@ export default function MarketingPage() {
                 <ul className="flex flex-col gap-2.5 mb-8">
                   {[
                     'Up to 2 kids', 'Up to 5 active quests', 'Up to 3 rewards', 'Personal and shared quests',
-                    'Wall display', 'Streak system', 'Bounty board', 'Family invite links',
+                    'Wall display', 'Progress streaks', 'Bounty board', 'Family invite links',
                   ].map(f => (
                     <li key={f} className="text-white/55 text-sm flex items-center gap-2">
                       <span className="text-cq-forest text-xs">✓</span> {f}
