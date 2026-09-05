@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { StarField } from '@/components/star-field'
+import { RealmEmblem } from '@/components/ui/realm-emblem'
 import { CenteredLoader } from '@/components/skeletons'
 import { KID_COLORS } from '@/lib/constants'
 import type { KidColor } from '@/lib/types'
@@ -53,10 +53,9 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
 
   if (loadError) {
     return (
-      <div className="min-h-screen bg-quest-void flex items-center justify-center px-4 text-center safe-top safe-bottom">
-        <StarField />
+      <div className="min-h-screen cq-page-shell flex items-center justify-center px-4 text-center safe-top safe-bottom">
         <div className="relative z-10 max-w-sm">
-          <p className="text-5xl mb-4" aria-hidden="true">🌩️</p>
+          <p className="text-cq-azure mb-4" aria-hidden="true"><RealmEmblem name="spark" size={48} /></p>
           <h1 className="font-heading text-2xl font-bold text-white mb-2">The portal flickered</h1>
           <p className="text-white/60 text-sm mb-6">We couldn&apos;t open this invite right now. Check your connection and try again.</p>
           <button
@@ -74,10 +73,9 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
 
   if (notFound || !family) {
     return (
-      <div className="min-h-screen bg-quest-void flex items-center justify-center px-4">
-        <StarField />
+      <div className="min-h-screen cq-page-shell flex items-center justify-center px-4">
         <div className="relative z-10 text-center">
-          <p className="text-5xl mb-4">🔮</p>
+          <p className="text-cq-mystic mb-4"><RealmEmblem name="dungeon" size={48} /></p>
           <h1 className="font-heading text-2xl font-bold text-white mb-2">Realm Not Found</h1>
           <p className="text-white/40 text-sm mb-6">This invite link may have expired or been reset.</p>
           <Link href="/" className="min-h-11 inline-flex items-center rounded-xl px-3 text-white/60 hover:text-white/90 transition-all text-sm">
@@ -89,21 +87,20 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
   }
 
   return (
-    <div className="min-h-screen bg-quest-void flex flex-col items-center justify-start sm:justify-center px-4 py-6 overflow-y-auto safe-top safe-bottom">
-      <StarField />
+    <div className="min-h-screen cq-page-shell flex flex-col items-center justify-start sm:justify-center px-4 py-6 overflow-y-auto safe-top safe-bottom">
       <motion.div
         className="relative z-10 w-full max-w-xs"
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
       >
         <div className="text-center mb-8">
-          <motion.p
-            className="text-5xl mb-3"
+          <motion.div
+            className="inline-flex items-center justify-center text-cq-gold cq-hero-emblem mb-3"
             animate={{ y: [0, -6, 0] }}
             transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
           >
-            🏰
-          </motion.p>
+            <RealmEmblem name="crest" size={54} />
+          </motion.div>
           <h1 className="font-heading text-3xl font-bold text-white">{family.name}</h1>
           <p className="text-white/40 text-sm mt-1">Who are you?</p>
         </div>
@@ -126,7 +123,7 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <span className="text-3xl">{kid.avatar}</span>
+                  <span className="inline-flex h-10 w-10 items-center justify-center" style={{ color: colors.primary }}><RealmEmblem name="family" size={27} /></span>
                   <span className="font-heading font-bold text-lg" style={{ color: colors.primary }}>
                     {kid.name}
                   </span>

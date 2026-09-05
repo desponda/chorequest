@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import type { LedgerEntry, PendingLedgerEntry } from '@/lib/ledger'
 import { RealmIcon } from '@/components/ui/realm-icon'
+import { CoinMark } from '@/components/ui/realm-emblem'
 
 interface CoinLedgerProps {
   ledger: LedgerEntry[]
@@ -94,7 +95,7 @@ function Amount({ amount }: { amount: number }) {
   const color = amount > 0 ? '#86efac' : amount < 0 ? '#fca5a5' : 'rgba(255,255,255,0.7)'
   return (
     <span className="font-heading text-sm font-bold" style={{ color }}>
-      {amount > 0 ? `+${amount.toLocaleString()}` : amount.toLocaleString()} <RealmIcon name="🪙" size={14} strokeWidth={2.1} />
+      {amount > 0 ? `+${amount.toLocaleString()}` : amount.toLocaleString()} <CoinMark size={15} />
     </span>
   )
 }
@@ -158,7 +159,7 @@ export function CoinLedger({
         >
           <p className="text-white/65 text-xs">Current balance</p>
           <p className="font-heading text-xl sm:text-2xl font-bold text-cq-gold mt-1">
-            {currentBalance.toLocaleString()} <RealmIcon name="🪙" size={18} strokeWidth={2.1} />
+            {currentBalance.toLocaleString()} <CoinMark size={19} />
           </p>
           <p className="text-white/50 text-xs mt-1">Posted transactions</p>
         </div>
@@ -168,7 +169,7 @@ export function CoinLedger({
         >
           <p className="text-white/65 text-xs">Available to spend</p>
           <p className="font-heading text-xl sm:text-2xl font-bold text-sky-300 mt-1">
-            {availableBalance.toLocaleString()} <RealmIcon name="🪙" size={18} strokeWidth={2.1} />
+            {availableBalance.toLocaleString()} <CoinMark size={19} />
           </p>
           <p className="text-white/50 text-xs mt-1">
             {pendingDebits > 0 ? `${pendingDebits.toLocaleString()} reserved` : 'Nothing reserved'}

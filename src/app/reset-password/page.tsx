@@ -7,7 +7,7 @@ import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { StarField } from '@/components/star-field'
+import { RealmEmblem } from '@/components/ui/realm-emblem'
 import { toast } from 'sonner'
 
 export default function ResetPasswordPage() {
@@ -52,9 +52,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-quest-void flex items-start sm:items-center justify-center px-4 py-6 sm:py-10 overflow-y-auto safe-top safe-bottom">
-      <StarField />
-
+    <div className="min-h-screen cq-page-shell flex items-start sm:items-center justify-center px-4 py-6 sm:py-10 overflow-y-auto safe-top safe-bottom">
       <motion.div
         className="relative z-10 w-full max-w-sm"
         initial={{ opacity: 0, y: 24, scale: 0.97 }}
@@ -68,13 +66,13 @@ export default function ResetPasswordPage() {
           ← Back to sign in
         </Link>
         <div className="text-center mb-6 sm:mb-8 mt-2">
-          <motion.p
-            className="text-4xl sm:text-5xl mb-2 sm:mb-3"
+          <motion.div
+            className="inline-flex items-center justify-center text-cq-gold cq-hero-emblem mb-3 sm:mb-4"
             animate={{ y: [0, -6, 0] }}
             transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
           >
-            🏰
-          </motion.p>
+            <RealmEmblem name="crest" size={58} />
+          </motion.div>
           <h1 className="font-heading text-4xl sm:text-5xl font-black text-gradient-gold tracking-wide sm:tracking-widest mb-2">
             ChoreQuest
           </h1>
@@ -92,7 +90,7 @@ export default function ResetPasswordPage() {
         >
           {done ? (
             <div className="text-center py-4">
-              <p className="text-3xl mb-4">✅</p>
+              <p className="text-cq-forest mb-4"><RealmEmblem name="shield" size={35} /></p>
               <h2 className="font-heading text-lg font-bold text-white/90 mb-2">Password updated!</h2>
               <p className="text-white/45 text-sm">Entering the realm...</p>
             </div>
@@ -175,14 +173,14 @@ export default function ResetPasswordPage() {
                 whileHover={{ boxShadow: '0 0 30px rgba(251, 191, 36, 0.22)' }}
                 whileTap={{ scale: 0.98 }}
               >
-                {loading ? '✨ Updating...' : '🔐 Set new password'}
+                {loading ? 'Updating…' : 'Set new password'}
               </motion.button>
             </form>
           )}
         </div>
 
         <p className="text-center text-white/50 text-xs mt-6 tracking-widest uppercase">
-          ✦ ChoreQuest · The Family Realm ✦
+          ChoreQuest · A calmer way to share the work
         </p>
       </motion.div>
     </div>

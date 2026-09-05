@@ -1,7 +1,6 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { StarField } from './star-field'
 
 function Shimmer({ className = '', style }: { className?: string; style?: React.CSSProperties }) {
   return (
@@ -23,12 +22,11 @@ function Shimmer({ className = '', style }: { className?: string; style?: React.
 export function ParentSkeleton() {
   return (
     <div
-      className="min-h-screen bg-quest-void flex flex-col"
+      className="min-h-screen cq-page-shell flex flex-col"
       role="status"
       aria-live="polite"
       aria-label="Loading parent dashboard"
     >
-      <StarField />
       <div className="workspace-frame workspace-frame-parent relative z-10 flex flex-col flex-1">
         <header className="workspace-header safe-top flex items-center gap-3 px-4 sm:px-6 pb-3 sm:pb-4 flex-shrink-0 border-b border-white/10 sm:border-b-0">
           <Shimmer className="h-5 w-16 rounded-md" />
@@ -57,12 +55,11 @@ export function ParentSkeleton() {
 export function KidViewSkeleton() {
   return (
     <div
-      className="min-h-screen bg-quest-void flex flex-col"
+      className="min-h-screen cq-page-shell flex flex-col"
       role="status"
       aria-live="polite"
       aria-label="Loading quest board"
     >
-      <StarField />
       <div className="workspace-frame workspace-frame-kid relative z-10 flex flex-col flex-1">
         <header className="workspace-header safe-top flex items-center gap-3 px-4 sm:px-6 pb-4 sm:pb-5 flex-shrink-0">
           <Shimmer className="h-5 w-16 rounded-md" />
@@ -95,12 +92,11 @@ export function KidViewSkeleton() {
 export function DisplaySkeleton() {
   return (
     <div
-      className="min-h-screen bg-quest-void flex flex-col"
+      className="min-h-screen cq-page-shell flex flex-col"
       role="status"
       aria-live="polite"
       aria-label="Loading the realm"
     >
-      <StarField />
       <header className="relative z-10 flex items-center justify-between px-4 sm:px-8 py-3 sm:py-5 flex-shrink-0">
         <div className="flex-1" />
         <Shimmer className="h-8 w-44 rounded-md" />
@@ -132,12 +128,11 @@ export function DisplaySkeleton() {
 export function CenteredLoader({ label = 'Loading' }: { label?: string }) {
   return (
     <div
-      className="min-h-screen bg-quest-void flex items-center justify-center"
+      className="min-h-screen cq-page-shell flex items-center justify-center"
       role="status"
       aria-live="polite"
       aria-label={label}
     >
-      <StarField />
       <motion.p
         className="relative z-10 font-heading text-2xl text-white/40"
         animate={{ opacity: [0.3, 0.8, 0.3] }}

@@ -6,7 +6,6 @@ import { use, useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { StarField } from '@/components/star-field'
 import { QuestCard } from '@/components/quest-card'
 import { CoinCounter } from '@/components/coin-counter'
 import { StreakBadge } from '@/components/streak-badge'
@@ -329,8 +328,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   // PIN screen
   if (!pinVerified) {
     return (
-      <div className="min-h-screen bg-quest-void flex items-start sm:items-center justify-center px-4 py-6 overflow-y-auto safe-top safe-bottom">
-        <StarField />
+      <div className="min-h-screen cq-page-shell flex items-start sm:items-center justify-center px-4 py-6 overflow-y-auto safe-top safe-bottom">
         <motion.div
           className="relative z-10 w-full max-w-xs text-center"
           initial={{ opacity: 0, scale: 0.95 }}
@@ -341,12 +339,12 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
             animate={{ y: [0, -6, 0] }}
             transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
           >
-            {kid.avatar}
+            <RealmIcon name={kid.avatar} size={42} />
           </motion.span>
           <h2 className="font-heading text-3xl font-bold text-white mb-1">{kid.name}</h2>
           {lockedUntil && now < lockedUntil ? (
             <p className="text-red-400 text-sm mb-8">
-              🔒 Too many attempts — try again in{' '}
+              <RealmIcon name="🔒" size={14} /> Too many attempts — try again in{' '}
               {Math.ceil((lockedUntil - now) / 1000)}s
             </p>
           ) : (
@@ -444,8 +442,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
     personalWeekly.length > 0
 
   return (
-    <div className="min-h-screen bg-quest-void flex flex-col">
-      <StarField />
+    <div className="min-h-screen cq-page-shell flex flex-col">
 
       <div className="workspace-frame workspace-frame-kid relative z-10 flex flex-col flex-1">
         <motion.header

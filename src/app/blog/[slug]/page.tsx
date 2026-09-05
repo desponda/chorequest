@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import { createClient } from '@/lib/supabase/server'
-import { StarField } from '@/components/star-field'
 import { RealmIcon } from '@/components/ui/realm-icon'
 
 type Props = { params: Promise<{ slug: string }> }
@@ -69,8 +68,7 @@ export default async function BlogPostPage({ params }: Props) {
   const sources = Array.isArray(post.sources) ? post.sources : []
 
   return (
-    <div className="min-h-screen bg-quest-void text-white">
-      <StarField />
+    <div className="min-h-screen cq-page-shell text-white">
 
       {/* Nav */}
       <header

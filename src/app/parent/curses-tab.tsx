@@ -39,9 +39,9 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
           style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
         >
           <span className="h-14 w-14 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.62)' }}><RealmIcon name="🔒" size={29} /></span>
-          <p className="font-heading text-white/60 font-bold text-lg">Curses · Family Plan</p>
+          <p className="font-heading text-white/60 font-bold text-lg">Coin adjustments · Family plan</p>
           <p className="text-white/35 text-sm max-w-xs">
-            Curses let you instantly deduct coins for bad behavior. Available on Family and Legendary plans.
+            Create transparent coin adjustments when you need to correct the ledger. Available on Family and Legendary plans.
           </p>
         </div>
       </motion.div>
@@ -71,7 +71,7 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
       <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
         <Section title="Quick Cast">
         <div className="flex flex-col gap-3">
-          <p className="text-white/40 text-xs">Cast a one-off curse instantly — no template needed.</p>
+          <p className="text-white/40 text-xs">Make a one-off coin adjustment instantly — no template needed.</p>
           <div className="flex gap-2 flex-wrap">
             {CURSE_ICONS.map((ic) => (
               <button
@@ -124,10 +124,10 @@ export function CursesTab({ kids, curses, activeCurseInstances, actions, plan }:
         </div>
         </Section>
 
-        <Section title="Saved Curses">
+        <Section title="Saved adjustments">
         <div className="flex flex-col gap-3">
           <p className="text-white/45 text-xs">
-            Create named penalties you can cast instantly when bad behavior happens.
+            Create named adjustments you can apply consistently when a correction is needed.
           </p>
           <div className="flex gap-2 flex-wrap">
             {CURSE_ICONS.map((ic) => (

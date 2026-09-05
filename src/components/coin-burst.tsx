@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { RealmIcon } from '@/components/ui/realm-icon'
+import { CoinMark } from '@/components/ui/realm-emblem'
 
 interface Particle {
   id: number
@@ -62,7 +62,7 @@ export function CoinBurst({ coins, active }: CoinBurstProps) {
           }}
           transition={{ duration: 0.75, delay: p.delay, ease: [0.2, 0, 0.8, 1] }}
         >
-          <RealmIcon name="🪙" size={20} strokeWidth={2.1} />
+          <CoinMark size={21} />
         </motion.div>
       ))}
       <motion.div

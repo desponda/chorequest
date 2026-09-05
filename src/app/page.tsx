@@ -6,6 +6,18 @@ import Link from 'next/link'
 import { StarField } from '@/components/star-field'
 import { useEscapeToClose } from '@/lib/use-escape-to-close'
 import { RealmIcon } from '@/components/ui/realm-icon'
+import { CoinMark, RealmEmblem, type RealmEmblemName } from '@/components/ui/realm-emblem'
+
+const EMBLEM_BY_LEGACY_ICON: Record<string, RealmEmblemName> = {
+  '🧙‍♀️': 'spark', '🧝‍♂️': 'crest', '🛏️': 'quest', '🐱': 'family', '📚': 'scroll',
+  '🗑️': 'curse', '🍽️': 'reward', '🧹': 'quest', '🚗': 'bounty', '🌿': 'streak',
+  '🖥️': 'shield', '⭐': 'quest', '🔥': 'streak', '⚡': 'bounty', '🎁': 'reward',
+  '🔒': 'shield', '🏰': 'dungeon', '🗡️': 'quest', '⚔️': 'quest', '🪙': 'reward',
+}
+
+function EmblemFor({ legacy, size = 24, className }: { legacy: string; size?: number; className?: string }) {
+  return <RealmEmblem name={EMBLEM_BY_LEGACY_ICON[legacy] ?? 'spark'} size={size} className={className} />
+}
 
 // ─── Scroll-reveal wrapper ────────────────────────────────────────────────────
 function Reveal({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
@@ -37,7 +49,7 @@ function AppMockup() {
     >
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
-        <span className="font-heading text-sm font-bold tracking-widest text-cq-gold">ChoreQuest</span>
+          <span className="inline-flex items-center gap-2 font-heading text-sm font-bold tracking-widest text-cq-gold"><RealmEmblem name="crest" size={18} />ChoreQuest</span>
         <span className="text-white/30 text-xs tracking-widest uppercase">The Rivera Realm</span>
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold"
           style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)', color: '#fbbf24' }}>
@@ -79,7 +91,7 @@ function AppMockup() {
           <div className="flex-1 h-px" style={{ background: 'rgba(251,191,36,0.15)' }} />
           <span className="text-[10px] tracking-widest uppercase font-bold px-2 py-0.5 rounded-full"
             style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.2)', color: 'rgba(251,191,36,0.7)' }}>
-            <span className="inline-flex items-center gap-1"><RealmIcon name="⚡" size={12} /> Bounty Board</span>
+          <span className="inline-flex items-center gap-1.5"><RealmEmblem name="bounty" size={13} /> Bounty Board</span>
           </span>
           <div className="flex-1 h-px" style={{ background: 'rgba(251,191,36,0.15)' }} />
         </div>
@@ -116,13 +128,13 @@ function MockKidColumn({ name, avatar, color, coins, streak, quests }: {
       {/* Kid header */}
       <div className="px-3 py-2.5 flex items-center justify-between border-b" style={{ borderColor: `${primary}20` }}>
         <div className="flex items-center gap-1.5">
-          <span className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: `${primary}18`, color: primary }}>
-            <RealmIcon name={avatar} size={17} />
+          <span className="h-8 w-8 flex items-center justify-center" style={{ color: primary }}>
+            <EmblemFor legacy={avatar} size={20} />
           </span>
           <span className="font-heading text-sm font-bold" style={{ color: primary }}>{name}</span>
           {streak >= 3 && <span className="inline-flex items-center gap-0.5 text-xs text-cq-ember"><RealmIcon name="🔥" size={12} />{streak}</span>}
         </div>
-        <span className="inline-flex items-center gap-1 text-xs font-bold text-cq-gold"><RealmIcon name="🪙" size={13} />{coins}</span>
+        <span className="inline-flex items-center gap-1 text-xs font-bold text-cq-gold"><CoinMark size={14} />{coins}</span>
       </div>
       {/* Quest list */}
       <div className="p-2 flex flex-col gap-1.5">
@@ -134,8 +146,8 @@ function MockKidColumn({ name, avatar, color, coins, streak, quests }: {
           return (
             <div key={i} className="rounded-lg px-2.5 py-2 flex items-center gap-2"
               style={{ background: statusBg, border: `1px solid ${statusBorder}` }}>
-              <span className="h-6 w-6 rounded-md flex items-center justify-center" style={{ background: `${tc}18`, color: tc }}>
-                <RealmIcon name={q.icon} size={14} />
+              <span className="h-7 w-7 flex items-center justify-center" style={{ color: tc }}>
+                <EmblemFor legacy={q.icon} size={18} />
               </span>
               <span className="flex-1 text-xs font-medium truncate" style={{
                 color: q.status === 'approved' ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.85)',
@@ -144,11 +156,11 @@ function MockKidColumn({ name, avatar, color, coins, streak, quests }: {
               {q.status === 'pending' ? (
                 <motion.span className="text-[10px] text-amber-400"
                   animate={{ opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 1.6, repeat: Infinity }}><RealmIcon name="⏳" size={13} /></motion.span>
+                transition={{ duration: 1.6, repeat: Infinity }}><RealmEmblem name="spark" size={14} /></motion.span>
               ) : q.status === 'approved' ? (
                 <span className="text-[10px] text-cq-forest"><RealmIcon name="✓" size={12} /></span>
               ) : (
-                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold" style={{ color: tc }}><RealmIcon name="🪙" size={11} />{q.coins}</span>
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold" style={{ color: tc }}><CoinMark size={12} />{q.coins}</span>
               )}
             </div>
           )
@@ -170,8 +182,8 @@ function MockBountyCard({ title, icon, coins, claimed, slots, tier }: {
       opacity: isFull ? 0.5 : 1,
     }}>
       <div className="flex items-start justify-between mb-1">
-        <span className="h-6 w-6 rounded-md flex items-center justify-center" style={{ background: `${tc}18`, color: tc }}><RealmIcon name={icon} size={14} /></span>
-        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold" style={{ color: tc }}><RealmIcon name="🪙" size={11} />{coins}</span>
+        <span className="h-7 w-7 flex items-center justify-center" style={{ color: tc }}><EmblemFor legacy={icon} size={18} /></span>
+        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold" style={{ color: tc }}><CoinMark size={12} />{coins}</span>
       </div>
       <p className="text-xs font-semibold text-white/80 leading-tight mb-1">{title}</p>
       <span className="text-[10px]" style={{ color: isFull ? '#4ade80' : 'rgba(255,255,255,0.35)' }}>
@@ -184,37 +196,37 @@ function MockBountyCard({ title, icon, coins, claimed, slots, tier }: {
 // ─── Feature cards ────────────────────────────────────────────────────────────
 const FEATURES = [
   {
-    icon: '🖥️',
+    icon: 'shield' as RealmEmblemName,
     title: 'Live Wall Display',
     desc: 'Put it on your TV or tablet. Every quest, every kid, updating in real time — the whole family can see who\'s crushing it.',
     color: '#38bdf8',
   },
   {
-    icon: '⭐',
+    icon: 'quest' as RealmEmblemName,
     title: 'Quest Tiers',
     desc: 'Normal, Heroic, Legendary, Epic. Bigger jobs earn bigger coins. Kids learn that effort has a reward scale.',
     color: '#fbbf24',
   },
   {
-    icon: '🔥',
+    icon: 'streak' as RealmEmblemName,
     title: 'Streak Multipliers',
     desc: '3-day streak: +25% coins. 7-day: 1.5×. 14-day: double coins. The longer they go, the more they earn.',
     color: '#fb923c',
   },
   {
-    icon: '⚡',
+    icon: 'bounty' as RealmEmblemName,
     title: 'Family Bounty Board',
     desc: 'Shared quests siblings compete for. First to claim a slot wins — natural motivation without parent nagging.',
     color: '#a78bfa',
   },
   {
-    icon: '🎁',
+    icon: 'reward' as RealmEmblemName,
     title: 'Custom Reward Store',
     desc: 'You set the prizes: screen time, a trip to the movies, a new toy. Real-world rewards make coins matter.',
     color: '#4ade80',
   },
   {
-    icon: '🔒',
+    icon: 'shield' as RealmEmblemName,
     title: 'PIN Protection',
     desc: 'Every kid gets their own PIN. Parents lock their dashboard separately. No accidental approvals, no meddling.',
     color: '#38bdf8',
@@ -222,9 +234,9 @@ const FEATURES = [
 ]
 
 const HOW_IT_WORKS = [
-  { step: '01', icon: '🗡️', title: 'You set the quests', desc: 'Create daily or weekly quests for each kid — or shared bounties the whole family can race to complete.' },
-  { step: '02', icon: '⚔️', title: 'Kids complete their board', desc: 'Each kid logs in with their PIN and taps quests done. The wall display updates instantly for the whole family to see.' },
-  { step: '03', icon: '🪙', title: 'Earn coins, claim rewards', desc: 'You approve completed quests and coins are awarded. Kids redeem coins from your custom reward store.' },
+  { step: '01', icon: 'quest' as RealmEmblemName, title: 'You set the quests', desc: 'Create daily or weekly quests for each kid — or shared bounties the whole family can race to complete.' },
+  { step: '02', icon: 'shield' as RealmEmblemName, title: 'Kids complete their board', desc: 'Each kid logs in with their PIN and taps quests done. The wall display updates instantly for the whole family to see.' },
+  { step: '03', icon: 'reward' as RealmEmblemName, title: 'Earn coins, claim rewards', desc: 'You approve completed quests and coins are awarded. Kids redeem coins from your custom reward store.' },
 ]
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -234,7 +246,7 @@ export default function MarketingPage() {
   useEscapeToClose(mobileNavOpen, closeNav)
 
   return (
-    <div className="min-h-screen bg-quest-void text-white overflow-x-hidden">
+    <div className="min-h-screen cq-page-shell text-white overflow-x-hidden">
       <StarField />
 
       {/* ── Nav ── */}
@@ -243,7 +255,7 @@ export default function MarketingPage() {
         style={{ background: 'rgba(5,3,16,0.8)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
       >
         <div className="flex items-center gap-2">
-          <span className="h-8 w-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24' }}><RealmIcon name="⚔️" size={18} /></span>
+          <span className="inline-flex items-center justify-center text-cq-gold"><RealmEmblem name="crest" size={27} /></span>
           <span className="font-heading font-bold text-lg tracking-widest text-white/90">ChoreQuest</span>
         </div>
         <nav className="hidden md:flex items-center gap-8 text-sm text-white/45 font-medium">
@@ -329,7 +341,8 @@ export default function MarketingPage() {
       </AnimatePresence>
 
       {/* ── Hero ── */}
-      <section className="relative z-10 pt-32 pb-20 px-6 text-center">
+      <section className="relative z-10 max-w-7xl mx-auto pt-32 pb-24 px-6 grid lg:grid-cols-[0.78fr_1.22fr] lg:items-center gap-12">
+        <div className="max-w-2xl mx-auto lg:mx-0 lg:text-left">
         <motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -337,16 +350,16 @@ export default function MarketingPage() {
           className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-8"
           style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', color: 'rgba(251,191,36,0.9)' }}
         >
-          ✦ The chore app kids actually want to use
+          <RealmEmblem name="spark" size={14} /> Chores without the daily battle
         </motion.div>
 
         <motion.h1
-          className="font-heading font-black text-5xl sm:text-7xl leading-none tracking-tight mb-6"
+          className="font-heading font-black text-5xl sm:text-7xl leading-none tracking-tight mb-6 lg:text-left"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1 }}
         >
-          <span className="text-white/90">Turn chores into</span>
+          <span className="text-white/90">Turn everyday help into</span>
           <br />
           <span
             className="inline-block mt-1"
@@ -358,21 +371,21 @@ export default function MarketingPage() {
               backgroundSize: '200%',
             }}
           >
-            Legendary Quests
+            a shared adventure
           </span>
         </motion.h1>
 
         <motion.p
-          className="text-white/50 text-lg sm:text-xl max-w-xl mx-auto mb-10 leading-relaxed"
+          className="text-white/60 text-lg sm:text-xl max-w-xl mx-auto lg:mx-0 mb-10 leading-relaxed"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.25 }}
         >
-          A fantasy quest board that makes your kids compete to help around the house — with real-time family displays, coin rewards, and streak bonuses.
+          ChoreQuest turns small responsibilities into visible momentum. Set the plan, celebrate the wins, and give everyone a calmer way to help.
         </motion.p>
 
         <motion.div
-          className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16"
+          className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 mb-16"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.35 }}
@@ -396,6 +409,7 @@ export default function MarketingPage() {
             See how it works ↓
           </a>
         </motion.div>
+        </div>
 
         {/* App mockup */}
         <motion.div
@@ -435,7 +449,7 @@ export default function MarketingPage() {
                     >
                       {step.step}
                     </span>
-                    <span className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24' }}><RealmIcon name={step.icon} size={21} /></span>
+                    <span className="inline-flex h-11 w-11 items-center justify-center text-cq-gold cq-hero-emblem"><RealmEmblem name={step.icon} size={31} /></span>
                   </div>
                   <h3 className="font-heading text-lg font-bold text-white/90 mb-3">{step.title}</h3>
                   <p className="text-white/45 text-sm leading-relaxed">{step.desc}</p>
@@ -465,7 +479,7 @@ export default function MarketingPage() {
                     border: `1px solid ${f.color}20`,
                   }}
                 >
-                  <span className="h-12 w-12 rounded-2xl flex items-center justify-center mb-4" style={{ background: `${f.color}14`, color: f.color }}><RealmIcon name={f.icon} size={25} /></span>
+                  <span className="inline-flex h-14 w-14 items-center justify-center mb-4 cq-hero-emblem" style={{ color: f.color }}><RealmEmblem name={f.icon} size={38} /></span>
                   <h3 className="font-heading text-base font-bold mb-2" style={{ color: f.color }}>{f.title}</h3>
                   <p className="text-white/45 text-sm leading-relaxed">{f.desc}</p>
                 </div>
@@ -652,7 +666,7 @@ export default function MarketingPage() {
                 style={{ background: 'linear-gradient(90deg, transparent, rgba(251,191,36,0.06), transparent)' }}
               />
             </motion.div>
-            <div className="h-14 w-14 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24' }}><RealmIcon name="🏰" size={32} /></div>
+            <div className="cq-hero-emblem h-16 w-16 flex items-center justify-center mx-auto mb-5 text-cq-gold"><RealmEmblem name="dungeon" size={46} /></div>
             <h2 className="font-heading text-3xl sm:text-4xl font-bold text-white/90 mb-4">
               Ready to begin the quest?
             </h2>
@@ -682,7 +696,7 @@ export default function MarketingPage() {
       >
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
-            <span className="h-8 w-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24' }}><RealmIcon name="⚔️" size={17} /></span>
+            <span className="inline-flex items-center justify-center text-cq-gold"><RealmEmblem name="crest" size={27} /></span>
             <span className="font-heading font-bold tracking-widest text-white/60">ChoreQuest</span>
           </div>
           <p className="text-white/25 text-sm text-center">

@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { StarField } from '@/components/star-field'
 import { RealmIcon } from '@/components/ui/realm-icon'
 
 export const metadata: Metadata = {
@@ -47,8 +46,7 @@ export default async function BlogListingPage() {
   const articles = (posts ?? []) as Post[]
 
   return (
-    <div className="min-h-screen bg-quest-void text-white">
-      <StarField />
+    <div className="min-h-screen cq-page-shell text-white">
 
       {/* Nav */}
       <header

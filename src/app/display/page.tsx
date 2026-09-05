@@ -6,7 +6,6 @@ import { useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { StarField } from '@/components/star-field'
 import { DisplaySkeleton } from '@/components/skeletons'
 import { KidColumn } from '@/components/kid-column'
 import type { Kid, Quest, Completion, Family, Reward, DungeonRun, DungeonClear, RaidBoss } from '@/lib/types'
@@ -17,6 +16,7 @@ import { toast } from 'sonner'
 import { useEscapeToClose } from '@/lib/use-escape-to-close'
 import { useFocusTrap } from '@/lib/use-focus-trap'
 import { RealmIcon } from '@/components/ui/realm-icon'
+import { RealmEmblem } from '@/components/ui/realm-emblem'
 
 export default function WallDisplay() {
   const [family, setFamily] = useState<Family | null>(null)
@@ -225,10 +225,9 @@ export default function WallDisplay() {
 
   if (loadError) {
     return (
-      <div className="min-h-screen bg-quest-void flex items-center justify-center px-4 text-center safe-top safe-bottom">
-        <StarField />
+      <div className="min-h-screen cq-page-shell flex items-center justify-center px-4 text-center safe-top safe-bottom">
         <div className="relative z-10 max-w-sm">
-          <div className="h-14 w-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(56,189,248,0.12)', color: '#38bdf8' }} aria-hidden="true"><RealmIcon name="🌩️" size={30} /></div>
+          <div className="cq-hero-emblem h-14 w-14 flex items-center justify-center mx-auto mb-4 text-cq-azure" aria-hidden="true"><RealmEmblem name="spark" size={34} /></div>
           <h1 className="font-heading text-2xl font-bold text-white mb-2">The realm is out of reach</h1>
           <p className="text-white/60 text-sm mb-6">{loadError}</p>
           <button
@@ -249,14 +248,13 @@ export default function WallDisplay() {
 
   if (kids.length === 0) {
     return (
-      <div className="min-h-screen bg-quest-void flex items-center justify-center">
-        <StarField />
+      <div className="min-h-screen cq-page-shell flex items-center justify-center">
         <motion.div
           className="relative z-10 text-center px-6 max-w-md"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <div className="h-20 w-20 rounded-3xl flex items-center justify-center mx-auto mb-6" style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24' }}><RealmIcon name="🏰" size={46} /></div>
+          <div className="cq-hero-emblem h-20 w-20 flex items-center justify-center mx-auto mb-6 text-cq-gold"><RealmEmblem name="dungeon" size={54} /></div>
           <h1 className="font-heading text-4xl font-bold text-white mb-4">Welcome, Realm Master</h1>
           <p className="text-white/50 text-lg mb-8">
             Add your young adventurers to begin the quests.
@@ -278,8 +276,7 @@ export default function WallDisplay() {
   }
 
   return (
-    <div className="min-h-screen bg-quest-void flex flex-col">
-      <StarField />
+    <div className="min-h-screen cq-page-shell flex flex-col">
 
       {/* Header */}
       <motion.header

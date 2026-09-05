@@ -5,10 +5,10 @@ export const dynamic = 'force-dynamic'
 import { useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { StarField } from '@/components/star-field'
 import { ParentSkeleton } from '@/components/skeletons'
 import { ConfirmDelete } from '@/components/ui/confirm-delete'
 import { RealmIcon } from '@/components/ui/realm-icon'
+import { RealmEmblem, type RealmEmblemName } from '@/components/ui/realm-emblem'
 
 import { useParentData } from './use-parent-data'
 import { useParentActions } from './use-parent-actions'
@@ -75,24 +75,22 @@ export default function ParentDashboard() {
     )
   }
 
-  const tabs: { id: Tab; icon: string; label: string; badge?: number }[] = [
-    { id: 'approvals', icon: '✓', label: 'Approvals', badge: pendingCompletions.length + pendingRedemptions.length },
-    { id: 'quests', icon: '⚔️', label: 'Quests' },
-    { id: 'rewards', icon: '🎁', label: 'Rewards' },
-    { id: 'curses', icon: '☠️', label: 'Curses', badge: data.activeCurseInstances.length || undefined },
-    { id: 'dungeons', icon: '🏰', label: 'Dungeons' },
-    { id: 'family', icon: '👨‍👩‍👧', label: 'Family' },
+  const tabs: { id: Tab; icon: RealmEmblemName; label: string; badge?: number }[] = [
+    { id: 'approvals', icon: 'shield', label: 'Approvals', badge: pendingCompletions.length + pendingRedemptions.length },
+    { id: 'quests', icon: 'quest', label: 'Quests' },
+    { id: 'rewards', icon: 'reward', label: 'Rewards' },
+    { id: 'curses', icon: 'curse', label: 'Coin adjustments', badge: data.activeCurseInstances.length || undefined },
+    { id: 'dungeons', icon: 'dungeon', label: 'Challenges' },
+    { id: 'family', icon: 'family', label: 'Family' },
   ]
 
   const qrKid = qrKidId ? data.kids.find((k) => k.id === qrKidId) ?? null : null
 
   return (
-    <div className="min-h-screen bg-quest-void flex flex-col">
-      <StarField />
-
+    <div className="min-h-screen cq-page-shell flex flex-col">
       <div className="workspace-frame workspace-frame-parent relative z-10 flex flex-col flex-1">
         <motion.header
-          className="workspace-header safe-top grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-4 sm:px-6 pb-3 sm:pb-4 flex-shrink-0 border-b border-white/10 sm:border-b-0"
+          className="workspace-header cq-command-header safe-top grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-4 sm:px-6 pb-3 sm:pb-4 flex-shrink-0 border-b border-white/10 sm:border-b-0"
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -128,7 +126,7 @@ export default function ParentDashboard() {
         </motion.header>
 
         <div
-          className="workspace-tabs grid grid-cols-3 sm:grid-cols-6 gap-2 mx-4 sm:mx-6 my-3 sm:my-0 sm:mb-4 flex-shrink-0"
+          className="workspace-tabs cq-command-tabs grid grid-cols-3 sm:grid-cols-6 gap-2 mx-4 sm:mx-6 my-3 sm:my-0 sm:mb-4 flex-shrink-0"
           role="tablist"
           aria-label="Parent dashboard sections"
         >
@@ -152,12 +150,12 @@ export default function ParentDashboard() {
               }}
             >
               {/* Mobile: icon + tiny label stacked */}
-              <span className="sm:hidden text-base leading-none" aria-hidden="true"><RealmIcon name={t.icon} size={17} /></span>
+              <span className="sm:hidden leading-none text-cq-gold" aria-hidden="true"><RealmEmblem name={t.icon} size={18} /></span>
               <span className="sm:hidden text-[10px] font-bold tracking-wide uppercase leading-none">
                 {t.label}
               </span>
               {/* Desktop: icon + full label inline */}
-              <span className="hidden sm:inline-flex items-center gap-1.5"><RealmIcon name={t.icon} size={16} /> {t.label}</span>
+              <span className="hidden sm:inline-flex items-center gap-1.5"><RealmEmblem name={t.icon} size={18} /> {t.label}</span>
               {/* Desktop badge: inline pill */}
               {t.badge && t.badge > 0 ? (
                 <>

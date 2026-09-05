@@ -7,6 +7,7 @@ import { KID_COLORS, TIER_CONFIG } from '@/lib/constants'
 import { CoinBurst } from './coin-burst'
 import { TierBadge } from './ui/tier-badge'
 import { RealmIcon } from './ui/realm-icon'
+import { CoinMark } from './ui/realm-emblem'
 
 interface QuestCardProps {
   quest: Quest
@@ -308,10 +309,10 @@ export function QuestCard({
               ) : null}
             </div>
 
-            {/* Coins: emoji fixed-width + number right-aligned — keeps 🪙 pinned regardless of digit count */}
+            {/* Coin mark stays fixed-width so the amount remains visually aligned. */}
             <div className="quest-coin-slot" style={{ width: '48px', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
               <span data-testid="quest-coin-icon" className="flex items-center justify-center" style={{ width: '18px', flexShrink: 0, color: '#fbbf24' }}>
-                <RealmIcon name="🪙" size={15} />
+                <CoinMark size={16} />
               </span>
               <span className="font-heading font-bold text-sm" style={{ flex: 1, textAlign: 'right', color: isNormal ? '#fbbf24' : tier.color }}>
                 {quest.coins}

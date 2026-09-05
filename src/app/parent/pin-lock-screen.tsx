@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { StarField } from '@/components/star-field'
+import { RealmEmblem } from '@/components/ui/realm-emblem'
 
 interface Props {
   lockPinInput: string
@@ -25,24 +25,23 @@ export function PinLockScreen({ lockPinInput, lockPinError, parentLockedUntil, n
   }, [lockPinInput, onDigit, onBackspace])
 
   return (
-    <div className="min-h-screen bg-quest-void flex items-start sm:items-center justify-center px-4 py-6 overflow-y-auto safe-top safe-bottom">
-      <StarField />
+    <div className="min-h-screen cq-page-shell flex items-start sm:items-center justify-center px-4 py-6 overflow-y-auto safe-top safe-bottom">
       <motion.div
         className="relative z-10 w-full max-w-xs text-center"
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
       >
         <motion.span
-          className="text-6xl block mb-4"
+          className="text-cq-gold cq-hero-emblem inline-flex mb-4"
           animate={{ y: [0, -6, 0] }}
           transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
         >
-          🔒
+          <RealmEmblem name="shield" size={54} />
         </motion.span>
         <h2 className="font-heading text-3xl font-bold text-white mb-1">Parent Command</h2>
         {parentLockedUntil && now < parentLockedUntil ? (
           <p className="text-red-400 text-sm mb-8">
-            🔒 Too many attempts — try again in{' '}
+            <RealmEmblem name="shield" size={14} /> Too many attempts — try again in{' '}
             {Math.ceil((parentLockedUntil - now) / 1000)}s
           </p>
         ) : (
