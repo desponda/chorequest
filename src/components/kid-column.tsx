@@ -177,6 +177,7 @@ export function KidColumn({
                 isParent={isParent}
                 onApprove={onApprove}
                 onReject={onReject}
+                displayMode
               />
             </motion.div>
           )

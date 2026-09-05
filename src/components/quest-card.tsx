@@ -23,6 +23,8 @@ interface QuestCardProps {
   isParent?: boolean
   onApprove?: (completionId: string) => Promise<void>
   onReject?: (completionId: string) => Promise<void>
+  /** Uses the wider family-display row geometry without changing the kid board. */
+  displayMode?: boolean
 }
 
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
@@ -50,6 +52,7 @@ export function QuestCard({
   isParent,
   onApprove,
   onReject,
+  displayMode = false,
 }: QuestCardProps) {
   const [loading, setLoading] = useState(false)
   const [bursting, setBursting] = useState(false)
@@ -114,7 +117,7 @@ export function QuestCard({
 
   return (
     <motion.div
-      className="cq-quest-card group relative rounded-2xl overflow-hidden"
+      className={`cq-quest-card group relative rounded-2xl overflow-hidden${displayMode ? ' cq-display-quest-card' : ''}`}
       style={{
         background: cardBg,
         border: `1px solid ${cardBorder}`,
@@ -151,7 +154,7 @@ export function QuestCard({
           </span>
 
           {/* Title + tier badge, flex-1 truncates long titles */}
-          <div className="flex-1 min-w-0">
+          <div className="quest-copy flex-1 min-w-0">
             <div className="flex items-center gap-1 min-w-0">
               <p
                 className={`font-extrabold text-[15px] leading-snug truncate ${
