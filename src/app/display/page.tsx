@@ -287,7 +287,7 @@ export default function WallDisplay() {
 
       {/* Family command header */}
       <motion.header
-        className="cq-display-header safe-top relative z-10 mx-4 sm:mx-8 mt-4 sm:mt-6 mb-3 sm:mb-4 px-4 sm:px-6 py-4 sm:py-5 flex-shrink-0"
+        className="cq-display-header safe-top relative z-10 mt-4 sm:mt-6 mb-3 sm:mb-4 px-4 sm:px-6 py-4 sm:py-5 flex-shrink-0"
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
@@ -370,7 +370,7 @@ export default function WallDisplay() {
       </motion.header>
 
       <motion.section
-        className="cq-display-overview relative z-10 mx-4 sm:mx-8 mb-4 sm:mb-5"
+        className="cq-display-overview relative z-10 mb-4 sm:mb-5"
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.16 }}
@@ -390,7 +390,7 @@ export default function WallDisplay() {
 
       {/* Dungeon + Raid Boss progress bar */}
       {(activeDungeon || activeBoss) && (
-        <div className="relative z-10 px-4 sm:px-8 pb-2 flex flex-col gap-2">
+        <div className="cq-display-wide-strip relative z-10 pb-2 flex flex-col gap-2">
           {/* Raid Boss — shared HP bar across full width */}
           {activeBoss && (
             <motion.div
@@ -478,7 +478,7 @@ export default function WallDisplay() {
       )}
 
       {/* Kid columns */}
-      <main className="cq-display-workspace relative z-10 flex-1 min-h-0 mx-4 sm:mx-8">
+      <main className="cq-display-workspace relative z-10 flex-1 min-h-0">
         <div className="cq-display-section-head">
           <div>
             <p className="cq-display-kicker">Adventurer boards</p>
@@ -516,7 +516,7 @@ export default function WallDisplay() {
       {/* Bounty Board */}
       {bountyQuests.length > 0 && (
         <motion.section
-          className="relative z-10 px-4 sm:px-8 pb-6 flex-shrink-0"
+          className="cq-display-bounty relative z-10 pb-6 flex-shrink-0"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}

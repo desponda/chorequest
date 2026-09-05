@@ -144,7 +144,18 @@ export function KidColumn({
       </motion.div>
 
       {/* Quest list */}
-      {(() => {
+      <div className="cq-display-quest-panel flex flex-col flex-1 min-h-0">
+        <div className="cq-display-quest-heading">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="cq-display-quest-heading-icon" aria-hidden="true"><RealmIcon name="📜" size={17} /></span>
+            <div className="min-w-0">
+              <p className="cq-display-kicker">Personal quests</p>
+              <p className="cq-display-quest-label">{totalCount === 1 ? '1 quest' : `${totalCount} quests`} on the board</p>
+            </div>
+          </div>
+          {totalCount > 0 && <span className="cq-display-quest-count">{completedCount}/{totalCount} cleared</span>}
+        </div>
+        {(() => {
         // Personal-kind quests live in the per-kid column. Shared/oneoff are surfaced on the bounty board.
         const personalQuests = quests.filter(q => q.kind === 'personal')
         let cardIndex = 0
@@ -189,7 +200,8 @@ export function KidColumn({
             {personalQuests.map(renderCard)}
           </div>
         )
-      })()}
+        })()}
+      </div>
     </div>
   )
 }
