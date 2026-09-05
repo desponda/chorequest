@@ -17,7 +17,7 @@ import { isQuestVisibleToKid, kidHasActiveCompletion, sharedClaimedCount, kidCom
 import { toast } from 'sonner'
 import { CoinLedger } from '@/components/coin-ledger'
 import type { LedgerEntry, PendingLedgerEntry } from '@/lib/ledger'
-import { getLevelTitle } from '@/lib/xp'
+import { getLevelTitle, getXPProgress } from '@/lib/xp'
 import { classifyRedemptionChanges } from '@/lib/redemption-notifications'
 import { RealmIcon } from '@/components/ui/realm-icon'
 
@@ -321,6 +321,7 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
   const today = questDateStringForZone(resetHour, timeZone)
   const weekStart = questWeekKeyForZone(resetHour, timeZone)
   const colors = KID_COLORS[kid.color]
+  const xpProgress = getXPProgress(kid.xp ?? 0)
   const pendingTotal = pendingRedemptions.reduce((sum, r) => sum + (r.cost_charged ?? r.reward?.cost ?? 0), 0)
   const availableCoins = Math.max(0, kid.coins - pendingTotal)
   const pendingCompletions = completions.filter(c => c.status === 'pending')
@@ -446,35 +447,62 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
 
       <div className="workspace-frame workspace-frame-kid relative z-10 flex flex-col flex-1">
         <motion.header
-          className="workspace-header safe-top flex min-[480px]:grid min-[480px]:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-4 px-4 sm:px-6 pb-4 sm:pb-5 flex-shrink-0"
+          className="cq-kid-hero safe-top px-4 py-4 sm:px-6 sm:py-5 flex-shrink-0"
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Link
-            href="/display"
-            className="justify-self-start text-white/60 hover:text-white/90 transition-all text-sm min-h-[44px] flex items-center px-1"
-          >
-            ← Realm
-          </Link>
-
-          <div className="flex-1 min-[480px]:flex-none min-w-0 flex items-center gap-2 sm:gap-3 justify-center">
-            <span className="h-10 w-10 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: `${colors.primary}16`, color: colors.primary }}><RealmIcon name={kid.avatar} size={23} /></span>
-            <div>
-              <h1 className="font-heading text-xl sm:text-2xl font-bold text-white/95 truncate">{kid.name}</h1>
-              <p className="text-xs" style={{ color: colors.primary }}>
-                {getLevelTitle(kid.level ?? 1)} · Lv {kid.level ?? 1}
-              </p>
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              href="/display"
+              className="cq-kid-hero-back min-h-11 inline-flex items-center gap-1.5 rounded-xl px-2 text-sm text-white/65 transition-all hover:text-white"
+            >
+              <RealmIcon name="←" size={15} /> Realm
+            </Link>
+            <span className="cq-kid-hero-kicker hidden min-[420px]:inline-flex">Today&apos;s adventure</span>
+            <div className="flex items-center gap-2 sm:gap-3">
+              {kid.streak > 1 && <StreakBadge streak={kid.streak} compact />}
+              <span className="cq-kid-coin-summary"><CoinCounter value={availableCoins} size="sm" /></span>
             </div>
           </div>
 
-          <div className="justify-self-end flex items-center gap-2 sm:gap-3">
-            {kid.streak > 1 && <span className="hidden min-[480px]:inline-flex"><StreakBadge streak={kid.streak} compact /></span>}
-            <CoinCounter value={availableCoins} size="sm" />
+          <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+              <span
+                className="cq-kid-avatar-large flex-shrink-0"
+                style={{ background: `${colors.primary}18`, borderColor: colors.border, color: colors.primary }}
+              >
+                <RealmIcon name={kid.avatar} size={30} />
+              </span>
+              <div className="min-w-0">
+                <p className="cq-kid-hero-label">{getLevelTitle(kid.level ?? 1)} · Level {kid.level ?? 1}</p>
+                <h1 className="cq-kid-hero-title truncate">{kid.name}&apos;s quest board</h1>
+                <p className="text-sm text-white/55 truncate">Pick a quest, make progress, earn the next reward.</p>
+              </div>
+            </div>
+            <div className="cq-kid-progress-summary flex-shrink-0">
+              <span className="text-xs uppercase tracking-[0.16em] text-white/45">Today</span>
+              <strong style={{ color: colors.primary }}>{personalDailyDoneCount}/{personalDaily.length || 0}</strong>
+              <span className="text-xs text-white/50">quests complete</span>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <div className="flex items-center justify-between gap-3 text-xs text-white/55">
+              <span>Level progress</span>
+              <span className="tabular-nums">{xpProgress.currentXP}/{xpProgress.neededXP} XP</span>
+            </div>
+            <div className="cq-kid-progress-track mt-2" aria-label={`${xpProgress.pct}% level progress`}>
+              <span style={{ width: `${xpProgress.pct}%`, background: colors.primary }} />
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-white/40">
+              <span>{xpProgress.pct}% to the next level</span>
+              <span>{availableCoins.toLocaleString()} coins ready to spend</span>
+            </div>
           </div>
         </motion.header>
 
         <div
-          className="workspace-tabs grid grid-cols-4 mx-4 sm:mx-6 gap-1.5 sm:gap-2 mb-4 flex-shrink-0"
+          className="cq-kid-nav workspace-tabs grid grid-cols-4 mx-4 sm:mx-6 gap-1.5 sm:gap-2 mb-4 flex-shrink-0"
           role="tablist"
           aria-label="Adventurer sections"
         >
@@ -504,15 +532,11 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                 tabIndex={tab === t ? 0 : -1}
                 className="kid-workspace-tab relative min-w-0 min-h-11 sm:min-h-12 px-1.5 sm:px-3 py-2 rounded-xl text-[11px] sm:text-sm font-semibold transition-all flex items-center justify-center gap-1.5"
                 style={{
-                  background: tab === t
-                    ? (t === 'bounty' ? 'rgba(251,191,36,0.12)' : colors.bg)
-                    : 'rgba(255,255,255,0.025)',
-                  border: `1px solid ${tab === t
-                    ? (t === 'bounty' ? 'rgba(251,191,36,0.35)' : colors.border)
-                    : 'rgba(255,255,255,0.04)'}`,
+                  background: tab === t ? (t === 'bounty' ? 'rgba(251,191,36,0.14)' : colors.bg) : 'transparent',
+                  border: `1px solid ${tab === t ? (t === 'bounty' ? 'rgba(251,191,36,0.35)' : colors.border) : 'transparent'}`,
                   color: tab === t
                     ? (t === 'bounty' ? '#fbbf24' : colors.primary)
-                    : 'rgba(255,255,255,0.68)',
+                    : 'rgba(255,255,255,0.58)',
                 }}
               >
                 <span aria-hidden="true"><RealmIcon name={labels[t].icon} size={17} /></span>
@@ -558,7 +582,12 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                 {activeCurses.length > 0 && <ActiveCursesSection curses={activeCurses} />}
 
                 {personalDaily.length > 0 && (
-                  <Section title={`Today (${personalDailyDoneCount}/${personalDaily.length})`}>
+                  <Section
+                    title="Today"
+                    icon="📅"
+                    subtitle="Small wins that keep your momentum moving"
+                    progress={`${personalDailyDoneCount}/${personalDaily.length}`}
+                  >
                     {personalDaily.map((q, i) => {
                       const c = completions.find((c) => c.quest_id === q.id && c.date === today)
                       return (
@@ -577,7 +606,12 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
                 )}
 
                 {personalWeekly.length > 0 && (
-                  <Section title={`This Week (${personalWeeklyDoneCount}/${personalWeekly.length})`}>
+                  <Section
+                    title="This week"
+                    icon="🎯"
+                    subtitle="Bigger quests with room to breathe"
+                    progress={`${personalWeeklyDoneCount}/${personalWeekly.length}`}
+                  >
                     {personalWeekly.map((q, i) => {
                       const c = completions.find((c) => c.quest_id === q.id && c.kid_id === kid.id && c.date >= weekStart)
                       return (
@@ -665,17 +699,43 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
-function Section({ title, accent, children }: { title: string; accent?: 'gold'; children: React.ReactNode }) {
+function Section({
+  title,
+  icon,
+  subtitle,
+  progress,
+  accent,
+  children,
+}: {
+  title: string
+  icon?: string
+  subtitle?: string
+  progress?: string
+  accent?: 'gold'
+  children: React.ReactNode
+}) {
   return (
-    <div>
-      <p
-        className="text-xs font-bold uppercase tracking-widest mb-2"
-        style={{ color: accent === 'gold' ? 'rgba(251,191,36,0.85)' : 'rgba(255,255,255,0.62)' }}
-      >
-        {title}
-      </p>
-      <div className="flex flex-col gap-3">{children}</div>
-    </div>
+    <section className="cq-board-section" data-section={title}>
+      <div className="cq-board-section-header">
+        <div className="flex min-w-0 items-center gap-3">
+          {icon && (
+            <span className="cq-board-section-icon" style={{ color: accent === 'gold' ? '#fbbf24' : 'rgba(255,255,255,0.72)' }} aria-hidden="true">
+              <RealmIcon name={icon} size={18} />
+            </span>
+          )}
+          <div className="min-w-0">
+            <h2 className="text-base font-extrabold text-white/90">{title}</h2>
+            {subtitle && <p className="mt-0.5 text-xs text-white/48 truncate">{subtitle}</p>}
+          </div>
+        </div>
+        {progress && (
+          <span className="cq-board-section-progress" style={{ color: accent === 'gold' ? '#fbbf24' : 'rgba(255,255,255,0.68)' }}>
+            {progress} complete
+          </span>
+        )}
+      </div>
+      <div className="cq-board-quest-list">{children}</div>
+    </section>
   )
 }
 

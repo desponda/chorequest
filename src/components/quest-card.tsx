@@ -6,6 +6,7 @@ import type { Quest, Completion, KidColor } from '@/lib/types'
 import { KID_COLORS, TIER_CONFIG } from '@/lib/constants'
 import { CoinBurst } from './coin-burst'
 import { TierBadge } from './ui/tier-badge'
+import { KindBadge } from './ui/kind-badge'
 import { RealmIcon } from './ui/realm-icon'
 import { CoinMark } from './ui/realm-emblem'
 
@@ -86,12 +87,12 @@ export function QuestCard({
     : tier.border
 
   const cardShadow = isPending
-    ? '0 0 20px rgba(251, 191, 36, 0.12)'
+    ? '0 10px 24px rgba(251, 191, 36, 0.1)'
     : isApproved
-    ? '0 0 16px rgba(74, 222, 128, 0.1)'
+    ? '0 10px 24px rgba(74, 222, 128, 0.08)'
     : isShareLocked
     ? 'none'
-    : tier.glow ?? 'none'
+    : '0 10px 24px rgba(0, 0, 0, 0.16)'
 
   const freqLabel = cadenceLabel(quest)
   const hasActiveDays = quest.active_days && quest.active_days.length > 0 && quest.active_days.length < 7
@@ -113,7 +114,7 @@ export function QuestCard({
 
   return (
     <motion.div
-      className="cq-quest-card relative rounded-2xl overflow-hidden"
+      className="cq-quest-card group relative rounded-2xl overflow-hidden"
       style={{
         background: cardBg,
         border: `1px solid ${cardBorder}`,
@@ -138,39 +139,11 @@ export function QuestCard({
         />
       )}
 
-      {quest.tier === 'legendary' && !hasCompletionState && (
-        <motion.div
-          className="absolute inset-0 pointer-events-none rounded-2xl overflow-hidden"
-          initial={{ x: '-120%' }}
-          animate={{ x: '220%' }}
-          transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 5, ease: 'easeInOut' }}
-        >
-          <div
-            className="absolute inset-y-0 w-1/3 -skew-x-12"
-            style={{ background: 'linear-gradient(90deg, transparent, rgba(251,191,36,0.1), transparent)' }}
-          />
-        </motion.div>
-      )}
-
-      {quest.tier === 'epic' && !hasCompletionState && (
-        <motion.div
-          className="absolute inset-0 pointer-events-none rounded-2xl overflow-hidden"
-          initial={{ x: '-120%' }}
-          animate={{ x: '220%' }}
-          transition={{ duration: 3, repeat: Infinity, repeatDelay: 7, ease: 'easeInOut' }}
-        >
-          <div
-            className="absolute inset-y-0 w-1/3 -skew-x-12"
-            style={{ background: 'linear-gradient(90deg, transparent, rgba(167,139,250,0.12), transparent)' }}
-          />
-        </motion.div>
-      )}
-
-      <div className="px-3 py-2.5">
+      <div className="px-4 py-3">
         {/* Single row: icon | title+badge | action | coins */}
         <div className="flex items-center gap-2.5">
           <span
-            className="h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            className="cq-quest-icon h-11 w-11 rounded-2xl flex items-center justify-center flex-shrink-0"
             style={{ background: `rgba(${kidRgb}, 0.11)`, color: colors.primary }}
             aria-hidden="true"
           >
@@ -181,7 +154,7 @@ export function QuestCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1 min-w-0">
               <p
-                className={`font-semibold text-sm leading-snug truncate ${
+                className={`font-extrabold text-[15px] leading-snug truncate ${
                   isApproved ? 'text-white/60' : isShareLocked ? 'text-white/35' : 'text-white/90'
                 }`}
               >
@@ -190,11 +163,16 @@ export function QuestCard({
               <TierBadge tier={quest.tier} className="max-[359px]:hidden" />
             </div>
 
+            {quest.description && (
+              <p className="mt-1 text-xs text-white/48 truncate">{quest.description}</p>
+            )}
+
             {hasSecondLine && (
-              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                 {!isNormal && (
                   <TierBadge tier={quest.tier} className="min-[360px]:hidden" />
                 )}
+                <KindBadge kind={quest.kind} />
                 {freqLabel && (
                   <span
                     className="text-[10px] px-1.5 py-0.5 rounded-md"

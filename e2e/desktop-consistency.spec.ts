@@ -86,7 +86,8 @@ async function openKidWorkspace(page: Page) {
   )
   await page.goto(`/kid/${KID_ID}`)
   await page.waitForLoadState('networkidle')
-  await expect(page.getByRole('heading', { name: 'Aria' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: "Aria's quest board" })).toBeVisible()
+  await expect(page.getByText('Level progress')).toBeVisible()
 }
 
 test.describe('Desktop workspace consistency', () => {
