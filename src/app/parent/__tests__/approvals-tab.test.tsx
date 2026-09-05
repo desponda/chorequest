@@ -121,6 +121,26 @@ describe('ApprovalsTab — review history', () => {
     expect(screen.getByText('Review history')).toBeInTheDocument()
   })
 
+  it('shows the actual coin impact for reviewed completions', () => {
+    const approved = makeCompletion({ date: todayStr(0), status: 'approved', coins_awarded: 25 })
+    const rejected = makeCompletion({ date: todayStr(-1), status: 'rejected' })
+
+    render(
+      <ApprovalsTab
+        pendingCompletions={[]}
+        pendingRedemptions={[]}
+        reviewedRedemptions={[]}
+        reviewedCompletions={[approved, rejected]}
+        resolvedCurseInstances={[]}
+        actions={noActions}
+      />
+    )
+
+    expect(screen.getByText('+25')).toBeInTheDocument()
+    expect(screen.getByText('Rejected')).toBeInTheDocument()
+    expect(screen.queryByText('Earned')).not.toBeInTheDocument()
+  })
+
   it('shows date on each pending completion', () => {
     const pending = makeCompletion({ date: todayStr(-1), status: 'approved' })
     // Re-use as a pending completion (override status)

@@ -2,11 +2,11 @@
 
 import { motion } from 'framer-motion'
 import { QuestCard } from '@/components/quest-card'
-import { StatusChip } from '@/components/ui/status-chip'
 import type { Kid, Quest, Completion, Reward, Redemption, CurseInstance, Curse } from '@/lib/types'
 import { Empty, fadeSlide } from './_ui'
 import type { ParentActions } from './use-parent-actions'
 import { RealmIcon } from '@/components/ui/realm-icon'
+import { CoinMark } from '@/components/ui/realm-emblem'
 
 function formatQuestDate(date: string): string {
   const now = new Date()
@@ -27,6 +27,94 @@ interface Props {
   reviewedCompletions: Completion[]
   resolvedCurseInstances: CurseInstance[]
   actions: ParentActions
+}
+
+type OutcomeTone = 'positive' | 'negative' | 'gold' | 'muted'
+
+function ReviewOutcome({
+  amount,
+  label,
+  tone,
+}: {
+  amount?: number
+  label?: string
+  tone: OutcomeTone
+}) {
+  const styles: Record<OutcomeTone, { color: string; background: string; border: string }> = {
+    positive: { color: '#86efac', background: 'rgba(74,222,128,0.09)', border: 'rgba(74,222,128,0.2)' },
+    negative: { color: '#fca5a5', background: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.18)' },
+    gold: { color: '#fbbf24', background: 'rgba(251,191,36,0.09)', border: 'rgba(251,191,36,0.2)' },
+    muted: { color: 'rgba(255,255,255,0.55)', background: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.1)' },
+  }
+  const style = styles[tone]
+
+  return (
+    <span
+      className="inline-flex items-center justify-end gap-1 rounded-lg border px-2 py-1 text-xs font-bold whitespace-nowrap"
+      style={{ color: style.color, background: style.background, borderColor: style.border }}
+    >
+      {amount !== undefined ? (
+        <>
+          <span>{amount > 0 ? `+${amount.toLocaleString()}` : amount.toLocaleString()}</span>
+          <CoinMark size={13} />
+        </>
+      ) : label}
+    </span>
+  )
+}
+
+function ReviewRow({
+  icon,
+  title,
+  meta,
+  date,
+  outcome,
+  outcomeTone,
+  onUndo,
+  undoLabel,
+}: {
+  icon: string
+  title: string
+  meta: string
+  date: string
+  outcome: { amount?: number; label?: string }
+  outcomeTone: OutcomeTone
+  onUndo?: () => void
+  undoLabel: string
+}) {
+  return (
+    <div className="group grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-3 sm:gap-x-5 px-4 sm:px-5 py-3 transition-colors hover:bg-white/[0.025]">
+      <div className="flex min-w-0 items-center gap-3">
+        <span
+          className="h-9 w-9 rounded-xl flex-shrink-0 inline-flex items-center justify-center"
+          style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.16)' }}
+          aria-hidden="true"
+        >
+          <RealmIcon name={icon} size={17} />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-white/85 truncate">{title}</p>
+          <p className="text-xs text-white/45 truncate mt-0.5">{meta}</p>
+        </div>
+      </div>
+      <div className="flex min-w-[5.5rem] flex-col items-end gap-1">
+        <span className="text-xs text-white/40 whitespace-nowrap">{date}</span>
+        <ReviewOutcome {...outcome} tone={outcomeTone} />
+      </div>
+      {onUndo ? (
+        <button
+          onClick={onUndo}
+          className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-xl text-white/45 hover:text-cq-gold hover:bg-white/[0.06] transition-all"
+          title={undoLabel}
+          aria-label={undoLabel}
+        >
+          <RealmIcon name="↩" size={15} />
+        </button>
+      ) : (
+        <span className="min-h-11 min-w-11" aria-hidden="true" />
+      )}
+    </div>
+  )
 }
 
 export function ApprovalsTab({
@@ -141,30 +229,36 @@ export function ApprovalsTab({
       )}
 
       {reviewed.length > 0 && (
-        <div>
-          <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Review history</p>
-          {reviewed.map((entry) => {
+        <section className="surface-panel rounded-2xl overflow-hidden max-w-5xl" aria-labelledby="review-history-title">
+          <div className="flex items-start justify-between gap-3 px-4 sm:px-5 py-4 border-b border-white/10">
+            <div>
+              <h2 id="review-history-title" className="text-xs font-bold uppercase tracking-widest text-white/65">Review history</h2>
+              <p className="text-xs text-white/40 mt-1">Recent approvals, rewards, and adjustments</p>
+            </div>
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-semibold text-white/55 whitespace-nowrap">
+              {reviewed.length} {reviewed.length === 1 ? 'entry' : 'entries'}
+            </span>
+          </div>
+          <div className="divide-y divide-white/5">
+            {reviewed.map((entry) => {
             if (entry.kind === 'completion') {
               const c = entry.item
               const kid = c.kid as Kid | undefined
               if (!kid) return null
+              const quest = c.quest as Quest | undefined
+              const coins = c.coins_awarded ?? c.coins_requested ?? quest?.coins ?? 0
               return (
-                <div key={c.id} className="grid items-center gap-x-2 py-1.5" style={{ gridTemplateColumns: '1fr 5.5rem 6.5rem 1.5rem' }}>
-                  <span className="text-sm truncate flex items-center gap-1.5 min-w-0">
-                    <span className="flex-shrink-0"><RealmIcon name={kid.avatar} size={15} /></span>
-                    <span className="text-white/50 flex-shrink-0">{kid.name}</span>
-                    <span className="text-white/35 truncate">{(c.quest as Quest)?.title}</span>
-                  </span>
-                  <span className="text-white/25 text-xs whitespace-nowrap">{formatQuestDate(c.date)}</span>
-                  <StatusChip status={c.status} />
-                  <button
-                    onClick={() => c.status === 'approved' ? actions.undoApproval(c.id) : actions.undoRejection(c.id)}
-                    className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-xl text-xs text-white/60 hover:text-cq-gold transition-all"
-                    title="Undo"
-                  >
-                    <RealmIcon name="↩" size={15} />
-                  </button>
-                </div>
+                <ReviewRow
+                  key={c.id}
+                  icon={quest?.icon ?? kid.avatar}
+                  title={quest?.title ?? 'Quest completion'}
+                  meta={`${kid.name} · ${c.status === 'approved' ? 'Approved quest' : 'Marked for retry'}`}
+                  date={formatQuestDate(c.date)}
+                  outcome={c.status === 'approved' ? { amount: coins } : { label: 'Rejected' }}
+                  outcomeTone={c.status === 'approved' ? 'positive' : 'negative'}
+                  onUndo={() => c.status === 'approved' ? actions.undoApproval(c.id) : actions.undoRejection(c.id)}
+                  undoLabel={c.status === 'approved' ? 'Undo approval' : 'Undo rejection'}
+                />
               )
             }
             if (entry.kind === 'curse') {
@@ -173,22 +267,17 @@ export function ApprovalsTab({
               const curse = ci.curse as Curse | undefined
               if (!kid || !curse) return null
               return (
-                <div key={ci.id} className="grid items-center gap-x-2 py-1.5" style={{ gridTemplateColumns: '1fr 5.5rem 6.5rem 1.5rem' }}>
-                  <span className="text-sm truncate flex items-center gap-1.5 min-w-0">
-                    <span className="flex-shrink-0"><RealmIcon name={kid.avatar} size={15} /></span>
-                    <span className="text-white/50 flex-shrink-0">{kid.name}</span>
-                    <span className="text-white/35 truncate flex items-center gap-1"><RealmIcon name={curse.icon} size={14} />{curse.title}</span>
-                  </span>
-                  <span className="text-white/25 text-xs whitespace-nowrap">{ci.resolved_at ? formatQuestDate(ci.resolved_at.slice(0, 10)) : ''}</span>
-                  <span className="text-xs font-semibold text-red-400 whitespace-nowrap inline-flex items-center gap-1"><RealmIcon name="☠️" size={13} /> -{ci.coins_deducted}<RealmIcon name="🪙" size={12} /></span>
-                  <button
-                    onClick={() => actions.undoResolvedCurse(ci.id)}
-                    className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-xl text-xs text-white/60 hover:text-cq-gold transition-all"
-                    title="Undo"
-                  >
-                    <RealmIcon name="↩" size={15} />
-                  </button>
-                </div>
+                <ReviewRow
+                  key={ci.id}
+                  icon={curse.icon}
+                  title={curse.title}
+                  meta={`${kid.name} · Coin adjustment`}
+                  date={ci.resolved_at ? formatQuestDate(ci.resolved_at.slice(0, 10)) : 'Resolved'}
+                  outcome={{ amount: -ci.coins_deducted }}
+                  outcomeTone="negative"
+                  onUndo={() => actions.undoResolvedCurse(ci.id)}
+                  undoLabel="Undo coin adjustment"
+                />
               )
             }
             const r = entry.item
@@ -196,22 +285,20 @@ export function ApprovalsTab({
             const reward = r.reward as Reward | undefined
             if (!kid || !reward) return null
             return (
-              <div key={r.id} className="grid items-center gap-x-2 py-1.5" style={{ gridTemplateColumns: '1fr 5.5rem 6.5rem 1.5rem' }}>
-                <span className="text-sm truncate flex items-center gap-1.5 min-w-0">
-                  <span className="flex-shrink-0"><RealmIcon name={kid.avatar} size={15} /></span>
-                  <span className="text-white/50 flex-shrink-0">{kid.name}</span>
-                    <span className="text-white/35 truncate flex items-center gap-1"><RealmIcon name={reward.icon} size={14} />{reward.title}</span>
-                </span>
-                <span className="text-white/25 text-xs whitespace-nowrap">{formatQuestDate((r.processed_at ?? r.redeemed_at).slice(0, 10))}</span>
-                {r.status === 'approved'
-                  ? <span className="text-xs font-semibold text-cq-gold whitespace-nowrap inline-flex items-center gap-1"><RealmIcon name="🎁" size={13} /> -{r.cost_charged ?? reward.cost}<RealmIcon name="🪙" size={12} /></span>
-                  : <span className="text-xs font-semibold text-red-400 whitespace-nowrap inline-flex items-center gap-1"><RealmIcon name="✗" size={13} /> denied</span>
-                }
-                <div className="w-6" />
-              </div>
+              <ReviewRow
+                key={r.id}
+                icon={reward.icon}
+                title={reward.title}
+                meta={`${kid.name} · ${r.status === 'approved' ? 'Reward redeemed' : 'Reward denied'}`}
+                date={formatQuestDate((r.processed_at ?? r.redeemed_at).slice(0, 10))}
+                outcome={r.status === 'approved' ? { amount: -(r.cost_charged ?? reward.cost) } : { label: 'Denied' }}
+                outcomeTone={r.status === 'approved' ? 'gold' : 'negative'}
+                undoLabel="No action available"
+              />
             )
-          })}
-        </div>
+            })}
+          </div>
+        </section>
       )}
     </motion.div>
   )
